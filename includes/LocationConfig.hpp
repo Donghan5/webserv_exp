@@ -4,6 +4,8 @@
 # include <vector>
 # include <map>
 
+class ServerConfig;
+
 class LocationConfig {
 	private:
 	
@@ -24,6 +26,7 @@ class LocationConfig {
 		std::string	_alias;
 		std::string _try_files; //server, location
 		std::string	_root; //http, server, location
+		long long	_client_max_body_size; //http, server, location in bytes
 		bool		_autoindex;
 		
 		std::vector<std::string>	_index; //http, server, location
@@ -31,6 +34,7 @@ class LocationConfig {
 		std::vector<std::string>	_allowed_methods;
 
 		std::map<std::string, LocationConfig>	_locations;
+		ServerConfig	*back_ref;
 };
 
 #endif

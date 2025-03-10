@@ -12,7 +12,8 @@ OBJ_DIR = objs
 # Source files
 SRCS = $(SRC_DIR)/HttpConfig.cpp $(SRC_DIR)/ServerConfig.cpp  $(SRC_DIR)/LocationConfig.cpp \
 		$(SRC_DIR)/Parser.cpp $(SRC_DIR)/SelectServer.cpp $(SRC_DIR)/PollServer.cpp \
-		$(SRC_DIR)/main.cpp $(SRC_DIR)/RequestsManager.cpp $(SRC_DIR)/Request.cpp 
+		$(SRC_DIR)/main.cpp $(SRC_DIR)/RequestsManager.cpp $(SRC_DIR)/Request.cpp \
+		$(SRC_DIR)/Response.cpp
 
 # Object files (convert .cpp to .o)
 OBJS = $(SRCS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)

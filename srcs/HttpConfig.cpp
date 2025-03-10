@@ -5,7 +5,7 @@ HttpConfig::HttpConfig(/* args */) {
 	_global_worker_process = "";
 	_global_error_log = "";
 	_global_pid = "";
-	_event_worker_connections = 1024;
+	_event_worker_connections = 512;
 	_event_use = "poll";
 	_add_header = ""; //http, server, location
 	_include = "";
@@ -14,7 +14,7 @@ HttpConfig::HttpConfig(/* args */) {
 	_sendfile = "";
 	_keepalive_timeout = "";
 	_gzip = "";
-	_client_max_body_size = "";
+	_client_max_body_size = 1048576;
 	_root = "./www"; //http, server
 }
 

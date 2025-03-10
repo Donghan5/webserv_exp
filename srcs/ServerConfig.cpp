@@ -7,6 +7,7 @@ ServerConfig::ServerConfig() {
 	_location = "";
 	_try_files = "";
 	_root = ""; //http, server
+	_client_max_body_size = 1048576;
 }
 
 ServerConfig::ServerConfig(const ServerConfig &obj) {
@@ -16,6 +17,7 @@ ServerConfig::ServerConfig(const ServerConfig &obj) {
 	_location = obj._location;
 	_try_files = obj._try_files;
 	_root = obj._root; //http, server
+	_client_max_body_size = obj._client_max_body_size;
 	if (!obj._server_name.empty())
 		_server_name = obj._server_name; //http, server
 	else

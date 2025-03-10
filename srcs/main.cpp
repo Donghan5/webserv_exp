@@ -55,7 +55,6 @@ int main() {
 		server._root = "./www3";
 		server._index.push_back("index.html");
 		
-		
 		l1._path = "/";
 		l1._root = "./www3";
 		l1._index.push_back("index.html");
@@ -70,6 +69,10 @@ int main() {
 		server._locations[l1._path] = l1;
 		server._locations[l2._path] = l2;
 		config._servers.push_back(server);
+
+		config._servers[0]._back_ref = &config;
+		config._servers[0]._locations[l1._path].back_ref = &config._servers[0];
+		config._servers[0]._locations[l2._path].back_ref = &config._servers[0];
 	} catch (const std::exception& e) {
 		std::cerr << "Parsing Error: " << e.what() << std::endl;
 		return 1;

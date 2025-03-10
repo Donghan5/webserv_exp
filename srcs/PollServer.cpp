@@ -130,10 +130,10 @@ void PollServer::AcceptClient(int new_fd) {
 	}
 }
 
-bool PollServer::WaitAndService(RequestsManager &requests, std::vector<struct pollfd>	&temp_pollfds) {
+bool PollServer::WaitAndService(RequestsManager &manager, std::vector<struct pollfd>	&temp_pollfds) {
 	temp_pollfds = _pollfds;
 
-	if (poll(&temp_pollfds[0], temp_pollfds.size(), -1) < 0) { //? use temp or original pollfds
+	if (poll(&_pollfds[0], _pollfds.size(), -1) < 0) {
 		if (errno == EINTR)
 			return true;
 		throw std::runtime_error("Poll failed");
@@ -155,13 +155,21 @@ bool PollServer::WaitAndService(RequestsManager &requests, std::vector<struct po
 		if (is_server_socket && POLLIN) {
 			AcceptClient(temp_pollfds[i].fd);
 		} else {
-			requests.setClientFd(temp_pollfds[i].fd);
-			if (!requests.HandleClient()) {
+			manager.setClientFd(temp_pollfds[i].fd);
+			int status = manager.HandleClient();
+			if (!status) {
 				for (size_t j = 0; j < _pollfds.size(); ++j)
 				{
 					if (_pollfds[j].fd == temp_pollfds[i].fd)
 					{
 						_pollfds.erase(_pollfds.begin() + j);
+						break;
+					}
+				}
+			} else if (status == 2) {
+				for (size_t i = 0; i < _pollfds.size(); ++i) {
+					if (_pollfds[i].fd == temp_pollfds[i].fd) {
+						_pollfds[i].events = POLLOUT;
 						break;
 					}
 				}
@@ -172,17 +180,17 @@ bool PollServer::WaitAndService(RequestsManager &requests, std::vector<struct po
 }
 
 void PollServer::start() {
-	RequestsManager					requests;
+	RequestsManager					manager;
 	std::vector<struct pollfd>	temp_pollfds;
 
 	if (!config) {
 		std::cout << "Can't start server: config is not set\n";
 	}
-	requests.setConfig(config);
+	manager.setConfig(config);
 	running = true;
 
 	do {
-		if (!WaitAndService(requests, temp_pollfds))
+		if (!WaitAndService(manager, temp_pollfds))
 			throw std::runtime_error("Poll error");
 
 		// requests.CloseClient(); //??

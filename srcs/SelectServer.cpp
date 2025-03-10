@@ -172,7 +172,7 @@ void SelectServer::AcceptClient(int new_fd) {
 	}
 }
 
-bool SelectServer::WaitAndService(RequestsManager &requests, fd_set &temp_fd_set) {
+bool SelectServer::WaitAndService(RequestsManager &manager, fd_set &temp_fd_set) {
 	temp_fd_set = _fd_set;
 
 	if (select (FD_SETSIZE, &temp_fd_set, NULL, NULL, NULL) < 0) {
@@ -198,25 +198,10 @@ bool SelectServer::WaitAndService(RequestsManager &requests, fd_set &temp_fd_set
 		if (is_server_socket) {
 			AcceptClient(i);
 		} else {
-			requests.setClientFd(i);
-			if (!requests.HandleClient()) {
+			manager.setClientFd(i);
+			if (!manager.HandleClient()) {
 				FD_CLR(i, &_fd_set);
 			}
-			// // Handle client socket
-			// if (POLLIN) {
-			// 	std::cerr << "handle_client_read\n";
-			// 	HandleRead(i);
-			// 	FD_CLR(i, &_fd_set);
-			// }
-			// if (POLLOUT) {
-			// 	std::cerr << "handle_client_write\n";
-			// 	HandleWrite(i);
-			// 	FD_CLR(i, &_fd_set);
-			// }
-			// if (POLLERR | POLLHUP | POLLNVAL) {
-			// 	std::cerr << "else\n";
-			// 	CloseClient(i);
-			// }
 		}
 	}
 
@@ -224,17 +209,17 @@ bool SelectServer::WaitAndService(RequestsManager &requests, fd_set &temp_fd_set
 }
 
 void SelectServer::start() {
-	RequestsManager	requests;
+	RequestsManager	manager;
 	fd_set		temp_fd_set;
 
 	if (!config) {
 		std::cout << "Can't start server: config is not set\n";
 	}
-	requests.setConfig(config);
+	manager.setConfig(config);
 	running = true;
 
 	do {
-		if (!WaitAndService(requests, temp_fd_set))
+		if (!WaitAndService(manager, temp_fd_set))
 			throw std::runtime_error("Poll error");
 
 		// requests.CloseClient(); //??

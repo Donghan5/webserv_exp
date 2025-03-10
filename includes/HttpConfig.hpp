@@ -26,7 +26,7 @@ class HttpConfig {
 		std::string					_sendfile;
 		std::string					_keepalive_timeout;
 		std::string					_gzip;
-		std::string					_client_max_body_size;
+		long long					_client_max_body_size;  //http, server, location in bytes
 		std::vector<std::string>	_server_name; //http, server
 		std::string					_root; //http, server
 		std::vector<std::string>	_index; //http, server

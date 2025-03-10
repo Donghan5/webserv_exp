@@ -12,6 +12,7 @@ LocationConfig::LocationConfig(/* args */) {
 	_alias = "";
 	_try_files = "";
 	_root = "";
+	_client_max_body_size = 1048576;
 	_autoindex = false;
 }
 
@@ -28,6 +29,7 @@ LocationConfig::LocationConfig(const LocationConfig &obj) {
 	_try_files = obj._try_files;
 	_root = obj._root;
 	_autoindex = obj._autoindex;
+	_client_max_body_size = obj._client_max_body_size;
 	if (!obj._index.empty())
 		_index = obj._index; //http, server
 	else
