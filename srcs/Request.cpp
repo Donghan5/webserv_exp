@@ -9,7 +9,7 @@ bool Request::parseRequest() {
 
 	if (_full_request == "")
 		return false;
-	
+
 	//parse first line		GET / HTTP/1.1
 	std::getline(request_stream, temp_line);
 	temp_line_stream.str(temp_line);
@@ -20,13 +20,19 @@ bool Request::parseRequest() {
 	getline(temp_line_stream, temp_token, ' ');
 	_http_version = temp_token;
 
+	// parse first line (GET / HTTP/1.1) different way
+	// if (std::getline(temp_line_stream, temp_line)) {
+	// 	std::istringstream line_stream(temp_line);
+	// 	line_stream >> _method >> _file_path >> _http_version;
+	// }
+
 	//parse the rest of request searching for data nedded
 	while (std::getline(request_stream, temp_line)) {
 		temp_line_stream.clear();
 		temp_token.clear();
 		temp_line_stream.str(temp_line);
 		getline(temp_line_stream, temp_token, ' ');
-		
+
 		//searching for 	Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
 		if (temp_token == "Accept:") {
 			std::string			filetypes_line;
@@ -52,7 +58,7 @@ bool Request::parseRequest() {
 					type_quality = atof(name_quality_token.c_str() + 2);
 				_accepted_types[type_name] = type_quality;
 			}
-			
+
 		} else if (temp_token == "Cookie:") {
 			//to do cookies
 		} else if (temp_token == "Host:") {

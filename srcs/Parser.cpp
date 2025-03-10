@@ -24,9 +24,12 @@ Parser::~Parser() {
 /*
 
 				TO DO
-				
+
 */
 
+/*
+	read each config block
+*/
 void	Parser::ParseBlock(std::string block_name) {
 
 }
@@ -41,6 +44,6 @@ HttpConfig *Parser::Parse() {
 		return (NULL);
 	}
 
-	
+
 	return (new HttpConfig(*config));
 }
