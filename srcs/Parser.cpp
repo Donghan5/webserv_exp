@@ -34,7 +34,7 @@ void	Parser::ParseBlock(std::string block_name) {
 
 }
 
-HttpConfig *Parser::Parse() {
+HttpConfig *Parser::Parse(/* file name ? */) {
 	std::string line;
 	std::vector<std::string> tokens;
 
