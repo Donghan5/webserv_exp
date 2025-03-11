@@ -114,29 +114,33 @@ int RequestsManager::HandleWrite() {
 }
 
 int RequestsManager::HandleClient() {
+	int status = 0;
+
 	if (_client_fd == -1) {
 		std::cerr << "Requests Error: No client_fd set\n";
 		return 0;
 	}
 	if (POLLIN) {
 		// std::cerr << "Requests handle_client_read\n";
-		return HandleRead();
+		status = HandleRead();
 	}
 	if (POLLOUT) {
 		std::cerr << "Requests handle_client_write\n";
-		return HandleWrite();
+		HandleWrite();
 	}
 	if (POLLERR | POLLHUP | POLLNVAL) {
 		std::cerr << "Requests else\n";
 		CloseClient();
 		return 0;
 	}
+	if (status == 2)
+		return 2;
 	return 1;
 }
 
 void RequestsManager::CloseClient() {
 	close (_client_fd);
 	_partial_requests.erase(_client_fd);
-	// _partial_responses.erase(_client_fd);
+	_partial_responses.erase(_client_fd);
 	std::cerr << "Manager Cleared\n";
 }

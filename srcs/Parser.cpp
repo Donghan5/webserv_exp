@@ -24,17 +24,14 @@ Parser::~Parser() {
 /*
 
 				TO DO
-
+				
 */
 
-/*
-	read each config block
-*/
 void	Parser::ParseBlock(std::string block_name) {
 
 }
 
-HttpConfig *Parser::Parse(/* file name ? */) {
+HttpConfig *Parser::Parse() {
 	std::string line;
 	std::vector<std::string> tokens;
 
@@ -44,6 +41,6 @@ HttpConfig *Parser::Parse(/* file name ? */) {
 		return (NULL);
 	}
 
-
+	
 	return (new HttpConfig(*config));
 }

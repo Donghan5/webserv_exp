@@ -268,6 +268,18 @@ std::string	Response::handleGET(LocationConfig* location) {
 	else
 		full_path.append(location->back_ref->_back_ref->_root);
 
+	full_path.append("/");
+
+	if (location->_index[0] != "")
+	{
+		std::cerr << "index found : " << location->_index[0] << "\n";
+		full_path.append(location->_index[0]);
+	}
+	else if (location->back_ref->_index[0] != "")
+		full_path.append(location->back_ref->_index[0]);
+	else
+		full_path.append(location->back_ref->_back_ref->_index[0]);
+
 	std::cerr << "Response::handleGET: full path is " << full_path << "\n";
 
 	if (access(full_path.c_str(), R_OK) == 0) {
@@ -291,11 +303,11 @@ std::string Response::getResponse() {
 
 	ServerConfig*	matchServer = NULL;
 	for (size_t i = 0; i < _config->_servers.size(); i++) {
-		if (_config->_servers[i]._listen_port != _request->_port)
+		if (_config->_servers[i]->_listen_port != _request->_port)
 			continue;
-		for (size_t k = 0; k < _config->_servers[i]._server_name.size(); k++) {
-			if (_config->_servers[i]._server_name[k] == _request->_host) {
-				matchServer = &_config->_servers[i];
+		for (size_t k = 0; k < _config->_servers[i]->_server_name.size(); k++) {
+			if (_config->_servers[i]->_server_name[k] == _request->_host) {
+				matchServer = _config->_servers[i];
 				break;
 			}
 		}
@@ -306,12 +318,9 @@ std::string Response::getResponse() {
 	}
 	
 	LocationConfig* matchLocation = NULL;
-	for (std::map<std::string, LocationConfig>::iterator it = matchServer->_locations.begin(); it != matchServer->_locations.end(); it++) {
-		if (it->first == _request->_file_path) {
-			matchLocation = &it->second;
-			break;
-		}
-	}
+
+	matchLocation = matchServer->_locations[_request->_file_path];
+
 	if (!matchLocation) {
 		std::cerr << "Response::getResponse error, no match location\n";
 		return "";

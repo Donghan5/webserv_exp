@@ -30,12 +30,12 @@ void PollServer::setConfig(HttpConfig *config) {
 	std::vector<int>	unique_ports;
 	for (size_t i = 0; i < config->_servers.size(); i++) {
 		for (size_t j = 0; j < unique_ports.size(); j++) {
-			if (unique_ports[j] != config->_servers[i]._listen_port) {
-				unique_ports.push_back(config->_servers[i]._listen_port);
+			if (unique_ports[j] != config->_servers[i]->_listen_port) {
+				unique_ports.push_back(config->_servers[i]->_listen_port);
 			}
 		}
 		if (unique_ports.empty())
-			unique_ports.push_back(config->_servers[i]._listen_port);
+			unique_ports.push_back(config->_servers[i]->_listen_port);
 	}
 
 	for (size_t i = 0; i < unique_ports.size(); i++) {
@@ -155,13 +155,13 @@ bool PollServer::WaitAndService(RequestsManager &manager, std::vector<struct pol
 		if (is_server_socket && POLLIN) {
 			AcceptClient(temp_pollfds[i].fd);
 		} else {
+			std::cerr << "new request came in\n";
 			manager.setClientFd(temp_pollfds[i].fd);
 			int status = manager.HandleClient();
+			std::cerr << "status: " << status << "\n";
 			if (!status) {
-				for (size_t j = 0; j < _pollfds.size(); ++j)
-				{
-					if (_pollfds[j].fd == temp_pollfds[i].fd)
-					{
+				for (size_t j = 0; j < _pollfds.size(); ++j) {
+					if (_pollfds[j].fd == temp_pollfds[i].fd) {
 						_pollfds.erase(_pollfds.begin() + j);
 						break;
 					}

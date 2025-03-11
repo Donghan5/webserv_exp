@@ -24,7 +24,7 @@ class ServerConfig {
 		std::map<int, std::string>				_error_pages; //http, server, location
 		long long								_client_max_body_size; //http, server, location in bytes
 
-		std::map<std::string, LocationConfig>	_locations;
+		std::map<std::string, LocationConfig*>	_locations;
 		HttpConfig								*_back_ref;
 };
 

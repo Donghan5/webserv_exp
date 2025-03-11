@@ -32,7 +32,7 @@ class HttpConfig {
 		std::vector<std::string>	_index; //http, server
 		std::map<int, std::string>	_error_pages; //http, server, location
 
-		std::vector<ServerConfig>	_servers;
+		std::vector<ServerConfig*>	_servers;
 };
 
 #endif
