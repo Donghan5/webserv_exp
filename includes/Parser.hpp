@@ -2,13 +2,17 @@
 # define PARSER_HPP
 # include "HttpConfig.hpp"
 # include "Logger.hpp"
+# include "Utils.hpp"
 # include <iostream>
 # include <fstream>
 
 
 /*
 
-				TO DO
+	Main parsing class
+		http: http and event
+		server
+		location
 
 */
 
@@ -25,6 +29,18 @@ class Parser {
 		Parser(const Parser &obj);
 		Parser &operator=(const Parser &obj);
 		~Parser();
+
+		template < typename T >
+		void parseKeyValue(std::string line, T &config);
+
+		template <>
+		void parseKeyValue(std::string line, HttpConfig &config);
+
+		template <>
+		void parseKeyValue(std::string line, ServerConfig &config);
+
+		template <>
+		void parseKeyValue(std::string line, LocationConfig &config);
 
 		HttpConfig	*Parse(std::string file_name);
 };

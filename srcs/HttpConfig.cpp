@@ -56,6 +56,20 @@ HttpConfig &HttpConfig::operator=(const HttpConfig &obj) {
 	return (*this);
 }
 
-HttpConfig::~HttpConfig() {
-	
+HttpConfig::~HttpConfig() {}
+
+void HttpConfig::setData(std::string key, std::string value) {
+	if (!value.empty() && value[value.size() - 1] == ';') {  // extract semi-colon
+		value.erase(value.size() - 1, 1);
+	}
+	this->_http_data[key] = value;
+}
+
+std::string HttpConfig::getData(std::string key) const {
+	std::map<std::string, std::string>::const_iterator it = this->_http_data.find(key);
+	if (it != _http_data.end()) {
+		std::string value = it->second;
+		return value;
+	}
+	return "";
 }

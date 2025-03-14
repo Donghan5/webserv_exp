@@ -40,5 +40,68 @@ ServerConfig &ServerConfig::operator=(const ServerConfig &obj) {
 	return (*this);
 }
 
-ServerConfig::~ServerConfig() {
+ServerConfig::~ServerConfig() {}
+
+void ServerConfig::setData(std::string key, std::string value) {
+	if (!value.empty() && value[value.size() - 1] == ';') {  // extract semi-colon
+		value.erase(value.size() - 1, 1);
+	}
+	this->_server_data[key] = value;
+}
+
+std::string ServerConfig::getData(std::string key) const {
+	std::map<std::string, std::string>::const_iterator it = this->_server_data.find(key);
+	if (it != _server_data.end()) {
+		std::string value = it->second;
+		return value;
+	}
+	return "";
+}
+
+void ServerConfig::setAddHeader(std::string add_header) {
+	add_header = getData("add_header");
+	this->_add_header = add_header;
+}
+
+std::string ServerConfig::getAddHeader(void) const {
+	return _add_header;
+}
+
+void ServerConfig::setListenPort(int listen_port) {
+	listen_port = std::atoi(getData("port").c_str());
+	this->_listen_port = listen_port;
+}
+
+int ServerConfig::getListenPort(void) const {
+	return _listen_port;
+}
+
+void ServerConfig::setListenServer(std::string listen_server) {
+	// ??
+}
+
+std::string ServerConfig::getListenServer(void) const {
+	// ??
+}
+
+void ServerConfig::setLocation(std::string location) {
+	// ??
+}
+
+std::string ServerConfig::getLocation(void) const {
+	// ??
+}
+
+void ServerConfig::setServerName(std::vector<std::string> server_name) {
+	std::string server_name_str = getData("server_name");
+	server_name = Utils::split(server_name_str, ' ');
+	this->_server_name = server_name;
+}
+
+std::vector<std::string> ServerConfig::getServerName(void) const {
+	return _server_name;
+}
+
+void ServerConfig::setRoot(std::string root) {
+	root = getData("root");
 }
