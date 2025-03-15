@@ -54,7 +54,7 @@ class HttpConfig {
 		void setSendFile(std::string sendfile);
 		void setKeepaliveTimeout(std::string keepalive_timeout);
 		void setGzip(std::string gzip);
-		void setClientMaxBodySize(long long client_max_body_size);
+		void setClientMaxBodySize(std::string client_max_body_size_str);
 		void setServerName(std::vector<std::string> server_name);
 		void setRoot(std::string root);
 		void setIndex(std::vector<std::string> index);

@@ -69,7 +69,7 @@ void Parser::parseKeyValue(std::string line, ServerConfig &config) {
 			value += " " + tokens[i];
 		}
 	}
-	config.setData(key, value)
+	config.setData(key, value);
 }
 
 template <>
@@ -81,25 +81,32 @@ void Parser::parseKeyValue(std::string line, LocationConfig &config) {
 		return;
 	}
 	config.setPath(tokens[1]); // Set path for location block
-    config.setData("path", tokens[1]);
+	config.setData("path", tokens[1]);
 
 	std::string key = tokens[0];
 	std::string value = tokens[1];
-	if (key == "server_name") {
-		for (size_t i = 2; i < tokens.size(); i++) {
-			value += " " + tokens[i];
-		}
+	if (!value.empty() && value[value.size() - 1] == ';') {  // extract semi-colon
+		value.erase(value.size() - 1, 1);
 	}
 	if (key == "add_header") config.setAddHeader(value);
 	else if (key == "proxy_pass") config.setProxyPass(value);
 	else if (key == "allow") config.setAllow(value);
-	else if (key == "deny") consif.setDeny(value);
-	config.setData(key, value);
+	else if (key == "deny") config.setDeny(value);
+	else if (key == "alias") config.setAlias(value);
+	else if (key == "try_files") config.setTryFiles(value);
+	else if (key == "root") config.setRoot(value);
+	else if (key == "client_max_body_size") config.setClientMaxBodySize(value);
+	else if (key == "autoindex") config.setAutoIndex(value);
+	else config.setData(key, value);
 }
 
 void	Parser::ParseBlock(std::string block_name) {
 	std::string line;
 	int bracket_count = 1;
+	HttpConfig http;
+	ServerConfig server;
+	LocationConfig location;
+
 	while (std::getline(file, line)) {
 		if (line.empty() || line[0] == '#') {  // line empty or comment
 			continue ;
@@ -118,13 +125,13 @@ void	Parser::ParseBlock(std::string block_name) {
 		}
 
 		if (block_name == "location") {
-			// location store
+			parseKeyValue(line, location);
 		}
 		else if (block_name == "server") {
-			// server store
+			parseKeyValue(line, server);
 		}
 		else if (block_name == "http" || block_name == "event") {
-			// http and event
+			parseKeyValue(line, http);
 		}
 	}
 }
