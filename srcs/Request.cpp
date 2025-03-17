@@ -1,17 +1,38 @@
 #include "Request.hpp"
 #include <sstream>
 
-bool Request::parseRequest() {
+void remove_trailing_r(STR &str) {
+	if (!str.empty() && str[str.length() - 1] == '\r') {
+		str.replace(str.length() - 1, 1, "\0");
+	}
+}
+
+void	process_path(STR &full_path, STR &file_name) {
+	std::cerr << "Full path before: " << full_path << "\n";
+
+	if (full_path.find('.') != STR::npos) {
+		file_name = full_path.substr(full_path.find_last_of('/') + 1, full_path.size());
+		full_path = full_path.substr(0, full_path.find_last_of('/') + 1);
+	} else {
+		file_name = "";
+	}
+
+	std::cerr << "Full path after: " << full_path << "\n";
+	std::cerr << "File name after: " << file_name << "\n";
+}
+
+bool Request::parseHeader() {
 	std::istringstream	request_stream(_full_request);
-    std::string			temp_line;
+    STR					temp_line;
 	std::istringstream	temp_line_stream;
-	std::string 		temp_token;
+	STR 				temp_token;
 
 	if (_full_request == "")
 		return false;
-	
+
 	//parse first line		GET / HTTP/1.1
 	std::getline(request_stream, temp_line);
+	remove_trailing_r(temp_line);
 	temp_line_stream.str(temp_line);
 	getline(temp_line_stream, temp_token, ' ');
 	_method = temp_token;
@@ -22,16 +43,20 @@ bool Request::parseRequest() {
 
 	//parse the rest of request searching for data nedded
 	while (std::getline(request_stream, temp_line)) {
+		if (temp_line.find("\r\n\r\n") != STR::npos) {
+			return true;
+		}
+		remove_trailing_r(temp_line);
 		temp_line_stream.clear();
 		temp_token.clear();
 		temp_line_stream.str(temp_line);
 		getline(temp_line_stream, temp_token, ' ');
-		
+
 		//searching for 	Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
 		if (temp_token == "Accept:") {
-			std::string			filetypes_line;
+			STR			filetypes_line;
 			std::istringstream	filetypes_stream;
-			std::string 		filetype_token;
+			STR 		filetype_token;
 
 			//getting the second part of line line with filetypes
 			getline(temp_line_stream, filetypes_line, ' ');
@@ -40,19 +65,19 @@ bool Request::parseRequest() {
 			//getting types from type line one by one
 			while (getline(filetypes_stream, filetype_token, ',')) {
 				std::istringstream	name_quality_stream;
-				std::string 		name_quality_token;
-				std::string			type_name;
+				STR 		name_quality_token;
+				STR			type_name;
 				float				type_quality = 1.0;
 
 				//separating by name and value (quality/preference)
 				name_quality_stream.str(filetype_token);
 				getline(name_quality_stream, name_quality_token, ';');
-				type_name = name_quality_token;
+				type_name = name_quality_token.c_str();
+				type_name += '\0';
 				if (getline(name_quality_stream, name_quality_token, ';'))
 					type_quality = atof(name_quality_token.c_str() + 2);
-				_accepted_types[type_name] = type_quality;
+				_accepted_types[type_name.c_str()] = type_quality;
 			}
-			
 		} else if (temp_token == "Cookie:") {
 			//to do cookies
 		} else if (temp_token == "Host:") {
@@ -65,7 +90,7 @@ bool Request::parseRequest() {
 			host_start = temp_line.find_first_of(':') + 2;
 			delim_position = temp_line.find(':', temp_line.find_first_of(':') + 1);
 
-			if (delim_position == std::string::npos) { //Not tested
+			if (delim_position == (int)STR::npos) { //Not tested
 			//host without port
 				host_end = temp_line.find_last_not_of(' ') + 1; //		Future check required: newline included or not to remove +1
 				_host = temp_line.substr(host_start, host_end - host_start);
@@ -84,11 +109,44 @@ bool Request::parseRequest() {
 			end_position = temp_line.find_last_not_of(' ');
 			_content_type = temp_line.substr(delim_position + 2, end_position - delim_position - 2);
 			std::cerr << "cont type = " << _content_type << "\n";
+		} else if (temp_token == "Content-Length:") {
+			int	delim_position;
+			int	end_position;
+
+			delim_position = temp_line.find_first_of(':');
+			end_position = temp_line.length();
+			_body_size = atoi((temp_line.substr(delim_position + 1, delim_position + 1 - end_position)).c_str());
 		}
 		temp_line.clear();
 		temp_token.clear();
     }
 
+	// process_path(_file_path, _file_name);
+	return true;
+}
+
+bool Request::parseBody() {
+	int	body_beginning = -1;
+	if (_full_request == "")
+		return false;
+
+	body_beginning = _full_request.find("\r\n\r\n");
+	if (body_beginning == CHAR_NOT_FOUND)
+		return false;
+	_body = _full_request.substr(body_beginning + 4, _full_request.length() - (body_beginning + 4));
+
+	//if _full_request.length() - (body_beginning + 4) != _body_size 		potential error
+
+	// std::cerr << "DEBUG Requet::parseBody _body = |" << _body << "|\n";
+	return true;
+}
+
+
+bool Request::parseRequest() {
+	if (!parseHeader())
+		return false;
+	if (_body_size && !parseBody())
+		return false;
 	return true;
 }
 
@@ -100,9 +158,11 @@ Request::Request() {
 	_host = "localhost";
 	_port = 80;
 	_content_type = "";
+	_body = "";
+	_body_size = 0;
 }
 
-Request::Request(std::string request) {
+Request::Request(STR request) {
 	_full_request = request;
 	_file_path = "";
 	_method = "";
@@ -110,6 +170,8 @@ Request::Request(std::string request) {
 	_host = "localhost";
 	_port = 80;
 	_content_type = "";
+	_body = "";
+	_body_size = 0;
 	parseRequest();
 }
 
@@ -122,15 +184,19 @@ Request::Request(const Request &obj) {
 	_port = obj._port;
 	_content_type = obj._content_type;
 	_accepted_types = obj._accepted_types;
+	_body = obj._body;
+	_body_size = obj._body_size;
 }
 
 Request::~Request() {
 
 }
 
-void Request::setRequest(std::string request) {
+void Request::setRequest(STR request) {
 	_full_request = request;
+	_body = "";
 
-	parseRequest();
+	if (!parseRequest()) {
+		std::cerr << "Request::setRequest: Request Parsing error!\n";
+	}
 }
-

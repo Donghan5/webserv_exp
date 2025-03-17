@@ -47,43 +47,79 @@ void RequestsManager::setClientFd(int client_fd) {
 }
 
 int RequestsManager::HandleRead() {
-	Request		request;
-	Response	response;
+	Request				request;
+	Response			response;
+	static long long	body_read = -1;
 
     try {
-        char buffer[4096];
-		int nbytes;
+        char 	buffer[4096];
+		int 	nbytes = 1;
 
-		nbytes = read (_client_fd, buffer, 4096);
-		if (nbytes <= 0) {
-			if (nbytes == 0 || errno != EAGAIN) {
-                CloseClient();
-            }
-			throw std::runtime_error("read error");
-			return 0;
-		}
-		
-		if (_config->_client_max_body_size && (_partial_requests[_client_fd].length() + nbytes > _config->_client_max_body_size)) {
-			//return 413 (Request Entity Too Large) error
-			std::cerr << "413 (Request Entity Too Large) error\n";
-			CloseClient();
-			return 0;
-		}
-		
-		_partial_requests[_client_fd].append(buffer, nbytes);
+		while (nbytes > 0)
+		{
+			nbytes = read (_client_fd, buffer, 4096);
+			if (nbytes <= 0) {
+				if (nbytes == 0) {
+					std::cerr << "nbytes == 0\n";
+					CloseClient();
+				}
+				throw std::runtime_error("read error");
+				return 0;
+			}
 
-		size_t header_end = _partial_requests[_client_fd].find("\r\n\r\n");
-        if (header_end != std::string::npos) {
-			std::cerr << "Requests HandleRead: End-of-file Full message:\n" << _partial_requests[_client_fd] << "\n";
-			request.setRequest(_partial_requests[_client_fd]);
-			response.setConfig(_config);
-			response.setRequest(&request);
-			_partial_responses[_client_fd] = response.getResponse();
-			_partial_requests.erase(_client_fd);
-			std::cerr << "REsponse is " << _partial_responses[_client_fd] <<"\n";
-			// CloseClient();
-			// return 0;
-			return 2;
+			if (body_read != -1) {
+				// std::cerr << "RequestsManager::HandleRead Reading body: " << body_read << ", + " << nbytes << "\n";
+				// std::cerr << "RequestsManager::HandleRead Total size:  " << (_partial_requests[_client_fd].size() + nbytes) << "\n";
+				body_read += nbytes;
+			}
+
+			// FIX _client_max_body_size PARSING
+			// if (body_read != -1 && _config->_client_max_body_size && (body_read > _config->_client_max_body_size)) {
+			// 	//return 413 (Request Entity Too Large) error
+			// 	std::cerr << "413 (Request Entity Too Large) error\n";
+			// 	CloseClient();
+			// 	return 0;
+			// }
+
+			_partial_requests[_client_fd].append(buffer, nbytes);
+
+			int header_end = _partial_requests[_client_fd].find("\r\n\r\n");
+			if (body_read == -1 && header_end != CHAR_NOT_FOUND) {
+				std::cerr << "Requests HandleRead: End-of-file Full message:\n" << _partial_requests[_client_fd] << "\n";
+				request.setRequest(_partial_requests[_client_fd]);
+
+				if (request._body_size > 0) {
+					std::cerr << "RequestsManager::HandleRead Body needed of size " << request._body_size << "\n";
+					body_read = 0;
+				} else {
+					response.setConfig(_config);
+					response.setRequest(&request);
+
+					_partial_responses[_client_fd] = response.getResponse();
+					_partial_requests.erase(_client_fd);
+					// std::cerr << "REsponse is " << _partial_responses[_client_fd] <<"\n";
+					// CloseClient();
+					// return 0;
+					return 2;
+				}
+			}
+
+			if (body_read != -1 && _partial_requests[_client_fd].size() >= request._body_size) {
+				std::cerr << "RequestsManager::HandleRead Full body read! \n";
+				body_read = -1;
+
+				// std::cerr << "RequestsManager::HandleRead Full request :|" << _partial_requests[_client_fd] << "|\n";
+				request.setRequest(_partial_requests[_client_fd]);
+				response.setConfig(_config);
+				response.setRequest(&request);
+
+				_partial_responses[_client_fd] = response.getResponse();
+				_partial_requests.erase(_client_fd);
+				// std::cerr << "REsponse is " << _partial_responses[_client_fd] <<"\n";
+				// CloseClient();
+				// return 0;
+				return 2;
+			}
 		}
     } catch (const std::exception& e) {
         std::cerr << "Error in Requests HandleRead: " << e.what() << std::endl;
@@ -95,22 +131,32 @@ int RequestsManager::HandleRead() {
 
 int RequestsManager::HandleWrite() {
 	std::cerr << "handling write" << "\n";
-	std::string &response = _partial_responses[_client_fd];
-	ssize_t bytes_written = write(_client_fd, response.c_str(), response.length());
 
-	if (bytes_written <= 0) {
-		if (errno != EAGAIN)
+	try
+	{
+		STR &response = _partial_responses[_client_fd];
+		ssize_t bytes_written = write(_client_fd, response.c_str(), response.length());
+
+		if (bytes_written <= 0) {
 			CloseClient();
+			return 0;
+		}
+
+		response.erase(0, bytes_written);
+
+		if (response.empty()) {
+			CloseClient();
+			return 0;
+		}
+		return 1;
+
+	}
+	catch(const std::exception& e)
+	{
+		std::cerr << "HANDLE WRITE error : " << e.what() << '\n';
 		return 0;
 	}
-
-	response.erase(0, bytes_written);
-
-	if (response.empty()) {
-		CloseClient();
-		return 0;
-	}
-	return 1;
+	return 0;
 }
 
 int RequestsManager::HandleClient() {

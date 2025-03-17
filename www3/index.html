@@ -277,7 +277,7 @@
                 const actionsCell = row.insertCell();
 
                 const fileName = file.textContent.replace('/', '');
-                nameCell.innerHTML = `<a href="./uploads/${fileName}" target="_blank">${fileName}</a>`;
+                nameCell.innerHTML = `<a href="/uploads/${fileName}" target="_blank">${fileName}</a>`;
                 
                 const fileInfo = file.parentElement.textContent.trim();
                 const match = fileInfo.match(/(\d+)\s+(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})/);

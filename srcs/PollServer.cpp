@@ -27,7 +27,7 @@ void PollServer::setConfig(HttpConfig *config) {
 
 	this->config = config;
 
-	std::vector<int>	unique_ports;
+	VECTOR<int>	unique_ports;
 	for (size_t i = 0; i < config->_servers.size(); i++) {
 		for (size_t j = 0; j < unique_ports.size(); j++) {
 			if (unique_ports[j] != config->_servers[i]->_listen_port) {
@@ -130,7 +130,7 @@ void PollServer::AcceptClient(int new_fd) {
 	}
 }
 
-bool PollServer::WaitAndService(RequestsManager &manager, std::vector<struct pollfd>	&temp_pollfds) {
+bool PollServer::WaitAndService(RequestsManager &manager, VECTOR<struct pollfd>	&temp_pollfds) {
 	temp_pollfds = _pollfds;
 
 	if (poll(&_pollfds[0], _pollfds.size(), -1) < 0) {
@@ -181,7 +181,7 @@ bool PollServer::WaitAndService(RequestsManager &manager, std::vector<struct pol
 
 void PollServer::start() {
 	RequestsManager					manager;
-	std::vector<struct pollfd>	temp_pollfds;
+	VECTOR<struct pollfd>	temp_pollfds;
 
 	if (!config) {
 		std::cout << "Can't start server: config is not set\n";

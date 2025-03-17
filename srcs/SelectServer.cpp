@@ -29,7 +29,7 @@ void SelectServer::setConfig(HttpConfig *config) {
 
 	this->config = config;
 
-	std::vector<int>	unique_ports;
+	VECTOR<int>	unique_ports;
 	for (size_t i = 0; i < config->_servers.size(); i++) {
 		for (size_t j = 0; j < unique_ports.size(); j++) {
 			if (unique_ports[j] != config->_servers[i]->_listen_port) {
@@ -84,7 +84,7 @@ void SelectServer::setConfig(HttpConfig *config) {
 }
 
 void SelectServer::HandleWrite(int client_fd) {
-	std::string &response = _partial_responses[client_fd];
+	STR &response = _partial_responses[client_fd];
 	ssize_t bytes_written = write(client_fd, response.c_str(), response.length());
 
 	if (bytes_written <= 0)
@@ -180,9 +180,8 @@ bool SelectServer::WaitAndService(RequestsManager &manager, fd_set &temp_fd_set)
 			return true;
 		throw std::runtime_error("Select failed");
 	}
-
-
-	for (size_t i = 0; i < FD_SETSIZE; ++i)
+	
+	for (int i = 0; i < FD_SETSIZE; ++i)
 	{
 		if (!FD_ISSET (i, &temp_fd_set))
 			continue;

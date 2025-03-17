@@ -4,14 +4,14 @@
 
 class RequestsManager {
 	private:
-		HttpConfig 					*_config;
-		int							_client_fd;
-		std::map<int, std::string>	_partial_requests;
-		std::map<int, std::string>	_partial_responses;
+		HttpConfig 		*_config;
+		int				_client_fd;
+		MAP<int, STR>	_partial_requests;
+		MAP<int, STR>	_partial_responses;
 
-		int							HandleRead();                //*ints here should indicate next action like 1 = nothing, 0 = remove fd,
-																// 2 = update fd status
-		int 						HandleWrite();				//*
+		int				HandleRead();               //*ints here should indicate next action like 1 = nothing, 0 = remove fd,
+													// 2 = update fd status
+		int 			HandleWrite();				//*
 
 	public:
 		RequestsManager();
@@ -23,7 +23,7 @@ class RequestsManager {
 		
 		void setConfig(HttpConfig *config);
 		void setClientFd(int client_fd);
-		int HandleClient();										//*
+		int HandleClient();
 		void CloseClient();
 };
 

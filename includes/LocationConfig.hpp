@@ -1,75 +1,30 @@
 #ifndef LOCATIONCONFIG_HPP
 # define LOCATIONCONFIG_HPP
-# include <string>
-# include <vector>
-# include <map>
+# include "AConfigBase.hpp"
 
-class ServerConfig;
+struct LocationConfig : AConfigBase {
+	STR								_path;
+	STR								_return;
+	STR								_allow;
+	STR								_deny;
+	STR								_alias;
+	STR 							_try_files; 			//server, location
+	bool							_autoindex;
+	VECTOR<STR>						_allowed_methods;
+	MAP<STR, LocationConfig*>		_locations;
 
-class LocationConfig {
-	private:
+	void							_self_destruct();
 
-	public:
-		// default constructor and destructor
-		LocationConfig();
-		LocationConfig(const LocationConfig &obj);
-		LocationConfig &operator=(const LocationConfig &obj);
-		~LocationConfig();
-
-		// data structure
-		std::map<std::string, std::string> _location_data;
-
-		// keys
-		std::string	_path;
-		std::string	_add_header; //http, server, location
-		std::string	_proxy_pass;
-		// std::string	_rewrite; // ?
-		// std::string	_return;  // ?
-		std::string	_expires;
-		std::string	_allow;
-		std::string	_deny;
-		std::string	_alias;
-		std::string _try_files; //server, location
-		std::string	_root; //http, server, location
-		long long	_client_max_body_size; //http, server, location in bytes
-		bool		_autoindex;
-
-		std::vector<std::string>	_index; //http, server, location
-		std::map<int, std::string>	_error_pages; //http, server, location
-		std::vector<std::string>	_allowed_methods;
-
-
-		std::map<std::string, LocationConfig>	_locations;
-		ServerConfig	*back_ref; // do I need this ?
-
-		// setter
-		void setPath(std::string path);
-		void setAddHeader(std::string add_header);
-		void setProxyPass(std::string proxy_pass);
-		void setExpires(std::string expires);
-		void setAllow(std::string allow);
-		void setDeny(std::string deny);
-		void setAlias(std::string alias);
-		void setTryFiles(std::string try_files);
-		void setRoot(std::string root);
-		void setClientMaxBodySize(std::string client_max_body_size_str);
-		void setAutoIndex(std::string autoindex_str);
-		void setData(std::string key, std::string value);
-
-		// getter
-		std::string getPath(void) const;
-		std::string getAddHeader(void) const;
-		std::string getProxyPass(void) const;
-		std::string getExpires(void) const;
-		std::string getAllow(void) const;
-		std::string getDeny(void) const;
-		std::string getAlias(void) const;
-		std::string getTryFiles(void) const;
-		std::string getRoot(void) const;
-		long long getClientMaxBodySize(void) const;
-		bool getAutoIndex(void) const;
-		std::string getData(std::string key) const;
-
+	LocationConfig() :
+        _path(""),
+        _return(""),
+        _allow(""),
+        _deny(""),
+        _alias(""),
+        _try_files(""),
+        _autoindex(false),
+        _allowed_methods()
+    {}
 };
 
 #endif

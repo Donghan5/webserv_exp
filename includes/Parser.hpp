@@ -1,48 +1,50 @@
 #ifndef PARSER_HPP
 # define PARSER_HPP
 # include "HttpConfig.hpp"
-# include "Logger.hpp"
-# include "Utils.hpp"
+# include "LocationConfig.hpp"
+# include "ServerConfig.hpp"
 # include <iostream>
 # include <fstream>
 
+enum ElemType {
+    BLOCK,
+	BLOCK_END,
+	DIRECTIVE,
+	BAD_TYPE
+};
 
-/*
+struct Directive {
+	STR					name;
+	VECTOR<STR>	values;
+};
 
-	Main parsing class
-		http: http and event
-		server
-		location
 
-*/
+struct Block {
+	STR						name;
+	VECTOR<Directive>	directives;
+};
+
 
 class Parser {
 	private:
-		HttpConfig	*config;
-		void ParseBlock(std::string block_name);
-		std::string _file_name;
-		std::ifstream	file;
+		HttpConfig		*_config;
+		std::ifstream	_file;
+		STR				_filepath;
+		STR				_full_config;
+		int				_position;
 
+		ElemType	DetectNextType(STR line, int position, int &block_size);
+		bool		ValidateConfig(STR full_config);
+		bool		FillBlock(AConfigBase *block);
+		
 	public:
-		Parser(std::string file_name);
-		Parser(std::string file);
+		Parser();
+		Parser(STR file);
 		Parser(const Parser &obj);
 		Parser &operator=(const Parser &obj);
 		~Parser();
 
-		template < typename T >
-		void parseKeyValue(std::string line, T &config);
-
-		template <>
-		void parseKeyValue(std::string line, HttpConfig &config);
-
-		template <>
-		void parseKeyValue(std::string line, ServerConfig &config);
-
-		template <>
-		void parseKeyValue(std::string line, LocationConfig &config);
-
-		HttpConfig	*Parse(std::string file_name);
+		HttpConfig	*Parse();
 };
 
 #endif

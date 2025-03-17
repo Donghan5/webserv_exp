@@ -1,9 +1,10 @@
 #include "Response.hpp"
 
-void	init_mimetypes(std::map<std::string, std::string>	&mime_types) {
+void	init_mimetypes(std::map<STR, STR>	&mime_types) {
 	mime_types[".html"] = "text/html";
 	mime_types[".htm"] = "text/html";
 	mime_types[".shtml"] = "text/html";
+	mime_types[".css"] = "text/css";
 	mime_types[".gif"] = "image/gif";
 	mime_types[".jpeg"] = "image/jpeg";
 	mime_types[".jpg"] = "image/jpeg";
@@ -111,7 +112,7 @@ void	init_mimetypes(std::map<std::string, std::string>	&mime_types) {
 	mime_types[".avi"] = "video/x-msvideo";
 }
 
-void	init_status_codes(std::map<int, std::string>	&status_codes) {
+void	init_status_codes(std::map<int, STR>	&status_codes) {
 	// Informational responses (100-199)
 	status_codes[100] = "100 Continue";
 	status_codes[101] = "101 Switching Protocols";
@@ -192,7 +193,7 @@ Response::Response(Request *request, HttpConfig *config) {
 	_config = config;
 }
 
-std::string Response::createResponse(int statusCode, const std::string& contentType, const std::string& body) {
+STR Response::createResponse(int statusCode, const STR& contentType, const STR& body) {
     std::stringstream response;
     response << "HTTP/1.1 " << _all_status_codes[statusCode] << "\r\n"
              << "Content-Type: " << contentType << "\r\n"
@@ -201,6 +202,8 @@ std::string Response::createResponse(int statusCode, const std::string& contentT
              << "\r\n"
              << body;
 
+
+	// std::cerr << "DEBUG Response : @" << response.str() << "@\n";
     return response.str();
 }
 
@@ -231,7 +234,7 @@ void Response::setConfig(HttpConfig *config) {
 	_config = config;
 }
 
-bool ends_with(const std::string &str, const std::string &suffix)
+bool ends_with(const STR &str, const STR &suffix)
 {
 	if (str.length() < suffix.length())
 	{
@@ -240,9 +243,7 @@ bool ends_with(const std::string &str, const std::string &suffix)
 	return str.compare(str.length() - suffix.length(), suffix.length(), suffix) == 0;
 }
 
-
-//REWORK, should use ours
-std::string getMimeType(const std::string& path) {
+STR getMimeType(const STR& path) {
     // Update MIME type detection with more common types
     if (ends_with(path, ".html") || ends_with(path, ".htm")) return "text/html; charset=utf-8";
     if (ends_with(path, ".css")) return "text/css; charset=utf-8";
@@ -258,29 +259,151 @@ std::string getMimeType(const std::string& path) {
     return "text/plain; charset=utf-8";  // Default to text/plain instead of application/octet-stream
 }
 
-std::string	Response::handleGET(LocationConfig* location) {
-	std::string full_path = "";
+STR	Response::getMime(STR path) {
 
-	if (location->_root != "")
-		full_path.append(location->_root);
-	else if (location->back_ref->_root != "")
-		full_path.append(location->back_ref->_root);
-	else
-		full_path.append(location->back_ref->_back_ref->_root);
-
-	full_path.append("/");
-
-	if (location->_index[0] != "")
+	// std::cerr << "ending mime : " << ending << ", for path " << path << "\n";
+	try
 	{
-		std::cerr << "index found : " << location->_index[0] << "\n";
-		full_path.append(location->_index[0]);
+		STR	ending = path.substr(path.find_last_of('.'));
+		return _all_mime_types.at(ending);
 	}
-	else if (location->back_ref->_index[0] != "")
-		full_path.append(location->back_ref->_index[0]);
-	else
-		full_path.append(location->back_ref->_back_ref->_index[0]);
+	catch(const std::exception& e)
+	{
+		return "text/plain";
+	}
 
-	std::cerr << "Response::handleGET: full path is " << full_path << "\n";
+	return "text/plain";
+}
+
+#include <dirent.h>
+
+//rewrite, recheck
+STR	Response::handleDIR(STR path) {
+	DIR* dir = opendir(path.c_str());
+    if (!dir) {
+        return createResponse(500, "text/plain", "Failed to read directory");
+    }
+
+    std::stringstream html;
+    html << "<html><head><title>Index of " << path << "</title></head><body>\n";
+    html << "<h1>Index of " << path << "</h1><hr><pre>\n";
+
+    struct dirent* entry;
+    while ((entry = readdir(dir)) != NULL) {
+        STR name = entry->d_name;
+        struct stat st;
+        STR fullpath = path + "/" + name;
+
+        if (stat(fullpath.c_str(), &st) == 0) {
+            char timeStr[100];
+            strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", localtime(&st.st_mtime));	//REDO, bad funcs!
+
+			// std::cerr << "DEBUG Building Directory Listing full_path = " << fullpath << ", path = " << path << ", name = " << name << std::endl;
+
+            html << "<a href=\"" << name << (S_ISDIR(st.st_mode) ? "/" : "") << "\">"
+                 << name << (S_ISDIR(st.st_mode) ? "/" : "") << "</a>"
+                 << STR(50 - name.length(), ' ')
+                 << timeStr
+                 << STR(20, ' ')
+                 << st.st_size << "\n";
+        }
+    }
+
+    html << "</pre><hr></body></html>";
+    closedir(dir);
+    return createResponse(200, "text/html", html.str());
+}
+
+void	Response::selectIndexIndexes(VECTOR<STR> indexes, STR &best_match, float &match_quality) {
+	size_t	i = 0;
+
+	while (i < indexes.size()) {
+		if (match_quality == 1)
+			break;
+		STR index_mime = getMime(indexes[i]);
+
+		try
+		{
+			if (_request->_accepted_types[index_mime] > match_quality) {
+				std::cerr << index_mime << " is the better match that " << best_match
+					<< "! Quality " << _request->_accepted_types[index_mime] << " is better than " << match_quality << "\n";
+				best_match = indexes[i];
+				match_quality = _request->_accepted_types[index_mime];
+			}
+			else
+				std::cerr << index_mime << " is not more than " << match_quality << "\n";
+		}
+		catch(const std::exception& e)
+		{
+			std::cerr << index_mime << " is not accepted: " << index_mime << "\n";
+		}
+		try
+		{
+			if (_request->_accepted_types["*/*"] > match_quality) {
+				std::cerr << "*/* is the better match than " << best_match
+					<< "! Quality " << _request->_accepted_types["*/*"] << " is better than " << match_quality << "\n";
+				best_match = indexes[i];
+				match_quality = _request->_accepted_types["*/*"];
+			}
+			else
+				std::cerr << "*/* is not more than " << match_quality << "\n";
+		}
+		catch(const std::exception& e)
+		{
+			std::cerr << "*/* is not accepted: " << index_mime << "\n";
+		}
+
+		i++;
+	}
+}
+STR	Response::selectIndexAll(LocationConfig* location) {
+	STR best_match = "";
+	float		match_quality = 0.0;
+
+	/*
+		Searching on best existing level for index match with best quality.
+
+		quality is not needed - remove later
+	*/
+	if (!location->_index.empty()) {
+		selectIndexIndexes(location->_index, best_match, match_quality);
+	} else if (!location->back_ref->_index.empty())
+		selectIndexIndexes(location->back_ref->_index, best_match, match_quality);
+	else
+		selectIndexIndexes(location->back_ref->back_ref->_index, best_match, match_quality);
+
+	if (best_match == "")
+	{
+		throw std::runtime_error("No index match");
+	}
+	else
+		std::cerr << "Response::selectIndexAll: best_match is " << best_match << ", quality: " << match_quality << "\n";
+	return best_match;
+}
+
+FileType Response::checkFile(const STR& path) {
+    if (path.empty()) {
+        std::cerr << "Error: Empty path provided." << std::endl;
+        return NotFound;
+    }
+
+    struct stat path_stat;
+    if (stat(path.c_str(), &path_stat) != 0) {
+        std::cerr << "Error checking file: " << path << " Reason: " << strerror(errno) << std::endl;
+        return NotFound;
+    }
+
+    if (S_ISDIR(path_stat.st_mode)) {
+        return Directory;
+    }
+    return NormalFile;
+}
+
+
+STR	Response::handleGET(STR full_path, bool isDIR) {
+	if (isDIR) {
+		return handleDIR(full_path);
+	}
 
 	if (access(full_path.c_str(), R_OK) == 0) {
 		std::ifstream file(full_path.c_str(), std::ios::binary);
@@ -290,18 +413,213 @@ std::string	Response::handleGET(LocationConfig* location) {
 			return createResponse(200, getMimeType(full_path), content.str());
 		}
 	}
-	return createResponse(403, "text/plain", "HANDLEGET ERROR");
+	return createResponse(403, "text/plain", "HANDLEGET ERROR (Forbidden)");
 }
 
-std::string Response::getResponse() {
-	std::string	response = "";
+//dummy, actual body doesn't exists yet
+STR Response::handlePOST(STR full_path) {
+	std::cerr << "DEBUG Response::handlePOST start\n";
+
+    // Check if directory exists to upload to
+    STR dir_path = full_path.substr(0, full_path.find_last_of('/'));
+    if (access(dir_path.c_str(), W_OK) != 0) {
+        return createResponse(403, "text/plain", "HANDLEPOST ERROR (Forbidden - Cannot write to directory)");
+    }
+
+    // Check if file already exists
+    bool file_exists = (access(full_path.c_str(), F_OK) == 0);
+
+    // Open file for writing
+    std::ofstream file(full_path.c_str(), std::ios::binary);
+    if (!file) {
+        return createResponse(500, "text/plain", "HANDLEPOST ERROR (Internal Server Error - Cannot create file)");
+    }
+
+    if (_request->_body.empty()) {
+        return createResponse(400, "text/plain", "HANDLEPOST ERROR (Bad Request - Empty body)");
+    }
+
+    file << _request->_body;
+    file.close();
+
+    // Return appropriate status code (201 Created or 200 OK if updated)
+    STR status_message = file_exists ? "OK - File Updated" : "Created";
+    int status_code = file_exists ? 200 : 201;
+
+    // STR status_message =  "Created";
+    // int status_code = 201;
+
+	std::cerr << "DEBUG Response::handlePOST end\n";
+
+    return createResponse(status_code, "text/plain", status_message);
+}
+
+STR Response::handleDELETE(STR full_path) {
+    // Check if file exists
+    if (access(full_path.c_str(), F_OK) != 0) {
+        return createResponse(404, "text/plain", "Not Found");
+    }
+
+    // Check if we have permission to delete
+    if (access(full_path.c_str(), W_OK) != 0) {
+        return createResponse(403, "text/plain", "Forbidden");
+    }
+
+    // Try to delete the file
+    if (remove(full_path.c_str()) != 0) {
+        return createResponse(500, "text/plain", "Internal Server Error - Failed to delete");
+    }
+
+    // Return success response
+    return createResponse(204, "text/plain", "");
+}
+
+STR	regress_path(STR path) {
+	if (path.find_last_of("/") == std::string::npos)
+		return path;
+	if (path == "/")
+		return "";
+	if (path.find_last_of("/") == 0) {
+		return path.substr(0, path.find_last_of("/") + 1);
+	} else {
+		return path.substr(0, path.find_last_of("/"));
+	}
+	return path;
+}
+
+LocationConfig	*Response::buildDirPath(ServerConfig *matchServer, STR &full_path, bool &isDIR) {
+	LocationConfig* matchLocation = NULL;
+	STR	path_to_match = _request->_file_path;
+
+	while (path_to_match != "" && !matchLocation)
+	{
+		try
+		{
+			matchLocation = matchServer->_locations[path_to_match];
+		}
+		catch(const std::exception& e)
+		{
+			//if it's not dir (ends with /) and it's not found - return failure
+			matchLocation = NULL;
+			if (!isDIR)
+				return NULL;
+		}
+
+		if (isDIR && !matchLocation)
+		{
+			try
+			{
+				matchLocation = matchServer->_locations[path_to_match + "/"];
+			}
+			catch(const std::exception& e)
+			{
+				//if it's dir (ends with /) and it's still not found with / - return failure
+				return NULL;
+			}
+		}
+		if (!matchLocation)
+			std::cerr << "Regressed path " << path_to_match << " -> " << regress_path(path_to_match) << std::endl;
+		path_to_match = regress_path(path_to_match);
+	}
+
+	// std::cerr << "TEST TEST buildDirPath is matchLocation " << (matchLocation != NULL) << std::endl;
+	if (!matchLocation)
+		return NULL;
+
+	//add root to final path first
+	if ((matchLocation)->_root != "") {
+		full_path.append((matchLocation)->_root);
+	}
+	else if ((matchLocation)->back_ref->_root != "") {
+		full_path.append((matchLocation)->back_ref->_root);
+	}
+	else {
+		full_path.append((matchLocation)->back_ref->back_ref->_root);
+	}
+
+	full_path.append(_request->_file_path);
+
+	std::cerr << "Response::buildDirPath: dir path is " << full_path << "\n";
+	return matchLocation;
+}
+
+int Response::buildIndexPath(LocationConfig *matchLocation, STR &best_file_path) {
+	if (best_file_path != "/" && best_file_path[best_file_path.length() - 1] != '/')
+		best_file_path.append("/");
+
+	//if request is file
+	if (_request->_file_name != "") {
+		best_file_path.append(_request->_file_name);
+		std::cerr << "Response::buildBestPath: FILE full path is " << best_file_path << "\n";
+		return 1;
+	}
+
+	//if request doesn't have file name - searching for index
+	try
+	{
+		best_file_path.append(selectIndexAll(matchLocation));
+	}
+	catch(const std::exception& e)
+	{
+		// return createResponse(403, "text/plain", "NO SUCH FILE FOUND (change later)");
+
+		std::cerr << "selectIndexAll(matchLocation) error: " << e.what() << "\n";
+		return 0;
+	}
+
+	std::cerr << "Response::buildFilePath: full path is " << best_file_path << "\n";
+	return 1;
+}
+
+STR	Response::matchMethod(STR path, bool isDIR) {
+	if (_request->_method == "GET") {
+		std::cerr << "Response::matchMethod GET path" << path << " isDIR " << isDIR << std::endl;
+		return (handleGET(path, isDIR));
+	} else if (_request->_method == "POST") {
+		std::cerr << "Response::matchMethod POST path" << path << " isDIR " << isDIR << std::endl;
+		return (handlePOST(path));
+	} else if (_request->_method == "DELETE") {
+
+		std::cerr << "Response::matchMethod DELETE path" << path << " isDIR " << isDIR << std::endl;
+		return (handleDELETE(path));
+	} else {
+	// return createResponse(403, "text/plain", "Response::getResponse NO MATCH");
+		return "";
+	}
+}
+
+
+/*
+	paths with spaces are not found
+*/
+STR Response::getResponse() {
+	// std::cerr << "Request integrity test: \n";
+	// std::cerr << "_method: ~" << _request->_method << "~\n";
+	// std::cerr << "file_path: ~" << _request->_file_path << "~\n";
+	// std::cerr << "http_version: ~" << _request->_http_version << "~\n";
+	// std::cerr << "_host: ~" << _request->_host << "~\n";
+	// std::cerr << "_port: ~" << _request->_port << "~\n";
+	// std::cerr << "accepted_types: \n";
+	// std::map<STR, float>::const_iterator it;
+	// for (it = _request->_accepted_types.begin(); it != _request->_accepted_types.end(); ++it) {
+	// 	std::cerr << "  ~" << it->first << "~: ~" << it->second << "~\n";
+	// }
+	// std::cerr << "content_type: ~" << _request->_content_type << "~\n";
+	// std::cerr << "Test is finished\n\n";
+
+
+	ServerConfig*	matchServer = NULL;
+	LocationConfig*	matchLocation = NULL;
+
+	bool	isDIR = false;
+	STR dir_path = "";
+	STR	file_path = "";
 
 	if (!_request || !_config) {
 		std::cerr << "Response::getResponse error, no config or request\n";
 		return "";
 	}
 
-	ServerConfig*	matchServer = NULL;
 	for (size_t i = 0; i < _config->_servers.size(); i++) {
 		if (_config->_servers[i]->_listen_port != _request->_port)
 			continue;
@@ -312,24 +630,67 @@ std::string Response::getResponse() {
 			}
 		}
 	}
-	if (!matchServer) {
-		std::cerr << "Response::getResponse error, no match server\n";
-		return "";
+
+	//if no server matches - defauts to first one
+	if (!matchServer)
+		matchServer = _config->_servers[0];
+
+	// if (!matchServer) {
+	// 	std::cerr << "404no server\n";
+	// 	return createResponse(404, "text/plain", "Not Found");
+	// }
+
+	if (_request->_file_path.size() > 1 && _request->_file_path.at(_request->_file_path.size() - 1) == '/') {
+		isDIR = true;
+
+		std::cerr << "IS DIR : " << _request->_file_path;
+		_request->_file_path = _request->_file_path.substr(0, _request->_file_path.size() - 1);
+		_request->_file_name += '\0';
+		std::cerr << ", new: " << _request->_file_path << "\n";
 	}
-	
-	LocationConfig* matchLocation = NULL;
 
-	matchLocation = matchServer->_locations[_request->_file_path];
+	matchLocation = buildDirPath(matchServer, dir_path, isDIR);
+	if (!matchLocation)
+		return createResponse(404, "text/plain", "Not Found");
 
-	if (!matchLocation) {
-		std::cerr << "Response::getResponse error, no match location\n";
-		return "";
+	if (_request->_method == "POST") {
+		std::cerr << "Response::getResponse POST path" << dir_path << " isDIR " << isDIR << std::endl;
+		return (handlePOST(dir_path));
 	}
 
-	if (_request->_method == "GET")
-		return (handleGET(matchLocation));
-	else
-		std::cerr << "Response::getResponse other methods\n";
+	file_path = dir_path;
 
-	return response;
+	//serve file if path is a file
+	if (checkFile(file_path) == NormalFile) {
+		return (matchMethod(file_path, false));
+	}
+	//--server file
+
+	//if it's not a directory return error
+	if (checkFile(dir_path) != Directory)
+		return createResponse(404, "text/plain", "Not Found");
+	//--check dir
+
+	// REDIRECT TO 301 path with slash
+
+
+	//add index file name to file_path
+	buildIndexPath(matchLocation, file_path);
+
+	//index file exists - serve it
+	if (checkFile(file_path) == NormalFile) {
+		return (matchMethod(file_path, false));
+	}
+
+	//index file doesn't exist - create directory if autoindex is on
+	if (matchLocation->_autoindex) {
+		//return directory listing
+		return matchMethod(dir_path, true);
+	} else {
+		//autoindex is off
+		return createResponse(403, "text/plain", "Forbidden");
+	}
+
+	return createResponse(403, "text/plain", "TERRIBLE ERROR (Impossible)");
+
 }
