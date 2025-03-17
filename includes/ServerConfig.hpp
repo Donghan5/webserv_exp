@@ -14,6 +14,9 @@ struct ServerConfig : AConfigBase {
 	MAP<STR, LocationConfig*>		_locations;
 	void							_self_destruct();
 
+	int verifyPort(std::string port_str);
+	long long verifyClientMaxBodySize(std::string clinet_max_body_size_str);
+
 	ServerConfig() :
         _listen_port(-1), //80 only if it's the only block
         _listen_server(""),

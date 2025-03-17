@@ -14,6 +14,8 @@ struct LocationConfig : AConfigBase {
 	MAP<STR, LocationConfig*>		_locations;
 
 	void							_self_destruct();
+	long long 						verifyClientMaxBodySize(std::string client_max_body_size_str);
+	bool							verifyAutoIndex(std::string autoindex_str);
 
 	LocationConfig() :
         _path(""),

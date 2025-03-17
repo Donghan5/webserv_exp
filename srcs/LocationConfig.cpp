@@ -10,106 +10,49 @@ void LocationConfig::_self_destruct() {
 }
 
 /* 특별한 케이스를 제외하고 일반적인 경우에는 setter함수를 빼야하나? */
-void LocationConfig::setPath(std::string path) {
-	this->_path = path;
-}
 
-std::string LocationConfig::getPath(void) const {
-	return LocationConfig::_path;
-}
+/* max value 1048576 */
+long long LocationConfig::verifyClientMaxBodySize(std::string client_max_body_size_str) {
+	std::stringstream ss(client_max_body_size_str);
+	long long value;
+	std::string unit;
 
-void LocationConfig::setAddHeader(std::string add_header) {
-	this->_add_header = add_header;
-}
-
-std::string LocationConfig::getAddHeader(void) const {
-	return _add_header;
-}
-
-void LocationConfig::setProxyPass(std::string proxy_pass) {
-	_proxy_pass = proxy_pass;
-}
-
-std::string LocationConfig::getProxyPass(void) const {
-	return _proxy_pass;
-}
-
-void LocationConfig::setExpires(std::string expires) {
-	this->_expires = expires;
-}
-
-std::string LocationConfig::getExpires(void) const {
-	return _expires;
-}
-
-void LocationConfig::setAllow(std::string allow) {
-	this->_allow = allow;
-}
-
-std::string LocationConfig::getAllow(void) const {
-	return _allow;
-}
-
-void LocationConfig::setDeny(std::string deny) {
-	this->_deny = deny;
-}
-
-std::string LocationConfig::getDeny(void) const {
-	return _deny;
-}
-
-void LocationConfig::setAlias(std::string alias) {
-	this->_alias = alias;
-}
-
-std::string LocationConfig::getAlias(void) const {
-	return _alias;
-}
-
-void LocationConfig::setTryFiles(std::string try_files) {
-	this->_try_files = try_files;
-}
-
-std::string LocationConfig::getTryFiles(void) const {
-	return _try_files;
-}
-
-void LocationConfig::setRoot(std::string root) {
-	root = getData("root");
-	this->_root = root;
-}
-
-std::string LocationConfig::getRoot(void) const {
-	return _root;
-}
-
-void LocationConfig::setClientMaxBodySize(std::string client_max_body_size_str) {
-	long long client_max_body_size = std::atoll(client_max_body_size_str.c_str());
-
-	if (client_max_body_size <= 0) {
-		throw std::logic_error("Invalid body_size value");
-		return ;
+	if (!(ss >> value)) {
+		return -1;
 	}
-	this->_client_max_body_size = client_max_body_size;
+	ss >> unit;
+
+	if (value < 0) {
+		return -1;
+	}
+
+	if (unit.empty() || unit == "b" || unit == "B") {
+		value *= 1;
+	}
+	else if (unit == "k" || unit == "K") {
+		value *= 1024;
+	}
+	else if (unit == "m" || unit == "M") {
+		value *= 1024 * 1024;
+	}
+	else if (unit == "g" || unit == "G") {
+		value *= 1024 * 1024 * 1024;
+	}
+
+	if (value > LLONG_MAX) {
+		return -1;
+	}
+
+	return value;
 }
 
-long long LocationConfig::getClientMaxBodySize(void) const {
-	return _client_max_body_size;
-}
-
-void LocationConfig::setAutoIndex(std::string autoindex_str) {
-	autoindex_str = getData("autoindex");
-	bool autoindex;
+bool LocationConfig::verifyAutoIndex(std::string autoindex_str) {
+	bool autoindex = false;
 	if (autoindex_str == "on") {
 		autoindex = true;
 	}
 	else if (autoindex_str == "off") {
 		autoindex = false;
 	}
-	this->_autoindex = autoindex;
+	return autoindex;
 }
-
-bool LocationConfig::getAutoIndex(void) const {
-	return _autoindex;
-}
-

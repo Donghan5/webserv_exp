@@ -10,50 +10,49 @@ void ServerConfig::_self_destruct() {
 	delete (this);
 }
 
-void ServerConfig::setAddHeader(std::string add_header) {
-	add_header = getData("add_header");
-	this->_add_header = add_header;
+/* port value 0 to 65535 */
+int ServerConfig::verifyPort(std::string port_str) {
+	std::stringstream ss(port_str);
+	int port;
+
+	if (!(ss >> port) || port < 0 || port > 65335) {
+		return -1;
+	}
+	return port;
 }
 
-std::string ServerConfig::getAddHeader(void) const {
-	return _add_header;
-}
 
-void ServerConfig::setListenPort(int listen_port) {
-	listen_port = std::atoi(getData("port").c_str());
-	this->_listen_port = listen_port;
-}
+/* max value 1048576 */
+long long ServerConfig::verifyClientMaxBodySize(std::string client_max_body_size_str) {
+	std::stringstream ss(client_max_body_size_str);
+	long long value;
+	std::string unit;
 
-int ServerConfig::getListenPort(void) const {
-	return _listen_port;
-}
+	if (!(ss >> value)) {
+		return -1;
+	}
+	ss >> unit;
 
-void ServerConfig::setListenServer(std::string listen_server) {
-	// ??
-}
+	if (value < 0) {
+		return -1;
+	}
 
-std::string ServerConfig::getListenServer(void) const {
-	// ??
-}
+	if (unit.empty() || unit == "b" || unit == "B") {
+		value *= 1;
+	}
+	else if (unit == "k" || unit == "K") {
+		value *= 1024;
+	}
+	else if (unit == "m" || unit == "M") {
+		value *= 1024 * 1024;
+	}
+	else if (unit == "g" || unit == "G") {
+		value *= 1024 * 1024 * 1024;
+	}
 
-void ServerConfig::setLocation(std::string location) {
-	// ??
-}
+	if (value > LLONG_MAX) {
+		return -1;
+	}
 
-std::string ServerConfig::getLocation(void) const {
-	// ??
-}
-
-void ServerConfig::setServerName(std::vector<std::string> server_name) {
-	std::string server_name_str = getData("server_name");
-	server_name = Utils::split(server_name_str, ' ');
-	this->_server_name = server_name;
-}
-
-std::vector<std::string> ServerConfig::getServerName(void) const {
-	return _server_name;
-}
-
-void ServerConfig::setRoot(std::string root) {
-	root = getData("root");
+	return value;
 }

@@ -237,7 +237,11 @@ bool FillDirective(AConfigBase* block, STR line, int position) {
         } else if (tokens[0] == "pid") {
             httpConf->_global_pid = tokens[1];
         } else if (tokens[0] == "worker_connections") {
-            httpConf->_event_worker_connections = atoi(tokens[1].c_str());  // C++98 int conversion
+            httpConf->_event_worker_connections = httpConf->veriftEventWorkerConnections(tokens[1]);  // C++98 int conversion
+			if (httpConf->_event_worker_connections == -1) {
+				std::cerr << "Invalid worker_connections value";
+				return false;
+			}
         } else if (tokens[0] == "use") {
             httpConf->_event_use = tokens[1];
         } else if (tokens[0] == "log_format") {
@@ -251,7 +255,11 @@ bool FillDirective(AConfigBase* block, STR line, int position) {
         } else if (tokens[0] == "add_header") {
             httpConf->_add_header = tokens[1];
         } else if (tokens[0] == "client_max_body_size") {
-            httpConf->_client_max_body_size = atoll(tokens[1].c_str());  // C++98 long long
+            httpConf->_client_max_body_size = httpConf->verifyClientMaxBodySize(tokens[1]);  // C++98 long long
+			if (httpConf->_client_max_body_size == -1) {
+				std::cerr << "Invalid client_max_body_size value" << std::endl;
+				return false;
+			}
         } else if (tokens[0] == "root") {
             httpConf->_root = tokens[1];
         } else if (tokens[0] == "index") {
@@ -271,7 +279,11 @@ bool FillDirective(AConfigBase* block, STR line, int position) {
         if (tokens[0] == "add_header") {
             serverConf->_add_header = tokens[1];
         } else if (tokens[0] == "listen") {
-            serverConf->_listen_port = atoi(tokens[1].c_str());
+            serverConf->_listen_port = serverConf->verifyPort(tokens[1]);
+			if (serverConf->_listen_port == -1) {
+				std::cerr << "Invalid port value" << std::endl;
+				return false;
+			}
         } else if (tokens[0] == "server_name") {
 			for (size_t j = 1; j < tokens.size(); j++) {
 				serverConf->_server_name.push_back(tokens[j]);
@@ -291,7 +303,11 @@ bool FillDirective(AConfigBase* block, STR line, int position) {
             int code = atoi(tokens[1].c_str());
             serverConf->_error_pages[code] = tokens[2];
         } else if (tokens[0] == "client_max_body_size") {
-            serverConf->_client_max_body_size = atoll(tokens[1].c_str());
+            serverConf->_client_max_body_size = serverConf->verifyClientMaxBodySize(tokens[1]);
+			if (serverConf->_client_max_body_size == -1) {
+				std::cerr << "Invalid client_max_body_size value" << std::endl;
+				return false;
+			}
         } else {
 
 	std::cerr << "DEBUG CHECKFillDirective ServerConfig extra type " << tokens[0] << "\n";
@@ -317,9 +333,14 @@ bool FillDirective(AConfigBase* block, STR line, int position) {
         } else if (tokens[0] == "root") {
             locConf->_root = tokens[1];
         } else if (tokens[0] == "client_max_body_size") {
-            locConf->_client_max_body_size = atoll(tokens[1].c_str());
+            locConf->_client_max_body_size = locConf->verifyClientMaxBodySize(tokens[1]);
+			if (locConf->_client_max_body_size == -1) {
+				std::cerr << "Invalid client_max_body_size value" << std::endl;
+				return false;
+			}
         } else if (tokens[0] == "autoindex") {
-            locConf->_autoindex = (tokens[1] == "on");  // Simple bool conversion
+            // locConf->_autoindex = (tokens[1] == "on");  // Simple bool conversion
+			locConf->_autoindex = locConf->verifyAutoIndex(tokens[1]);
         } else if (tokens[0] == "index") {
 			for (size_t j = 1; j < tokens.size(); j++) {
 				locConf->_index.push_back(tokens[j]);

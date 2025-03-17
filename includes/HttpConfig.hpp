@@ -37,9 +37,11 @@ struct HttpConfig : AConfigBase
 	STR						_access_log;
 	STR						_sendfile;
 	STR						_keepalive_timeout;
-	
+
 	VECTOR<ServerConfig*>	_servers;
 	void					_self_destruct();
+	long long				verifyClientMaxBodySize(std::string client_max_body_size_str);
+	int						veriftEventWorkerConnections(std::string event_worker_connections_str);
 
 	HttpConfig() :
         _global_user(""),
