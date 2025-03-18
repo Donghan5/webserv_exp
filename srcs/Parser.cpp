@@ -350,7 +350,7 @@ bool FillDirective(AConfigBase* block, STR line, int position) {
             locConf->_error_pages[code] = tokens[2];
         } else if (tokens[0] == "allowed_methods") {
 			for (size_t j = 1; j < tokens.size(); j++) {
-				if (tokens[j] != "ALL" && tokens[j] != "GET" && tokens[j] != "POST" && tokens[j] != "DELETE")
+				if (tokens[j] != "GET" && tokens[j] != "POST" && tokens[j] != "DELETE")
 					return false;
 				locConf->_allowed_methods.push_back(tokens[j]);
 			}

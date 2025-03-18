@@ -9,8 +9,6 @@ void LocationConfig::_self_destruct() {
 	delete (this);
 }
 
-/* 특별한 케이스를 제외하고 일반적인 경우에는 setter함수를 빼야하나? */
-
 /* max value 1048576 */
 long long LocationConfig::verifyClientMaxBodySize(std::string client_max_body_size_str) {
 	std::stringstream ss(client_max_body_size_str);
@@ -26,7 +24,7 @@ long long LocationConfig::verifyClientMaxBodySize(std::string client_max_body_si
 		return -1;
 	}
 
-	if (unit.empty() || unit == "b" || unit == "B") {
+	if (unit.empty() || unit == "b" || unit == "B") { // byte, don't need to convert
 		value *= 1;
 	}
 	else if (unit == "k" || unit == "K") {
@@ -39,7 +37,7 @@ long long LocationConfig::verifyClientMaxBodySize(std::string client_max_body_si
 		value *= 1024 * 1024 * 1024;
 	}
 
-	if (value > LLONG_MAX) {
+	if (value > LLONG_MAX) { // check the overflow
 		return -1;
 	}
 

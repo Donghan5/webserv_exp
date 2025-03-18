@@ -43,7 +43,7 @@ long long HttpConfig::verifyClientMaxBodySize(std::string client_max_body_size_s
 		return -1;
 	}
 
-	if (unit.empty() || unit == "b" || unit == "B") {
+	if (unit.empty() || unit == "b" || unit == "B") { // default byte
 		value *= 1;
 	}
 	else if (unit == "k" || unit == "K") {

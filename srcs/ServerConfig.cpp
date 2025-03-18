@@ -37,7 +37,7 @@ long long ServerConfig::verifyClientMaxBodySize(std::string client_max_body_size
 		return -1;
 	}
 
-	if (unit.empty() || unit == "b" || unit == "B") {
+	if (unit.empty() || unit == "b" || unit == "B") { // default value
 		value *= 1;
 	}
 	else if (unit == "k" || unit == "K") {
