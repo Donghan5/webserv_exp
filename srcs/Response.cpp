@@ -660,6 +660,12 @@ STR Response::getResponse() {
 
 	file_path = dir_path;
 
+	// std::string extension = path.substr(path.find_last_of("."));
+	// if (extension == ".py" || extension == ".php" || extension == ".pl" || extension == ".sh") {
+	// 	CgiHandler cgi(full_path, parser.getHeaders(), parser.getBody());
+	// 	return cgi.executeCgi();
+	// }
+
 	//serve file if path is a file
 	if (checkFile(file_path) == NormalFile) {
 		return (matchMethod(file_path, false));

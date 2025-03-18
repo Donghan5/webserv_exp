@@ -22,7 +22,7 @@ int ServerConfig::verifyPort(std::string port_str) {
 }
 
 
-/* max value 1048576 */
+/* max value */
 long long ServerConfig::verifyClientMaxBodySize(std::string client_max_body_size_str) {
 	std::stringstream ss(client_max_body_size_str);
 	long long value;

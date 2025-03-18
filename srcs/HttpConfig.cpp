@@ -10,7 +10,7 @@ void HttpConfig::_self_destruct() {
 	delete (this);
 }
 
-/* default limit 512 */
+/* default limit */
 int HttpConfig::veriftEventWorkerConnections(std::string event_worker_connections_str) {
 	std::stringstream ss(event_worker_connections_str);
 	int value;

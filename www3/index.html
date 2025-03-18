@@ -185,45 +185,69 @@
         }
 
         function uploadFile() {
-            const fileInput = document.getElementById("fileInput");
-            const status = document.getElementById("upload-status");
-            const file = fileInput.files[0];
-            
-            if (!file) {
-                status.className = 'error';
-                status.textContent = "Please select a file to upload.";
-                return;
-            }
+			const fileInput = document.getElementById("fileInput");
+			const status = document.getElementById("upload-status");
+			const file = fileInput.files[0];
 
-            status.textContent = "Uploading...";
-            status.className = '';
+			if (!file) {
+				status.className = 'error';
+				status.textContent = "Please select a file to upload.";
+				return;
+			}
 
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const blob = new Blob([e.target.result], { type: file.type });
-                fetch("/uploads/" + file.name, {  // Changed to match server config
-                    method: "POST",
-                    body: blob
-                })
-                .then(response => {
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                    return response.text();
-                })
-                .then(data => {
-                    console.log('Success:', data);
-                    status.className = 'success';
-                    status.textContent = "✅ File uploaded successfully!";
-                    fileInput.value = ''; // Clear the input
-                    listFiles(); // Refresh the file list
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    status.className = 'error';
-                    status.textContent = "❌ Upload failed: " + error.message;
-                });
-            };
-            reader.readAsArrayBuffer(file);
-        }
+			// Check if the selected item is a folder (directories typically have size=0 and/or no type)
+			if (file.size === 0 && file.type === "") {
+				status.className = 'error';
+				status.textContent = "Folders cannot be uploaded. Please select a file.";
+				fileInput.value = ''; // Clear the input to prevent repeated attempts
+				return;
+			}
+
+			status.textContent = "Uploading...";
+			status.className = '';
+
+			try {
+				const reader = new FileReader();
+
+				reader.onerror = function() {
+					status.className = 'error';
+					status.textContent = "❌ Error reading file. Make sure it's not a folder.";
+					fileInput.value = ''; // Clear the input
+				};
+
+				reader.onload = function(e) {
+					const blob = new Blob([e.target.result], { type: file.type });
+					fetch("/uploads/" + file.name, {
+						method: "POST",
+						body: blob
+					})
+					.then(response => {
+						if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+						return response.text();
+					})
+					.then(data => {
+						console.log('Success:', data);
+						status.className = 'success';
+						status.textContent = "✅ File uploaded successfully!";
+						fileInput.value = ''; // Clear the input
+						listFiles(); // Refresh the file list
+					})
+					.catch(error => {
+						console.error('Error:', error);
+						status.className = 'error';
+						status.textContent = "❌ Upload failed: " + error.message;
+						fileInput.value = ''; // Clear the input on error
+					});
+				};
+
+				reader.readAsArrayBuffer(file);
+			} catch (error) {
+				console.error('Error:', error);
+				status.className = 'error';
+				status.textContent = "❌ Error processing file: " + error.message;
+				fileInput.value = ''; // Clear the input
+			}
+		}
 
         function deleteFile(filename) {
             if (!confirm('Are you sure you want to delete this file?')) return;
@@ -278,7 +302,7 @@
 
                 const fileName = file.textContent.replace('/', '');
                 nameCell.innerHTML = `<a href="/uploads/${fileName}" target="_blank">${fileName}</a>`;
-                
+
                 const fileInfo = file.parentElement.textContent.trim();
                 const match = fileInfo.match(/(\d+)\s+(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})/);
                 if (match) {
