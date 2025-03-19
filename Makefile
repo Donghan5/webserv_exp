@@ -1,6 +1,6 @@
 # Compiler and flags
 CC = c++
-CFLAGS = -std=c++98 -Iincludes -Wall -Wextra -Werror 
+CFLAGS = -std=c++98 -Iincludes -Wall -Wextra -Werror
 
 # Target executable name
 NAME = webserv
@@ -13,7 +13,7 @@ OBJ_DIR = objs
 SRCS =  $(SRC_DIR)/AConfigBase.cpp $(SRC_DIR)/HttpConfig.cpp $(SRC_DIR)/LocationConfig.cpp \
 		$(SRC_DIR)/ServerConfig.cpp $(SRC_DIR)/main.cpp $(SRC_DIR)/Parser.cpp \
 		$(SRC_DIR)/PollServer.cpp  $(SRC_DIR)/RequestsManager.cpp $(SRC_DIR)/Request.cpp \
-		$(SRC_DIR)/Response.cpp $(SRC_DIR)/SelectServer.cpp
+		$(SRC_DIR)/Response.cpp $(SRC_DIR)/SelectServer.cpp $(SRC_DIR)/Logger.cpp $(SRC_DIR)/CgiHandler.cpp
 
 # Object files (convert .cpp to .o)
 OBJS = $(SRCS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)

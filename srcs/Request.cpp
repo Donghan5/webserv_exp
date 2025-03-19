@@ -38,6 +38,7 @@ bool Request::parseHeader() {
 	_method = temp_token;
 	getline(temp_line_stream, temp_token, ' ');
 	_file_path = temp_token;
+	parseQueryString(); // to parse query string, if it exists
 	getline(temp_line_stream, temp_token, ' ');
 	_http_version = temp_token;
 
@@ -148,6 +149,18 @@ bool Request::parseRequest() {
 	if (_body_size && !parseBody())
 		return false;
 	return true;
+}
+
+void Request::parseQueryString(void) {
+	size_t query_pos = _file_path.find('?');
+
+	if (query_pos != STR::npos) {
+		_query_string = _file_path.substr(query_pos + 1);
+		_file_path = _file_path.substr(0, query_pos);
+	}
+	else {
+		_query_string = "";
+	}
 }
 
 Request::Request() {

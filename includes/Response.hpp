@@ -2,6 +2,7 @@
 # define RESPONSE_HPP
 # include "Request.hpp"
 # include <iostream>
+# include "CgiHandler.hpp"
 
 #include <cerrno>
 #include <cstring> // For strerror
@@ -19,7 +20,7 @@ class Response {
 		HttpConfig	*_config;
 		std::map<STR, STR>	_all_mime_types; // _all_mime_types["extention"] = "name", _all_mime_types[".html"] = "text/html"
 															// the order is not in reverse as several extentions can have same name
-		
+
 		std::map<int, STR>			_all_status_codes;
 		STR	createResponse(int status, const STR& type, const STR& body);
 		STR	handleGET(STR best_path, bool isDIR);

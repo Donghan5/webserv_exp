@@ -25,7 +25,8 @@ class Request {
 		bool								parseHeader();
 		bool								parseBody();
 		bool								parseRequest();
-	
+		void								parseQueryString();
+
 	public:
 		STR									_full_request;
 		STR									_method;
@@ -39,9 +40,10 @@ class Request {
 		STR									_content_type;
 		unsigned long long					_body_size;
 		STR									_body;
-		
+		STR									_query_string;
+
 		void								setRequest(STR request);
-		
+
 		Request();
 		Request(STR request);
 		Request(const Request &obj);

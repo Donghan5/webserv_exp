@@ -588,6 +588,12 @@ STR	Response::matchMethod(STR path, bool isDIR) {
 	}
 }
 
+static STR intToString(int num) {
+	std::ostringstream oss;
+	oss << num;
+
+	return oss.str();
+}
 
 /*
 	paths with spaces are not found
@@ -660,11 +666,21 @@ STR Response::getResponse() {
 
 	file_path = dir_path;
 
-	// std::string extension = path.substr(path.find_last_of("."));
-	// if (extension == ".py" || extension == ".php" || extension == ".pl" || extension == ".sh") {
-	// 	CgiHandler cgi(full_path, parser.getHeaders(), parser.getBody());
-	// 	return cgi.executeCgi();
-	// }
+	std::string extension = file_path.substr(file_path.find_last_of("."));
+	if (extension == ".py" || extension == ".php" || extension == ".pl" || extension == ".sh") {
+		std::map<STR, STR> env;
+
+		env["REQUEST_METHOD"] = _request->_method;
+		env["SCRIPT_NAME"] = file_path;
+		env["QUERY_STRING"] = _request->_query_string.empty() ? "" : _request->_query_string;
+		env["CONTENT_TYPE"] = _request->_content_type.empty() ? "text/plain" : _request->_content_type;
+		env["HTTP_HOST"] = _request->_host;
+		env["SERVER_PORT"] = intToString(_request->_port);
+		env["SERVER_PROTOCOL"] = _request->_http_version;
+
+		CgiHandler cgi(file_path, env, _request->_body);
+		return cgi.executeCgi();
+	}
 
 	//serve file if path is a file
 	if (checkFile(file_path) == NormalFile) {

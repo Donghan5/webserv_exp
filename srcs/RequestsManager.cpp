@@ -115,7 +115,7 @@ int RequestsManager::HandleRead() {
 
 				_partial_responses[_client_fd] = response.getResponse();
 				_partial_requests.erase(_client_fd);
-				// std::cerr << "REsponse is " << _partial_responses[_client_fd] <<"\n";
+				// std::cerr << "Response is " << _partial_responses[_client_fd] <<"\n";
 				// CloseClient();
 				// return 0;
 				return 2;
