@@ -281,12 +281,12 @@ STR	Response::getMime(STR path) {
 STR urlDecode(const STR& input) {
     STR result;
     result.reserve(input.length());
-    
+
     for (size_t i = 0; i < input.length(); ++i) {
         if (input[i] == '%' && i + 2 < input.length()) {
             // Get the two hex digits
             STR hexVal = input.substr(i + 1, 2);
-            
+
             // Convert from hex to decimal
             int value = 0;
             for (size_t j = 0; j < 2; ++j) {
@@ -300,7 +300,7 @@ STR urlDecode(const STR& input) {
                     value += 10 + (c - 'a');
                 }
             }
-            
+
             // Append the decoded character
             result += static_cast<char>(value);
             i += 2;
@@ -310,7 +310,7 @@ STR urlDecode(const STR& input) {
             result += input[i];
         }
     }
-    
+
     return result;
 }
 
@@ -335,17 +335,27 @@ STR Response::handleDIR(STR path) {
         if (stat(root_path.c_str(), &st) == 0) {
             char timeStr[100];
             strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", localtime(&st.st_mtime));	//REDO, bad funcs!
-            
+
             STR displayName = urlDecode(name);
-			
+
             // std::cerr << "DEBUG Response::handleDIR: displayName is " << displayName << "\n";
 
-            html << "<a href=\"" << fullpath << (S_ISDIR(st.st_mode) ? "/" : "") << "\">"
-                 << displayName << (S_ISDIR(st.st_mode) ? "/" : "") << "</a>"
-                 << STR(50 - displayName.length(), ' ')
-                 << timeStr
-                 << STR(20, ' ')
-                 << st.st_size << "\n";
+			// original version
+            // html << "<a href=\"" << fullpath << (S_ISDIR(st.st_mode) ? "/" : "") << "\">"
+            //      << displayName << (S_ISDIR(st.st_mode) ? "/" : "") << "</a>"
+            //      << STR(50 - displayName.length(), ' ')
+            //      << timeStr
+            //      << STR(20, ' ')
+            //      << st.st_size << "\n";
+
+			// to test
+			size_t spaces = displayName.length() >= 50 ? 1 : 50 - displayName.length();
+			html << "<a href=\"" << fullpath << (S_ISDIR(st.st_mode) ? "/" : "") << "\">"
+				<< displayName << (S_ISDIR(st.st_mode) ? "/" : "") << "</a>"
+				<< STR(spaces, ' ')
+				<< timeStr
+				<< STR(20, ' ')
+				<< st.st_size << "\n";
         }
     }
 
@@ -716,7 +726,7 @@ STR Response::getResponse() {
 		//if it's a script file - execute it
 		if (ends_with(file_path, ".py") || ends_with(file_path, ".php") || ends_with(file_path, ".pl") || ends_with(file_path, ".sh")) {
 			std::map<STR, STR> env;
-	
+
 			env["REQUEST_METHOD"] = _request->_method;
 			env["SCRIPT_NAME"] = file_path;
 			env["QUERY_STRING"] = _request->_query_string.empty() ? "" : _request->_query_string;
@@ -724,7 +734,7 @@ STR Response::getResponse() {
 			env["HTTP_HOST"] = _request->_host;
 			env["SERVER_PORT"] = intToString(_request->_port);
 			env["SERVER_PROTOCOL"] = _request->_http_version;
-	
+
 			CgiHandler cgi(file_path, env, _request->_body);
 			return cgi.executeCgi();
 		}
