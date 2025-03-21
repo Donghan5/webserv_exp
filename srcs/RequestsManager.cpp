@@ -49,7 +49,7 @@ void RequestsManager::setClientFd(int client_fd) {
 int RequestsManager::HandleRead() {
 	Request				request;
 	Response			response;
-	static long long	body_read = -1;
+	long long	body_read = -1;
 
     try {
         char 	buffer[4096];
@@ -73,13 +73,13 @@ int RequestsManager::HandleRead() {
 				body_read += nbytes;
 			}
 
-			// FIX _client_max_body_size PARSING
-			// if (body_read != -1 && _config->_client_max_body_size && (body_read > _config->_client_max_body_size)) {
-			// 	//return 413 (Request Entity Too Large) error
-			// 	std::cerr << "413 (Request Entity Too Large) error\n";
-			// 	CloseClient();
-			// 	return 0;
-			// }
+			if (body_read != -1 && _config->_client_max_body_size && (body_read > _config->_client_max_body_size)) {
+				std::cerr << "413 (Request Entity Too Large) error\n";
+
+				_partial_responses[_client_fd] = response.createResponse(413, "text/plain", "Request Entity Too Large");
+				body_read = -1;
+				return 2;
+			}
 
 			_partial_requests[_client_fd].append(buffer, nbytes);
 
@@ -90,7 +90,7 @@ int RequestsManager::HandleRead() {
 
 				if (request._body_size > 0) {
 					std::cerr << "RequestsManager::HandleRead Body needed of size " << request._body_size << "\n";
-					body_read = 0;
+					body_read = _partial_requests[_client_fd].size() - header_end - 4;
 				} else {
 					response.setConfig(_config);
 					response.setRequest(&request);
@@ -104,7 +104,7 @@ int RequestsManager::HandleRead() {
 				}
 			}
 
-			if (body_read != -1 && _partial_requests[_client_fd].size() >= request._body_size) {
+			if (body_read != -1 && body_read >= (long long)request._body_size) {
 				std::cerr << "RequestsManager::HandleRead Full body read! \n";
 				body_read = -1;
 
@@ -122,10 +122,12 @@ int RequestsManager::HandleRead() {
 			}
 		}
     } catch (const std::exception& e) {
+		body_read = -1;
         std::cerr << "Error in Requests HandleRead: " << e.what() << std::endl;
-        CloseClient();
-		return 0;
+		_partial_responses[_client_fd] = response.createResponse(500, "text/plain", "Internal Server Error");
+		return 2;
     }
+	body_read = -1;
 	return 1;
 }
 

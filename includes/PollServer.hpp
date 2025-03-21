@@ -25,9 +25,9 @@ class PollServer {
 		HttpConfig 					*config;
 		bool						running;
 		std::map<int, int>			_server_sockets;
-		VECTOR<struct pollfd>	_pollfds;
-		std::map<int, STR>	_partial_requests;
-		std::map<int, STR>	_partial_responses;
+		VECTOR<struct pollfd>		_pollfds;
+		std::map<int, STR>			_partial_requests;
+		std::map<int, STR>			_partial_responses;
 
 		bool						WaitAndService(RequestsManager &requests, VECTOR<struct pollfd>	&temp_pollfds);
 		void						AcceptClient(int new_fd);

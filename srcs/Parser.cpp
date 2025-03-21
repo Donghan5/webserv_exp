@@ -24,6 +24,80 @@ Parser::~Parser() {
 	// 	delete _config;
 }
 
+int Parser::verifyPort(std::string port_str) {
+	std::stringstream ss(port_str);
+	int port;
+
+	if (!(ss >> port) || port < 0 || port > 65335) {
+		return -1;
+	}
+	return port;
+}
+
+bool Parser::verifyAutoIndex(std::string autoindex_str) {
+	bool autoindex = false;
+	if (autoindex_str == "on") {
+		autoindex = true;
+	}
+	else if (autoindex_str == "off") {
+		autoindex = false;
+	}
+	return autoindex;
+}
+
+/* default limit */
+int Parser::veriftEventWorkerConnections(std::string event_worker_connections_str) {
+	std::stringstream ss(event_worker_connections_str);
+	int value;
+
+	for (size_t i = 0; i < event_worker_connections_str.length(); i++) {
+		if (!std::isdigit(event_worker_connections_str[i])) {
+			return -1;
+		}
+	}
+
+	if (!(ss >> value) || value <= 0) {
+		return -1;
+	}
+
+	return value;
+}
+
+/* max value 1048576 */
+long long Parser::verifyClientMaxBodySize(std::string client_max_body_size_str) {
+	std::stringstream ss(client_max_body_size_str);
+	long long value;
+	std::string unit;
+
+	if (!(ss >> value)) {
+		return -1;
+	}
+	ss >> unit;
+
+	if (value < 0) {
+		return -1;
+	}
+
+	if (unit.empty() || unit == "b" || unit == "B") { // default byte
+		value *= 1;
+	}
+	else if (unit == "k" || unit == "K") {
+		value *= 1024;
+	}
+	else if (unit == "m" || unit == "M") {
+		value *= 1024 * 1024;
+	}
+	else if (unit == "g" || unit == "G") {
+		value *= 1024 * 1024 * 1024;
+	}
+
+	if (value > LLONG_MAX) {
+		return -1;
+	}
+
+	return value;
+}
+
 VECTOR<STR>	split(STR string, char delim, bool use_whitespaces_delim) {
 	VECTOR<STR>	result;
 	STR					temp_line;
@@ -220,95 +294,95 @@ bool	Parser::ValidateConfig(STR full_config) {
 #define VAR_NAME(var) #var
 
 bool FillDirective(AConfigBase* block, STR line, int position) {
-    VECTOR<STR> tokens;
-    STR 		trimmed_line;
+	VECTOR<STR> tokens;
+	STR 		trimmed_line;
 
-    int semicol = line.find(';', position);
-    trimmed_line = line.substr(position, semicol - position);
-    tokens = split(trimmed_line, ' ', 1);
+	int semicol = line.find(';', position);
+	trimmed_line = line.substr(position, semicol - position);
+	tokens = split(trimmed_line, ' ', 1);
 
-    if (HttpConfig* httpConf = dynamic_cast<HttpConfig*>(block)) {
-        if (tokens[0] == "user") {
-            httpConf->_global_user = tokens[1];
-        } else if (tokens[0] == "worker_process") {
-            httpConf->_global_worker_process = tokens[1];
-        } else if (tokens[0] == "DEBUG_log") {
-            httpConf->_global_error_log = tokens[1];
-        } else if (tokens[0] == "pid") {
-            httpConf->_global_pid = tokens[1];
-        } else if (tokens[0] == "worker_connections") {
-            httpConf->_event_worker_connections = httpConf->veriftEventWorkerConnections(tokens[1]);  // C++98 int conversion
+	if (HttpConfig* httpConf = dynamic_cast<HttpConfig*>(block)) {
+		if (tokens[0] == "user") {
+			httpConf->_global_user = tokens[1];
+		} else if (tokens[0] == "worker_process") {
+			httpConf->_global_worker_process = tokens[1];
+		} else if (tokens[0] == "DEBUG_log") {
+			httpConf->_global_error_log = tokens[1];
+		} else if (tokens[0] == "pid") {
+			httpConf->_global_pid = tokens[1];
+		} else if (tokens[0] == "worker_connections") {
+			httpConf->_event_worker_connections = Parser::veriftEventWorkerConnections(tokens[1]);  // C++98 int conversion
 			if (httpConf->_event_worker_connections == -1) {
 				std::cerr << "Invalid worker_connections value";
 				return false;
 			}
-        } else if (tokens[0] == "use") {
-            httpConf->_event_use = tokens[1];
-        } else if (tokens[0] == "log_format") {
-            httpConf->_log_format = tokens[1];
-        } else if (tokens[0] == "access_log") {
-            httpConf->_access_log = tokens[1];
-        } else if (tokens[0] == "sendfile") {
-            httpConf->_sendfile = tokens[1];
-        } else if (tokens[0] == "keepalive_timeout") {
-            httpConf->_keepalive_timeout = tokens[1];
-        } else if (tokens[0] == "add_header") {
-            httpConf->_add_header = tokens[1];
-        } else if (tokens[0] == "client_max_body_size") {
-            httpConf->_client_max_body_size = httpConf->verifyClientMaxBodySize(tokens[1]);  // C++98 long long
+		} else if (tokens[0] == "use") {
+			httpConf->_event_use = tokens[1];
+		} else if (tokens[0] == "log_format") {
+			httpConf->_log_format = tokens[1];
+		} else if (tokens[0] == "access_log") {
+			httpConf->_access_log = tokens[1];
+		} else if (tokens[0] == "sendfile") {
+			httpConf->_sendfile = tokens[1];
+		} else if (tokens[0] == "keepalive_timeout") {
+			httpConf->_keepalive_timeout = tokens[1];
+		} else if (tokens[0] == "add_header") {
+			httpConf->_add_header = tokens[1];
+		} else if (tokens[0] == "client_max_body_size") {
+			httpConf->_client_max_body_size = Parser::verifyClientMaxBodySize(tokens[1]);  // C++98 long long
 			if (httpConf->_client_max_body_size == -1) {
 				std::cerr << "Invalid client_max_body_size value" << std::endl;
 				return false;
 			}
-        } else if (tokens[0] == "root") {
-            httpConf->_root = tokens[1];
-        } else if (tokens[0] == "index") {
+		} else if (tokens[0] == "root") {
+			httpConf->_root = tokens[1];
+		} else if (tokens[0] == "index") {
 			for (size_t j = 1; j < tokens.size(); j++) {
 				httpConf->_index.push_back(tokens[j]);
 			}
-        } else if (tokens[0] == "DEBUG_page") {
-            int code = atoi(tokens[1].c_str());
-            httpConf->_error_pages[code] = tokens[2];  // Assumes "DEBUG_page 404 /404.html"
-        } else {
+		} else if (tokens[0] == "DEBUG_page") {
+			int code = atoi(tokens[1].c_str());
+			httpConf->_error_pages[code] = tokens[2];  // Assumes "DEBUG_page 404 /404.html"
+		} else {
 			std::cerr << "DEBUG CHECKFillDirective HttpConfig extra type " << tokens[0] << "\n";
 			return false;
 		}
         return true;
     }
-    else if (ServerConfig* serverConf = dynamic_cast<ServerConfig*>(block)) {
-        if (tokens[0] == "add_header") {
-            serverConf->_add_header = tokens[1];
-        } else if (tokens[0] == "listen") {
-            serverConf->_listen_port = serverConf->verifyPort(tokens[1]);
+	else if (ServerConfig* serverConf = dynamic_cast<ServerConfig*>(block)) {
+		if (tokens[0] == "add_header") {
+			serverConf->_add_header = tokens[1];
+		} else if (tokens[0] == "listen") {
+			serverConf->_listen_port = Parser::verifyPort(tokens[1]);
 			if (serverConf->_listen_port == -1) {
 				std::cerr << "Invalid port value" << std::endl;
 				return false;
 			}
-        } else if (tokens[0] == "server_name") {
+		} else if (tokens[0] == "server_name") {
 			for (size_t j = 1; j < tokens.size(); j++) {
 				serverConf->_server_name.push_back(tokens[j]);
 			}
 
-        // } else if (tokens[0] == "location") {
-        //     serverConf->_location = tokens[1];
-        } else if (tokens[0] == "try_files") {
-            serverConf->_try_files = tokens[1];
-        } else if (tokens[0] == "root") {
-            serverConf->_root = tokens[1];
-        } else if (tokens[0] == "index") {
+		// } else if (tokens[0] == "location") {
+		//     serverConf->_location = tokens[1];
+		} else if (tokens[0] == "try_files") {
+			serverConf->_try_files = tokens[1];
+		} else if (tokens[0] == "root") {
+			serverConf->_root = tokens[1];
+		} else if (tokens[0] == "index") {
 			for (size_t j = 1; j < tokens.size(); j++) {
 				serverConf->_index.push_back(tokens[j]);
 			}
-        } else if (tokens[0] == "DEBUG_page") {
-            int code = atoi(tokens[1].c_str());
-            serverConf->_error_pages[code] = tokens[2];
-        } else if (tokens[0] == "client_max_body_size") {
-            serverConf->_client_max_body_size = serverConf->verifyClientMaxBodySize(tokens[1]);
+		} else if (tokens[0] == "DEBUG_page") {
+			int code = atoi(tokens[1].c_str());
+			serverConf->_error_pages[code] = tokens[2];
+		} else if (tokens[0] == "client_max_body_size") {
+			serverConf->_client_max_body_size = Parser::verifyClientMaxBodySize(tokens[1]);
 			if (serverConf->_client_max_body_size == -1) {
 				std::cerr << "Invalid client_max_body_size value" << std::endl;
 				return false;
 			}
-        } else {
+		} else {
 
 	std::cerr << "DEBUG CHECKFillDirective ServerConfig extra type " << tokens[0] << "\n";
 			return false;
@@ -316,43 +390,43 @@ bool FillDirective(AConfigBase* block, STR line, int position) {
         return true;
     }
     else if (LocationConfig* locConf = dynamic_cast<LocationConfig*>(block)) {
-        if (tokens[0] == "path") {
-            locConf->_path = tokens[1];
-        } else if (tokens[0] == "add_header") {
-            locConf->_add_header = tokens[1];
-        } else if (tokens[0] == "return") {
-            locConf->_return = tokens[1];
-        } else if (tokens[0] == "allow") {
-            locConf->_allow = tokens[1];
-        } else if (tokens[0] == "deny") {
-            locConf->_deny = tokens[1];
-        } else if (tokens[0] == "alias") {
-            locConf->_alias = tokens[1];
-        } else if (tokens[0] == "try_files") {
-            locConf->_try_files = tokens[1];
-        } else if (tokens[0] == "root") {
-            locConf->_root = tokens[1];
-        } else if (tokens[0] == "client_max_body_size") {
-            locConf->_client_max_body_size = locConf->verifyClientMaxBodySize(tokens[1]);
+		if (tokens[0] == "path") {
+			locConf->_path = tokens[1];
+		} else if (tokens[0] == "add_header") {
+			locConf->_add_header = tokens[1];
+		} else if (tokens[0] == "return") {
+			locConf->_return = tokens[1];
+		} else if (tokens[0] == "allow") {
+			locConf->_allow = tokens[1];
+		} else if (tokens[0] == "deny") {
+			locConf->_deny = tokens[1];
+		} else if (tokens[0] == "alias") {
+			locConf->_alias = tokens[1];
+		} else if (tokens[0] == "try_files") {
+			locConf->_try_files = tokens[1];
+		} else if (tokens[0] == "root") {
+			locConf->_root = tokens[1];
+		} else if (tokens[0] == "client_max_body_size") {
+			locConf->_client_max_body_size = Parser::verifyClientMaxBodySize(tokens[1]);
 			if (locConf->_client_max_body_size == -1) {
 				std::cerr << "Invalid client_max_body_size value" << std::endl;
 				return false;
 			}
-        } else if (tokens[0] == "autoindex") {
-            // locConf->_autoindex = (tokens[1] == "on");  // Simple bool conversion
-			locConf->_autoindex = locConf->verifyAutoIndex(tokens[1]);
-        } else if (tokens[0] == "index") {
+		} else if (tokens[0] == "autoindex") {
+			// locConf->_autoindex = (tokens[1] == "on");  // Simple bool conversion
+			locConf->_autoindex = Parser::verifyAutoIndex(tokens[1]);
+		} else if (tokens[0] == "index") {
 			for (size_t j = 1; j < tokens.size(); j++) {
 				locConf->_index.push_back(tokens[j]);
 			}
-        } else if (tokens[0] == "DEBUG_page") {
+		} else if (tokens[0] == "DEBUG_page") {
             int code = atoi(tokens[1].c_str());
             locConf->_error_pages[code] = tokens[2];
         } else if (tokens[0] == "allowed_methods") {
 			for (size_t j = 1; j < tokens.size(); j++) {
 				if (tokens[j] != "GET" && tokens[j] != "POST" && tokens[j] != "DELETE")
 					return false;
-				locConf->_allowed_methods.push_back(tokens[j]);
+				locConf->_allowed_methods[tokens[j]] = true;
 			}
         } else {
 

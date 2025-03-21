@@ -277,32 +277,72 @@ STR	Response::getMime(STR path) {
 
 #include <dirent.h>
 
+// Function to decode URL-encoded strings
+STR urlDecode(const STR& input) {
+    STR result;
+    result.reserve(input.length());
+    
+    for (size_t i = 0; i < input.length(); ++i) {
+        if (input[i] == '%' && i + 2 < input.length()) {
+            // Get the two hex digits
+            STR hexVal = input.substr(i + 1, 2);
+            
+            // Convert from hex to decimal
+            int value = 0;
+            for (size_t j = 0; j < 2; ++j) {
+                value *= 16;
+                char c = hexVal[j];
+                if (c >= '0' && c <= '9') {
+                    value += c - '0';
+                } else if (c >= 'A' && c <= 'F') {
+                    value += 10 + (c - 'A');
+                } else if (c >= 'a' && c <= 'f') {
+                    value += 10 + (c - 'a');
+                }
+            }
+            
+            // Append the decoded character
+            result += static_cast<char>(value);
+            i += 2;
+        } else if (input[i] == '+') {
+            result += ' ';
+        } else {
+            result += input[i];
+        }
+    }
+    
+    return result;
+}
+
 //rewrite, recheck
-STR	Response::handleDIR(STR path) {
-	DIR* dir = opendir(path.c_str());
+STR Response::handleDIR(STR path) {
+    DIR* dir = opendir(path.c_str());
     if (!dir) {
         return createResponse(500, "text/plain", "Failed to read directory");
     }
 
     std::stringstream html;
-    html << "<html><head><title>Index of " << path << "</title></head><body>\n";
-    html << "<h1>Index of " << path << "</h1><hr><pre>\n";
+    html << "<html><head><title>Index of " << _request->_file_path << "</title></head><body>\n";
+    html << "<h1>Index of " << _request->_file_path << "</h1><hr><pre>\n";
 
-    struct dirent* entry;
-    while ((entry = readdir(dir)) != NULL) {
-        STR name = entry->d_name;
+	struct dirent* entry;
+	while ((entry = readdir(dir)) != NULL) {
+		STR name = entry->d_name;
         struct stat st;
-        STR fullpath = path + "/" + name;
+        STR root_path = path + "/" + name;
+		STR fullpath = _request->_file_path + "/" + name;
 
-        if (stat(fullpath.c_str(), &st) == 0) {
+        if (stat(root_path.c_str(), &st) == 0) {
             char timeStr[100];
             strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", localtime(&st.st_mtime));	//REDO, bad funcs!
+            
+            STR displayName = urlDecode(name);
+			
+            // std::cerr << "DEBUG Response::handleDIR: displayName is " << displayName << "\n";
 
-			// std::cerr << "DEBUG Building Directory Listing full_path = " << fullpath << ", path = " << path << ", name = " << name << std::endl;
-
-            html << "<a href=\"" << name << (S_ISDIR(st.st_mode) ? "/" : "") << "\">"
-                 << name << (S_ISDIR(st.st_mode) ? "/" : "") << "</a>"
-                 << STR(50 - name.length(), ' ')
+            html << "<a href=\"" << fullpath << (S_ISDIR(st.st_mode) ? "/" : "") << "\">"
+                 << displayName << (S_ISDIR(st.st_mode) ? "/" : "") << "</a>"
+                 << STR(50 - displayName.length(), ' ')
                  << timeStr
                  << STR(20, ' ')
                  << st.st_size << "\n";
@@ -571,20 +611,25 @@ int Response::buildIndexPath(LocationConfig *matchLocation, STR &best_file_path)
 	return 1;
 }
 
-STR	Response::matchMethod(STR path, bool isDIR) {
+STR	Response::matchMethod(STR path, bool isDIR, LocationConfig *matchLocation) {
 	if (_request->_method == "GET") {
+		if (matchLocation->_allowed_methods["GET"] == false)
+			return createResponse(405, "text/plain", "Method Not Allowed");
 		std::cerr << "Response::matchMethod GET path" << path << " isDIR " << isDIR << std::endl;
 		return (handleGET(path, isDIR));
 	} else if (_request->_method == "POST") {
+		if (matchLocation->_allowed_methods["POST"] == false)
+			return createResponse(405, "text/plain", "Method Not Allowed");
 		std::cerr << "Response::matchMethod POST path" << path << " isDIR " << isDIR << std::endl;
 		return (handlePOST(path));
 	} else if (_request->_method == "DELETE") {
-
+		if (matchLocation->_allowed_methods["DELETE"] == false)
+			return createResponse(405, "text/plain", "Method Not Allowed");
 		std::cerr << "Response::matchMethod DELETE path" << path << " isDIR " << isDIR << std::endl;
 		return (handleDELETE(path));
 	} else {
-	// return createResponse(403, "text/plain", "Response::getResponse NO MATCH");
-		return "";
+		std::cerr << "Response::matchMethod UNUSUAL METHOD ERROR: " << _request->_method << "\n";
+		return createResponse(405, "text/plain", "Method Not Allowed");
 	}
 }
 
@@ -666,25 +711,24 @@ STR Response::getResponse() {
 
 	file_path = dir_path;
 
-	std::string extension = file_path.substr(file_path.find_last_of("."));
-	if (extension == ".py" || extension == ".php" || extension == ".pl" || extension == ".sh") {
-		std::map<STR, STR> env;
-
-		env["REQUEST_METHOD"] = _request->_method;
-		env["SCRIPT_NAME"] = file_path;
-		env["QUERY_STRING"] = _request->_query_string.empty() ? "" : _request->_query_string;
-		env["CONTENT_TYPE"] = _request->_content_type.empty() ? "text/plain" : _request->_content_type;
-		env["HTTP_HOST"] = _request->_host;
-		env["SERVER_PORT"] = intToString(_request->_port);
-		env["SERVER_PROTOCOL"] = _request->_http_version;
-
-		CgiHandler cgi(file_path, env, _request->_body);
-		return cgi.executeCgi();
-	}
-
 	//serve file if path is a file
 	if (checkFile(file_path) == NormalFile) {
-		return (matchMethod(file_path, false));
+		//if it's a script file - execute it
+		if (ends_with(file_path, ".py") || ends_with(file_path, ".php") || ends_with(file_path, ".pl") || ends_with(file_path, ".sh")) {
+			std::map<STR, STR> env;
+	
+			env["REQUEST_METHOD"] = _request->_method;
+			env["SCRIPT_NAME"] = file_path;
+			env["QUERY_STRING"] = _request->_query_string.empty() ? "" : _request->_query_string;
+			env["CONTENT_TYPE"] = _request->_content_type.empty() ? "text/plain" : _request->_content_type;
+			env["HTTP_HOST"] = _request->_host;
+			env["SERVER_PORT"] = intToString(_request->_port);
+			env["SERVER_PROTOCOL"] = _request->_http_version;
+	
+			CgiHandler cgi(file_path, env, _request->_body);
+			return cgi.executeCgi();
+		}
+		return (matchMethod(file_path, false, matchLocation));
 	}
 	//--server file
 
@@ -701,13 +745,13 @@ STR Response::getResponse() {
 
 	//index file exists - serve it
 	if (checkFile(file_path) == NormalFile) {
-		return (matchMethod(file_path, false));
+		return (matchMethod(file_path, false, matchLocation));
 	}
 
 	//index file doesn't exist - create directory if autoindex is on
 	if (matchLocation->_autoindex) {
 		//return directory listing
-		return matchMethod(dir_path, true);
+		return matchMethod(dir_path, true, matchLocation);
 	} else {
 		//autoindex is off
 		return createResponse(403, "text/plain", "Forbidden");

@@ -10,12 +10,10 @@ struct LocationConfig : AConfigBase {
 	STR								_alias;
 	STR 							_try_files; 			//server, location
 	bool							_autoindex;
-	VECTOR<STR>						_allowed_methods;
+	MAP<STR, bool>					_allowed_methods;
 	MAP<STR, LocationConfig*>		_locations;
 
 	void							_self_destruct();
-	long long 						verifyClientMaxBodySize(std::string client_max_body_size_str);
-	bool							verifyAutoIndex(std::string autoindex_str);
 
 	LocationConfig() :
         _path(""),
@@ -24,9 +22,12 @@ struct LocationConfig : AConfigBase {
         _deny(""),
         _alias(""),
         _try_files(""),
-        _autoindex(false),
-        _allowed_methods()
-    {}
+        _autoindex(false)
+    {
+		_allowed_methods["GET"] = false;
+		_allowed_methods["POST"] = false;
+		_allowed_methods["DELETE"] = false;
+	}
 };
 
 #endif

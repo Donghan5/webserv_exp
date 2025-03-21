@@ -79,8 +79,10 @@ void printLocationConfig(const LocationConfig* loc, int indent = 2) {
     }
 
     std::cout << pad << "  _allowed_methods: [";
-    for (VECTOR<STR>::const_iterator it = loc->_allowed_methods.begin(); it != loc->_allowed_methods.end(); ++it) {
-        std::cout << (it != loc->_allowed_methods.begin() ? ", " : "") << *it;
+    for (MAP<STR, bool>::const_iterator it = loc->_allowed_methods.begin(); it != loc->_allowed_methods.end(); ++it) {
+        if (it->second) {
+            std::cout << (it != loc->_allowed_methods.begin() ? ", " : "") << it->first;
+        }
     }
     std::cout << "]\n";
 

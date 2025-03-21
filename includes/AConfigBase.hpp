@@ -39,7 +39,6 @@ struct AConfigBase {
 	AConfigBase			*back_ref;
 
 	virtual void		_self_destruct() = 0;
-	virtual long long	verifyClientMaxBodySize(std::string client_max_body_size_str) = 0;
 	static	ConfigBlock	_identify(AConfigBase *elem);
 
 	AConfigBase() :
