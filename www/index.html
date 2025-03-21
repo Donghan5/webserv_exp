@@ -60,6 +60,18 @@
         <p id="cgi-output">📄 CGI output will be displayed here.</p>
     </div>
 
+    <!-- 🍪 쿠키 테스트 -->
+    <div class="container">
+        <h1>🍪 Cookie Test</h1>
+        <button class="btn-primary" onclick="runCookieTest()">Run Cookie Test</button>
+        <p id="cookie-status">Result displayed.</p>
+        <div id="cookie-info" style="margin-top: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 5px; display: none;">
+            <h3>Current info of Cookie</h3>
+            <pre id="current-cookies"></pre>
+            <p><small>* It maintain in the next visit.</small></p>
+        </div>
+    </div>
+
     <footer>
         <p>&copy; 2025 WEBSERV PROJECT</p>
     </footer>
@@ -147,7 +159,93 @@
                 document.getElementById("cgi-output").innerText = "❌ CGI Execution Failed!";
             });
         }
-    </script>
 
+        function runCookieTest() {
+            // 상태 업데이트
+            const statusEl = document.getElementById("cookie-status");
+            statusEl.innerText = "🔄 testing Cookie feature...";
+
+            // cookie.py CGI 스크립트 실행
+            fetch('/cgi-bin/cookie.py')
+            .then(response => {
+                // 응답 헤더에서 쿠키 정보 확인
+                const setCookie = response.headers.get('set-cookie');
+
+                return response.text().then(data => {
+                    return { text: data, cookie: setCookie };
+                });
+            })
+            .then(data => {
+                // 쿠키 테스트 결과 표시
+                statusEl.innerHTML = "✅ Complete! Updated visit time.";
+
+                // 현재 모든 쿠키 정보 표시
+                displayCurrentCookies();
+
+                // iframe으로 결과 표시 (HTML 내용이 있는 경우)
+                if (data.text && data.text.includes("<html")) {
+                    const iframe = document.createElement('iframe');
+                    iframe.style.width = '100%';
+                    iframe.style.height = '300px';
+                    iframe.style.border = '1px solid #ddd';
+                    iframe.style.borderRadius = '4px';
+                    iframe.style.marginTop = '10px';
+
+                    // HTML 내용 삽입
+                    iframe.srcdoc = data.text;
+
+                    // 기존 iframe 제거 후 새로 추가
+                    const existingIframe = document.querySelector('#cookie-status iframe');
+                    if (existingIframe) {
+                        existingIframe.remove();
+                    }
+
+                    statusEl.appendChild(iframe);
+                }
+            })
+            .catch(error => {
+                statusEl.innerText = "❌ Failed cookie test: " + error.message;
+            });
+        }
+
+        function displayCurrentCookies() {
+			const cookieInfo = document.getElementById("cookie-info");
+			const currentCookies = document.getElementById("current-cookies");
+
+			// 쿠키 정보 박스 표시
+			cookieInfo.style.display = "block";
+
+			// 현재 브라우저에 저장된 모든 쿠키 가져오기
+			const allCookies = document.cookie.split(';').map(cookie => cookie.trim());
+
+			if (allCookies.length === 0 || (allCookies.length === 1 && allCookies[0] === "")) {
+				currentCookies.textContent = "저장된 쿠키가 없습니다.";
+				return;
+			}
+
+			// 쿠키 정보 예쁘게 표시 - 수정된 부분
+			const cookieData = {};
+			allCookies.forEach(cookie => {
+				if (cookie && cookie.includes('=')) {
+					const parts = cookie.split('=');
+					if (parts.length >= 2) {
+						const name = parts[0].trim();
+						const value = parts.slice(1).join('=');
+
+						if (name && name !== "undefined") {
+							cookieData[name] = value;
+						}
+					}
+				}
+			});
+
+			currentCookies.textContent = JSON.stringify(cookieData, null, 2);
+		}
+
+        // 페이지 로드 시 쿠키 정보 표시
+        window.addEventListener('load', function() {
+            displayCurrentCookies();
+        });
+    </script>
 </body>
 </html>
