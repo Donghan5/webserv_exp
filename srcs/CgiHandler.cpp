@@ -102,7 +102,8 @@ std::string CgiHandler::executeCgi() {
 		int status;
 		waitpid(pid, &status, 0);
 		if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
-			return createResponse(200, "text/html", output);
+			Response response;
+			return response.createResponse(200, "text/html", output);
 		} else {
 			return "500 Internal Server Error\r\n\r\nCGI Execution Failed";
 		}

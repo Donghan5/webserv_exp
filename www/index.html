@@ -7,6 +7,32 @@
     <link rel="stylesheet" href="style.css">
     <script src="script.js" defer></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        .login-status {
+            background-color: #212529;
+            color: #ffffff;
+            padding: 10px 20px;
+            border-radius: 4px;
+            margin-top: 20px;
+            text-align: center;
+        }
+        .login-status a {
+            color: #17a2b8;
+            text-decoration: none;
+        }
+        .login-status a:hover {
+            text-decoration: underline;
+        }
+        .session-info {
+            background-color: #343a40;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+            text-align: left;
+            color: #adb5bd;
+            font-family: monospace;
+        }
+    </style>
 </head>
 <body>
     <header>
@@ -34,14 +60,32 @@
         <p id="cgi-output">📄 CGI output will be displayed here.</p>
     </div>
 
-	<div class="container" style="background-color: #000000; color: #ffffff; padding: 20px; border-radius: 8px;">
+    <!-- Login status section -->
+    <div class="container" style="background-color: #111827; color: #ffffff; padding: 20px; border-radius: 8px; margin-top: 20px;">
+        <h1>👤 Session & Login</h1>
+        <div id="login-area">
+            <div id="login-status" class="login-status">
+                <p>Loading...</p>
+            </div>
+            <div id="session-info" class="session-info" style="display: none;">
+                <h3>🔐 Session Information</h3>
+                <pre id="session-data">Loading data...</pre>
+            </div>
+        </div>
+        <div style="margin-top: 20px; display: flex; justify-content: center; gap: 10px;">
+            <button class="btn-primary" onclick="window.location.href='/cgi-bin/login.py'">Login/Check Status</button>
+        </div>
+    </div>
+
+	<div class="container" style="background-color: #000000; color: #ffffff; padding: 20px; border-radius: 8px; margin-top: 20px;">
 		<h1>🍪 Cookie Test</h1>
 		<button class="btn-primary" onclick="runCookieTest()">Run Cookie Test</button>
-		<p id="cookie-status">Result displayed.</p>
+        <button class="btn-primary" style="background-color: #dc3545;" onclick="window.location.href='/cgi-bin/reset_cookie.py'">Reset Cookies</button>
+		<p id="cookie-status">Results will be displayed here.</p>
 		<div id="cookie-info" style="margin-top: 20px; padding: 15px; background-color: #222222; border-radius: 5px; display: none; color: #ffffff;">
-			<h3>Current info of Cookie</h3>
+			<h3>Current Cookie Information</h3>
 			<pre id="current-cookies" style="color: #00ff00; background-color: #333333; padding: 10px; border-radius: 4px;"></pre>
-			<p><small style="color: #aaaaaa;">* It maintain in the next visit.</small></p>
+			<p><small style="color: #aaaaaa;">* Cookies will be maintained until the next visit.</small></p>
 		</div>
 	</div>
 
@@ -122,9 +166,9 @@
             });
         }
 		function runCGI(cgiPath) {
-			// 상태 표시 업데이트
+			// Update status display
 			const outputEl = document.getElementById("cgi-output");
-			outputEl.innerHTML = "🔄 Excuting...";
+			outputEl.innerHTML = "🔄 Executing...";
 
 			fetch(cgiPath)
 			.then(response => response.text())
@@ -184,73 +228,41 @@
 		}
 
         function runCookieTest() {
-			// update status
+			// Update status
 			const statusEl = document.getElementById("cookie-status");
-			statusEl.innerText = "🔄 testing Cookie feature...";
+			statusEl.innerText = "🔄 Testing cookie feature...";
 
-			let visits = getCookie('visits');
-			if (!visits) {
-				visits = 0;
-			} else {
-				visits = parseInt(visits);
-			}
+            // Run cookie test on the server
+            fetch('/cgi-bin/cookie.py')
+            .then(response => response.text())
+            .then(data => {
+                let htmlContent = data;
+                const separators = ["\r\n\r\n", "\n\n", "\r\r"];
 
-			visits++;
+                for (const separator of separators) {
+                    const index = htmlContent.indexOf(separator);
+                    if (index !== -1) {
+                        htmlContent = htmlContent.substring(index + separator.length);
+                        break;
+                    }
+                }
 
-			const expiryDate = new Date();
-			expiryDate.setDate(expiryDate.getDate() + 30);
-			document.cookie = `visits=${visits}; expires=${expiryDate.toUTCString()}; path=/`;
+                const iframe = document.createElement('iframe');
+                iframe.style.width = '100%';
+                iframe.style.height = '250px';
+                iframe.style.border = '1px solid #444';
+                iframe.style.borderRadius = '4px';
+                iframe.style.marginTop = '10px';
+                iframe.srcdoc = htmlContent;
 
-			displayCurrentCookies();
+                statusEl.innerHTML = "";
+                statusEl.appendChild(iframe);
 
-			statusEl.innerHTML = `✅ Complete! Updated visit time. You've visited <strong>${visits} times</strong>.`;
-
-			const htmlContent = `
-			<!DOCTYPE html>
-			<html lang="en">
-			<head>
-				<meta charset="UTF-8">
-				<title>Visit Log</title>
-				<style>
-					body {
-						font-family: Arial, sans-serif;
-						text-align: center;
-						margin-top: 50px;
-					}
-					.container {
-						width: 80%;
-						margin: auto;
-						padding: 20px;
-						background-color: #f8f9fa;
-						border-radius: 5px;
-					}
-				</style>
-			</head>
-			<body>
-				<div class="container">
-					<h1>Visit Log</h1>
-					<p>You've visited <strong>${visits} times</strong>.</p>
-					<p><small>Last updated: ${new Date().toLocaleString()}</small></p>
-				</div>
-			</body>
-			</html>
-			`;
-
-			const iframe = document.createElement('iframe');
-			iframe.style.width = '100%';
-			iframe.style.height = '250px';
-			iframe.style.border = '1px solid #ddd';
-			iframe.style.borderRadius = '4px';
-			iframe.style.marginTop = '10px';
-
-			iframe.srcdoc = htmlContent;
-
-			const existingIframe = document.querySelector('#cookie-status iframe');
-			if (existingIframe) {
-				existingIframe.remove();
-			}
-
-			statusEl.appendChild(iframe);
+                displayCurrentCookies();
+            })
+            .catch(error => {
+                statusEl.innerText = "❌ Cookie Test Failed: " + error.message;
+            });
 		}
 
 		function getCookie(name) {
@@ -269,7 +281,7 @@
 			const allCookies = document.cookie.split(';').map(cookie => cookie.trim());
 
 			if (allCookies.length === 0 || (allCookies.length === 1 && allCookies[0] === "")) {
-				currentCookies.textContent = "No stored cookie.";
+				currentCookies.textContent = "No stored cookies.";
 				return;
 			}
 
@@ -291,8 +303,42 @@
 			currentCookies.textContent = JSON.stringify(cookieData, null, 2);
 		}
 
+        // Check login status function
+        function checkLoginStatus() {
+            const loginStatus = document.getElementById('login-status');
+            const sessionInfo = document.getElementById('session-info');
+            const sessionData = document.getElementById('session-data');
+
+            // Check login info from cookies
+            const loggedIn = getCookie('logged_in') === 'true';
+            const username = getCookie('username');
+            const sessionId = getCookie('session_id');
+
+            if (loggedIn && username) {
+                loginStatus.innerHTML = `
+                    <p>✅ You are logged in as <strong>${username}</strong>.</p>
+                    <p><a href="/cgi-bin/login.py?action=logout">Logout</a> | <a href="/cgi-bin/login.py">Session Details</a></p>
+                `;
+
+                sessionInfo.style.display = 'block';
+                sessionData.textContent = JSON.stringify({
+                    username: username,
+                    sessionId: sessionId,
+                    loggedIn: loggedIn,
+                    lastActivity: new Date().toLocaleString()
+                }, null, 2);
+            } else {
+                loginStatus.innerHTML = `
+                    <p>❌ You are not logged in.</p>
+                    <p><a href="/cgi-bin/login.py">Login</a></p>
+                `;
+                sessionInfo.style.display = 'none';
+            }
+        }
+
         window.addEventListener('load', function() {
             displayCurrentCookies();
+            checkLoginStatus();
         });
     </script>
 </body>
