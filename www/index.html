@@ -25,32 +25,6 @@
         <p>THIS WEBSITE SERVED AS WEBSERV</p>
     </section>
 
-    <!-- 📤 POST: 파일 업로드 -->
-    <div class="container">
-        <h1>📤 Upload File (POST)</h1>
-        <input type="file" id="fileInput">
-        <button class="btn-primary" onclick="uploadFile()">Upload</button>
-        <p id="upload-status"></p>
-    </div>
-
-    <!-- 🗑️ DELETE: 파일 삭제 -->
-    <div class="container">
-        <h1>🗑️ Delete File (DELETE)</h1>
-        <input type="text" id="deleteFileName" placeholder="Enter filename to delete">
-        <button class="btn-danger" onclick="deleteFile()">Delete</button>
-        <p id="delete-status"></p>
-    </div>
-
-    <!-- 🔍 GET: 특정 파일 조회 -->
-    <div class="container">
-        <h1>📄 View File (GET)</h1>
-        <input type="text" id="getFileName" placeholder="Enter filename">
-        <button class="btn-secondary" onclick="getFile()">View</button>
-        <p id="get-status"></p>
-        <img id="preview-image" style="max-width: 100%; display: none;" />
-    </div>
-
-    <!-- ⚡ CGI 테스트 -->
     <div class="container">
         <h1>⚡ CGI Test</h1>
         <button class="btn-secondary" onclick="runCGI('/cgi-bin/test.py')">Run Python CGI 🐍</button>
@@ -60,17 +34,16 @@
         <p id="cgi-output">📄 CGI output will be displayed here.</p>
     </div>
 
-    <!-- 🍪 쿠키 테스트 -->
-    <div class="container">
-        <h1>🍪 Cookie Test</h1>
-        <button class="btn-primary" onclick="runCookieTest()">Run Cookie Test</button>
-        <p id="cookie-status">Result displayed.</p>
-        <div id="cookie-info" style="margin-top: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 5px; display: none;">
-            <h3>Current info of Cookie</h3>
-            <pre id="current-cookies"></pre>
-            <p><small>* It maintain in the next visit.</small></p>
-        </div>
-    </div>
+	<div class="container" style="background-color: #000000; color: #ffffff; padding: 20px; border-radius: 8px;">
+		<h1>🍪 Cookie Test</h1>
+		<button class="btn-primary" onclick="runCookieTest()">Run Cookie Test</button>
+		<p id="cookie-status">Result displayed.</p>
+		<div id="cookie-info" style="margin-top: 20px; padding: 15px; background-color: #222222; border-radius: 5px; display: none; color: #ffffff;">
+			<h3>Current info of Cookie</h3>
+			<pre id="current-cookies" style="color: #00ff00; background-color: #333333; padding: 10px; border-radius: 4px;"></pre>
+			<p><small style="color: #aaaaaa;">* It maintain in the next visit.</small></p>
+		</div>
+	</div>
 
     <footer>
         <p>&copy; 2025 WEBSERV PROJECT</p>
@@ -148,82 +121,158 @@
                 document.getElementById("get-status").innerText = "❌ File not found!";
             });
         }
+		function runCGI(cgiPath) {
+			// 상태 표시 업데이트
+			const outputEl = document.getElementById("cgi-output");
+			outputEl.innerHTML = "🔄 Excuting...";
 
-        function runCGI(cgiPath) {
-            fetch(cgiPath)
-            .then(response => response.text())
-            .then(data => {
-                document.getElementById("cgi-output").innerText = "✅ CGI Output:\n" + data;
-            })
-            .catch(error => {
-                document.getElementById("cgi-output").innerText = "❌ CGI Execution Failed!";
-            });
-        }
+			fetch(cgiPath)
+			.then(response => response.text())
+			.then(data => {
+				let htmlContent = data;
+
+				const separators = ["\r\n\r\n", "\n\n", "\r\r"];
+
+				for (const separator of separators) {
+					const index = htmlContent.indexOf(separator);
+					if (index !== -1) {
+						htmlContent = htmlContent.substring(index + separator.length);
+						break;
+					}
+				}
+
+				if (htmlContent.includes("Content-Type:") || htmlContent.includes("content-type:")) {
+					const contentTypeLineEnd = Math.max(
+						htmlContent.indexOf("\n", htmlContent.indexOf("Content-Type:")),
+						htmlContent.indexOf("\n", htmlContent.indexOf("content-type:"))
+					);
+
+					if (contentTypeLineEnd !== -1) {
+						htmlContent = htmlContent.substring(contentTypeLineEnd + 1);
+					}
+				}
+
+				if (!htmlContent.trim().startsWith("<!DOCTYPE") && !htmlContent.trim().startsWith("<html")) {
+					htmlContent = "<!DOCTYPE html><html><body>" + htmlContent + "</body></html>";
+				}
+
+				const iframe = document.createElement('iframe');
+				iframe.style.width = '100%';
+				iframe.style.height = '400px';
+				iframe.style.border = 'none';
+				iframe.style.borderRadius = '4px';
+				iframe.style.backgroundColor = 'transparent';
+				iframe.style.marginTop = '10px';
+				iframe.scrolling = 'no';
+
+				iframe.srcdoc = htmlContent;
+
+				outputEl.innerHTML = "";
+				outputEl.appendChild(iframe);
+
+				iframe.onload = function() {
+					try {
+						iframe.style.height = (iframe.contentWindow.document.body.scrollHeight + 20) + 'px';
+					} catch(e) {
+						console.error("Unable to adjust iframe height:", e);
+					}
+				};
+			})
+			.catch(error => {
+				outputEl.innerText = "❌ CGI Fail: " + error.message;
+			});
+		}
 
         function runCookieTest() {
-            // 상태 업데이트
-            const statusEl = document.getElementById("cookie-status");
-            statusEl.innerText = "🔄 testing Cookie feature...";
+			// update status
+			const statusEl = document.getElementById("cookie-status");
+			statusEl.innerText = "🔄 testing Cookie feature...";
 
-            // cookie.py CGI 스크립트 실행
-            fetch('/cgi-bin/cookie.py')
-            .then(response => {
-                // 응답 헤더에서 쿠키 정보 확인
-                const setCookie = response.headers.get('set-cookie');
+			let visits = getCookie('visits');
+			if (!visits) {
+				visits = 0;
+			} else {
+				visits = parseInt(visits);
+			}
 
-                return response.text().then(data => {
-                    return { text: data, cookie: setCookie };
-                });
-            })
-            .then(data => {
-                // 쿠키 테스트 결과 표시
-                statusEl.innerHTML = "✅ Complete! Updated visit time.";
+			visits++;
 
-                // 현재 모든 쿠키 정보 표시
-                displayCurrentCookies();
+			const expiryDate = new Date();
+			expiryDate.setDate(expiryDate.getDate() + 30);
+			document.cookie = `visits=${visits}; expires=${expiryDate.toUTCString()}; path=/`;
 
-                // iframe으로 결과 표시 (HTML 내용이 있는 경우)
-                if (data.text && data.text.includes("<html")) {
-                    const iframe = document.createElement('iframe');
-                    iframe.style.width = '100%';
-                    iframe.style.height = '300px';
-                    iframe.style.border = '1px solid #ddd';
-                    iframe.style.borderRadius = '4px';
-                    iframe.style.marginTop = '10px';
+			displayCurrentCookies();
 
-                    // HTML 내용 삽입
-                    iframe.srcdoc = data.text;
+			statusEl.innerHTML = `✅ Complete! Updated visit time. You've visited <strong>${visits} times</strong>.`;
 
-                    // 기존 iframe 제거 후 새로 추가
-                    const existingIframe = document.querySelector('#cookie-status iframe');
-                    if (existingIframe) {
-                        existingIframe.remove();
-                    }
+			const htmlContent = `
+			<!DOCTYPE html>
+			<html lang="en">
+			<head>
+				<meta charset="UTF-8">
+				<title>Visit Log</title>
+				<style>
+					body {
+						font-family: Arial, sans-serif;
+						text-align: center;
+						margin-top: 50px;
+					}
+					.container {
+						width: 80%;
+						margin: auto;
+						padding: 20px;
+						background-color: #f8f9fa;
+						border-radius: 5px;
+					}
+				</style>
+			</head>
+			<body>
+				<div class="container">
+					<h1>Visit Log</h1>
+					<p>You've visited <strong>${visits} times</strong>.</p>
+					<p><small>Last updated: ${new Date().toLocaleString()}</small></p>
+				</div>
+			</body>
+			</html>
+			`;
 
-                    statusEl.appendChild(iframe);
-                }
-            })
-            .catch(error => {
-                statusEl.innerText = "❌ Failed cookie test: " + error.message;
-            });
-        }
+			const iframe = document.createElement('iframe');
+			iframe.style.width = '100%';
+			iframe.style.height = '250px';
+			iframe.style.border = '1px solid #ddd';
+			iframe.style.borderRadius = '4px';
+			iframe.style.marginTop = '10px';
+
+			iframe.srcdoc = htmlContent;
+
+			const existingIframe = document.querySelector('#cookie-status iframe');
+			if (existingIframe) {
+				existingIframe.remove();
+			}
+
+			statusEl.appendChild(iframe);
+		}
+
+		function getCookie(name) {
+			const value = `; ${document.cookie}`;
+			const parts = value.split(`; ${name}=`);
+			if (parts.length === 2) return parts.pop().split(';').shift();
+			return null;
+		}
 
         function displayCurrentCookies() {
 			const cookieInfo = document.getElementById("cookie-info");
 			const currentCookies = document.getElementById("current-cookies");
 
-			// 쿠키 정보 박스 표시
 			cookieInfo.style.display = "block";
 
-			// 현재 브라우저에 저장된 모든 쿠키 가져오기
 			const allCookies = document.cookie.split(';').map(cookie => cookie.trim());
 
 			if (allCookies.length === 0 || (allCookies.length === 1 && allCookies[0] === "")) {
-				currentCookies.textContent = "저장된 쿠키가 없습니다.";
+				currentCookies.textContent = "No stored cookie.";
 				return;
 			}
 
-			// 쿠키 정보 예쁘게 표시 - 수정된 부분
 			const cookieData = {};
 			allCookies.forEach(cookie => {
 				if (cookie && cookie.includes('=')) {
@@ -242,7 +291,6 @@
 			currentCookies.textContent = JSON.stringify(cookieData, null, 2);
 		}
 
-        // 페이지 로드 시 쿠키 정보 표시
         window.addEventListener('load', function() {
             displayCurrentCookies();
         });

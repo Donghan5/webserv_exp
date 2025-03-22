@@ -341,21 +341,12 @@ STR Response::handleDIR(STR path) {
             // std::cerr << "DEBUG Response::handleDIR: displayName is " << displayName << "\n";
 
 			// original version
-            // html << "<a href=\"" << fullpath << (S_ISDIR(st.st_mode) ? "/" : "") << "\">"
-            //      << displayName << (S_ISDIR(st.st_mode) ? "/" : "") << "</a>"
-            //      << STR(50 - displayName.length(), ' ')
-            //      << timeStr
-            //      << STR(20, ' ')
-            //      << st.st_size << "\n";
-
-			// to test
-			size_t spaces = displayName.length() >= 50 ? 1 : 50 - displayName.length();
-			html << "<a href=\"" << fullpath << (S_ISDIR(st.st_mode) ? "/" : "") << "\">"
-				<< displayName << (S_ISDIR(st.st_mode) ? "/" : "") << "</a>"
-				<< STR(spaces, ' ')
-				<< timeStr
-				<< STR(20, ' ')
-				<< st.st_size << "\n";
+            html << "<a href=\"" << fullpath << (S_ISDIR(st.st_mode) ? "/" : "") << "\">"
+                 << displayName << (S_ISDIR(st.st_mode) ? "/" : "") << "</a>"
+                 << STR(50 - displayName.length(), ' ')
+                 << timeStr
+                 << STR(50, ' ')
+                 << st.st_size << "\n";
         }
     }
 

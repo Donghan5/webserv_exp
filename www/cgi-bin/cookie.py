@@ -29,12 +29,14 @@ if cookies:
 
 if not session_id:
     session_id = str(uuid.uuid4())
-    expiration_time = time.time() + 60 * 60 * 24 * 30  # 30일 유지
+    expiration_time = time.time() + 60 * 60 * 24 * 30  # expires 30 days
     formatted_time = time.strftime("%a, %d-%b-%Y %H:%M:%S GMT", time.gmtime(expiration_time))
     print(f"Set-Cookie: session_id={session_id}; Expires={formatted_time}; Path=/")
 
+# path session file
 session_file = os.path.join(SESSION_DIR, f"{session_id}.txt")
 
+# load visit time
 visits = 0
 try:
     with open(session_file, "r") as file:
@@ -42,10 +44,12 @@ try:
 except FileNotFoundError:
     visits = 0
 
+# increment and store
 visits += 1
 with open(session_file, "w") as file:
     file.write(str(visits))
 
+# 방문 횟수를 쿠키로도 저장 (추가된 부분)
 expiration_time = time.time() + 60 * 60 * 24 * 30  # 30일 유지
 formatted_time = time.strftime("%a, %d-%b-%Y %H:%M:%S GMT", time.gmtime(expiration_time))
 print(f"Set-Cookie: visits={visits}; Expires={formatted_time}; Path=/")

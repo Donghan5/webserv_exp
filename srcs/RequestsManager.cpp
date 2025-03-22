@@ -68,8 +68,8 @@ int RequestsManager::HandleRead() {
 			}
 
 			if (body_read != -1) {
-				// std::cerr << "RequestsManager::HandleRead Reading body: " << body_read << ", + " << nbytes << "\n";
-				// std::cerr << "RequestsManager::HandleRead Total size:  " << (_partial_requests[_client_fd].size() + nbytes) << "\n";
+				std::cerr << "RequestsManager::HandleRead Reading body: " << body_read << ", + " << nbytes << "\n";
+				std::cerr << "RequestsManager::HandleRead Total size:  " << (_partial_requests[_client_fd].size() + nbytes) << "\n";
 				body_read += nbytes;
 			}
 
