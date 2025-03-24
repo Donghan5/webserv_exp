@@ -390,7 +390,30 @@ bool FillDirective(AConfigBase* block, STR line, int position) {
         return true;
     }
     else if (LocationConfig* locConf = dynamic_cast<LocationConfig*>(block)) {
-		if (tokens[0] == "path") {
+		if (tokens[0] == "proxy_pass") {
+			int	host_start;
+			int	host_end;
+			int	delim_position;
+			int	port_end;
+
+			//extracting host and port from 		Host: localhost:8080
+			host_start = tokens[1].find_first_of(':') + 3;
+			delim_position = tokens[1].find(':', tokens[1].find_first_of(':') + 1);
+
+			if (delim_position == (int)STR::npos) { //Not tested
+			//host without port
+				host_end = tokens[1].find_last_not_of(' ') + 1; //		Future check required: newline included or not to remove +1
+				locConf->_proxy_pass_host = tokens[1].substr(host_start, host_end - host_start);
+			} else {
+			//host with port
+				host_end = delim_position;
+				port_end = tokens[1].find_last_not_of(' ');
+				locConf->_proxy_pass_host = tokens[1].substr(host_start, host_end - host_start);
+				locConf->_proxy_pass_port = atoi(tokens[1].substr(delim_position + 1, delim_position + 1 - port_end).c_str());
+			}
+			std::cerr << "DEBUG CHECKFillDirective LocationConfig proxy_pass_host " << locConf->_proxy_pass_host << "\n";
+			std::cerr << "DEBUG CHECKFillDirective LocationConfig proxy_pass_port " << locConf->_proxy_pass_port << "\n";
+		} else if (tokens[0] == "path") {
 			locConf->_path = tokens[1];
 		} else if (tokens[0] == "add_header") {
 			locConf->_add_header = tokens[1];

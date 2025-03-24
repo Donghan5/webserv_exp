@@ -11,6 +11,15 @@
 #include <map>
 #include <cstring>
 
+#include <cerrno>
+
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+
+#include <sstream>
+
 class CgiHandler {
 	private:
 		std::string _scriptPath;
@@ -20,12 +29,14 @@ class CgiHandler {
 
 		char **convertEnvToCharArray(void);
 		char **convertArgsToCharArray(const std::string &interpreter);
+		std::string createErrorResponse(const std::string& status, const std::string& message);
 
 	public:
 		CgiHandler(const std::string &scriptPath, const std::map<std::string, std::string> &env, const std::string &body);
 		~CgiHandler();
 
 		std::string executeCgi();
+		std::string executeProxy();
 };
 
 #endif

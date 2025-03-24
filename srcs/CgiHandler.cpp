@@ -7,6 +7,14 @@ CgiHandler::CgiHandler(const std::string &scriptPath, const std::map<std::string
 	_interpreters[".sh"] = "/bin/bash";
 }
 
+
+std::string intToString(int num) {
+	std::ostringstream oss;
+	oss << num;
+
+	return oss.str();
+}
+
 CgiHandler::~CgiHandler() {}
 
 /*
@@ -107,4 +115,85 @@ std::string CgiHandler::executeCgi() {
 			return "500 Internal Server Error\r\n\r\nCGI Execution Failed";
 		}
 	}
+}
+
+std::string CgiHandler::executeProxy() {
+    // Create socket
+    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd < 0) {
+        return createErrorResponse("500", "Socket creation failed");
+    }
+
+    // Set up server address
+    struct sockaddr_in server_addr;
+    memset(&server_addr, 0, sizeof(server_addr));
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(atoi(_env["SERVER_PORT"].c_str()));
+    
+    // Convert hostname to IP
+    struct hostent *server = gethostbyname(_env["HTTP_HOST"].c_str());
+    if (server == NULL) {
+        close(sockfd);
+        return createErrorResponse("500", "Host resolution failed");
+    }
+    memcpy(&server_addr.sin_addr.s_addr, server->h_addr, server->h_length);
+
+    // Connect to server
+    if (connect(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
+        close(sockfd);
+        return createErrorResponse("500", "Connection failed");
+    }
+
+    // Update path handling to include query string
+    std::string path = _env["SCRIPT_NAME"];
+    if (!_env["QUERY_STRING"].empty()) {
+        path += "?" + _env["QUERY_STRING"];
+    }
+    
+    // Prepare HTTP request
+    std::string request = _env["REQUEST_METHOD"] + " " + path + " " + _env["SERVER_PROTOCOL"] + "\r\n";
+    request += "Host: " + _env["HTTP_HOST"] + "\r\n";
+    request += "Content-Type: application/x-www-form-urlencoded\r\n";
+    
+    if (!_env["HTTP_COOKIE"].empty()) {
+        request += "Cookie: " + _env["HTTP_COOKIE"] + "\r\n";
+    }
+    
+    if (!_body.empty()) {
+        request += "Content-Length: " + intToString(_body.length()) + "\r\n";
+    }
+    
+    request += "Connection: close\r\n";  // Add Connection: close header
+    request += "\r\n";
+    if (!_body.empty()) {
+        request += _body;
+    }
+
+    std::cerr << "DEBUG - Full proxy request:\n" << request << std::endl;
+
+    // Send request
+    if (send(sockfd, request.c_str(), request.length(), 0) < 0) {
+        close(sockfd);
+        return createErrorResponse("500", "Send failed");
+    }
+
+    // Receive response
+    std::string response;
+    char buffer[4096];
+    int bytes_received;
+    while ((bytes_received = recv(sockfd, buffer, sizeof(buffer) - 1, 0)) > 0) {
+        buffer[bytes_received] = '\0';
+        response += buffer;
+    }
+
+    close(sockfd);
+    return response;
+}
+
+std::string CgiHandler::createErrorResponse(const std::string& status, const std::string& message) {
+    return "HTTP/1.1 " + status + " Error\r\n"
+           "Content-Type: text/plain\r\n"
+           "Content-Length: " + intToString(message.length()) + "\r\n"
+           "\r\n"
+           + message;
 }

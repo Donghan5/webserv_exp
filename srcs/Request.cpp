@@ -81,6 +81,7 @@ bool Request::parseHeader() {
 			}
 		} else if (temp_token == "Cookie:") {
 			//to do cookies
+			_cookies = temp_line.substr(temp_line.find_first_of(':') + 2);
 		} else if (temp_token == "Host:") {
 			int	host_start;
 			int	host_end;
@@ -164,6 +165,7 @@ void Request::parseQueryString(void) {
 }
 
 Request::Request() {
+	_cookies = "";
 	_full_request = "";
 	_file_path = "";
 	_method = "";
@@ -177,6 +179,7 @@ Request::Request() {
 
 Request::Request(STR request) {
 	_full_request = request;
+	_cookies = "";
 	_file_path = "";
 	_method = "";
 	_http_version = "";
@@ -189,6 +192,7 @@ Request::Request(STR request) {
 }
 
 Request::Request(const Request &obj) {
+	_cookies = obj._cookies;
 	_full_request = obj._full_request;
 	_file_path = obj._file_path;
 	_method = obj._method;

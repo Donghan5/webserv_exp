@@ -3,6 +3,8 @@
 # include "AConfigBase.hpp"
 
 struct LocationConfig : AConfigBase {
+	STR								_proxy_pass_host;
+	int								_proxy_pass_port;
 	STR								_path;
 	STR								_return;
 	STR								_allow;
@@ -16,6 +18,8 @@ struct LocationConfig : AConfigBase {
 	void							_self_destruct();
 
 	LocationConfig() :
+		_proxy_pass_host(""),
+		_proxy_pass_port(80),
         _path(""),
         _return(""),
         _allow(""),

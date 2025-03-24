@@ -28,6 +28,7 @@ class Request {
 		void								parseQueryString();
 
 	public:
+		STR									_cookies;
 		STR									_full_request;
 		STR									_method;
 		STR									_file_path;

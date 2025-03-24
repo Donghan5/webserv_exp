@@ -56,6 +56,8 @@ void printLocationConfig(const LocationConfig* loc, int indent = 2) {
     if (!loc) return;
     std::string pad(indent, ' ');
     std::cout << pad << "LocationConfig:\n";
+    std::cout << pad << "  _proxy_pass_host: " << loc->_proxy_pass_host << "\n";
+    std::cout << pad << "  _proxy_pass_port: " << loc->_proxy_pass_port << "\n";
     std::cout << pad << "  _path: " << loc->_path << "\n";
     std::cout << pad << "  _add_header: " << loc->_add_header << "\n";
     std::cout << pad << "  _return: " << loc->_return << "\n";

@@ -198,12 +198,13 @@ STR Response::createResponse(int statusCode, const STR& contentType, const STR& 
     response << "HTTP/1.1 " << _all_status_codes[statusCode] << "\r\n"
              << "Content-Type: " << contentType << "\r\n"
              << "Content-Length: " << body.length() << "\r\n"
+             << "Access-Control-Allow-Origin: *\r\n"
+             << "Access-Control-Allow-Methods: GET, POST, DELETE, OPTIONS\r\n"
+             << "Access-Control-Allow-Headers: Content-Type\r\n"
+             << "Access-Control-Allow-Credentials: true\r\n"
              << "Connection: close\r\n"
              << "\r\n"
              << body;
-
-
-	// std::cerr << "DEBUG Response : @" << response.str() << "@\n";
     return response.str();
 }
 
@@ -281,12 +282,12 @@ STR	Response::getMime(STR path) {
 STR urlDecode(const STR& input) {
     STR result;
     result.reserve(input.length());
-
+    
     for (size_t i = 0; i < input.length(); ++i) {
         if (input[i] == '%' && i + 2 < input.length()) {
             // Get the two hex digits
             STR hexVal = input.substr(i + 1, 2);
-
+            
             // Convert from hex to decimal
             int value = 0;
             for (size_t j = 0; j < 2; ++j) {
@@ -300,7 +301,7 @@ STR urlDecode(const STR& input) {
                     value += 10 + (c - 'a');
                 }
             }
-
+            
             // Append the decoded character
             result += static_cast<char>(value);
             i += 2;
@@ -310,7 +311,7 @@ STR urlDecode(const STR& input) {
             result += input[i];
         }
     }
-
+    
     return result;
 }
 
@@ -330,7 +331,7 @@ STR Response::handleDIR(STR path) {
 		STR name = entry->d_name;
         struct stat st;
         STR root_path = path + "/" + name;
-
+		
         if (stat(root_path.c_str(), &st) == 0) {
 			if (S_ISDIR(st.st_mode)){
 				name += "/";
@@ -339,12 +340,12 @@ STR Response::handleDIR(STR path) {
 
             char timeStr[100];
             strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", localtime(&st.st_mtime));	//REDO, bad funcs!
-
+            
             STR displayName = urlDecode(name);
-
+			
 			if (displayName.length() >= 45)
 				displayName = displayName.substr(0, 42) + "...";
-
+            
 			// std::cerr << "DEBUG Response::handleDIR: displayName is " << displayName << "\n";
 
 			html << "<a href=\"" << fullpath << "\">"
@@ -706,16 +707,41 @@ STR Response::getResponse() {
 	if (!matchLocation)
 		return createResponse(404, "text/plain", "Not Found");
 
+	//if location is a proxy pass
+	if (matchLocation->_proxy_pass_host != "") {
+        std::map<STR, STR> env;
+        
+        // Format the body as url-encoded form data if it's a POST request
+        STR formattedBody = _request->_body;
+        
+        env["REQUEST_METHOD"] = _request->_method;
+        env["SCRIPT_NAME"] = _request->_file_path;
+        env["QUERY_STRING"] = _request->_query_string;  // Make sure query string is passed
+        env["CONTENT_TYPE"] = "application/x-www-form-urlencoded";
+        env["HTTP_HOST"] = matchLocation->_proxy_pass_host;
+        env["SERVER_PORT"] = intToString(matchLocation->_proxy_pass_port);
+        env["SERVER_PROTOCOL"] = _request->_http_version;
+        env["HTTP_COOKIE"] = _request->_cookies;
+
+        std::cerr << "DEBUG - Proxy request details:" << std::endl;
+        std::cerr << "Path: " << _request->_file_path << std::endl;
+        std::cerr << "Query: " << _request->_query_string << std::endl;
+        std::cerr << "Method: " << _request->_method << std::endl;
+        
+        CgiHandler cgi("", env, formattedBody);
+        return cgi.executeProxy();
+    }
+
 	//if it's a script file - execute it
 	if (ends_with(dir_path, ".py") || ends_with(dir_path, ".php") || ends_with(dir_path, ".pl") || ends_with(dir_path, ".sh")) {
-		if (checkFile(dir_path) != NormalFile)
-			return createResponse(404, "text/plain", "Not Found");
-
+		// not sure if we must have a requested file
+		// if (checkFile(dir_path) != NormalFile)
+		// 	return createResponse(404, "text/plain", "Not Found");
+		
 		std::map<STR, STR> env;
 
 		env["REQUEST_METHOD"] = _request->_method;
 		env["SCRIPT_NAME"] = dir_path;
-		// env["HTTP_COOKIE"] = _request->_cookie;
 		env["QUERY_STRING"] = _request->_query_string.empty() ? "" : _request->_query_string;
 		env["CONTENT_TYPE"] = _request->_content_type.empty() ? "text/plain" : _request->_content_type;
 		env["HTTP_HOST"] = _request->_host;
@@ -728,7 +754,7 @@ STR Response::getResponse() {
 
 	if (_request->_method == "POST") {
 		std::cerr << "Response::getResponse POST path " << dir_path << " isDIR " << isDIR << std::endl;
-
+		
 		return (handlePOST(dir_path));
 	}
 
