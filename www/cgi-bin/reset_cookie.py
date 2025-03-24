@@ -4,8 +4,6 @@ import os
 import time
 import sys
 
-# Print headers first with empty line after
-print("Content-Type: text/html; charset=utf-8\r\n\r\n")
 
 # directory to store session
 SESSION_DIR = "./session_data"

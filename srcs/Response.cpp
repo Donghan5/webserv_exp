@@ -281,12 +281,12 @@ STR	Response::getMime(STR path) {
 STR urlDecode(const STR& input) {
     STR result;
     result.reserve(input.length());
-    
+
     for (size_t i = 0; i < input.length(); ++i) {
         if (input[i] == '%' && i + 2 < input.length()) {
             // Get the two hex digits
             STR hexVal = input.substr(i + 1, 2);
-            
+
             // Convert from hex to decimal
             int value = 0;
             for (size_t j = 0; j < 2; ++j) {
@@ -300,7 +300,7 @@ STR urlDecode(const STR& input) {
                     value += 10 + (c - 'a');
                 }
             }
-            
+
             // Append the decoded character
             result += static_cast<char>(value);
             i += 2;
@@ -310,7 +310,7 @@ STR urlDecode(const STR& input) {
             result += input[i];
         }
     }
-    
+
     return result;
 }
 
@@ -330,7 +330,7 @@ STR Response::handleDIR(STR path) {
 		STR name = entry->d_name;
         struct stat st;
         STR root_path = path + "/" + name;
-		
+
         if (stat(root_path.c_str(), &st) == 0) {
 			if (S_ISDIR(st.st_mode)){
 				name += "/";
@@ -339,12 +339,12 @@ STR Response::handleDIR(STR path) {
 
             char timeStr[100];
             strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", localtime(&st.st_mtime));	//REDO, bad funcs!
-            
+
             STR displayName = urlDecode(name);
-			
+
 			if (displayName.length() >= 45)
 				displayName = displayName.substr(0, 42) + "...";
-            
+
 			// std::cerr << "DEBUG Response::handleDIR: displayName is " << displayName << "\n";
 
 			html << "<a href=\"" << fullpath << "\">"
@@ -710,11 +710,12 @@ STR Response::getResponse() {
 	if (ends_with(dir_path, ".py") || ends_with(dir_path, ".php") || ends_with(dir_path, ".pl") || ends_with(dir_path, ".sh")) {
 		if (checkFile(dir_path) != NormalFile)
 			return createResponse(404, "text/plain", "Not Found");
-		
+
 		std::map<STR, STR> env;
 
 		env["REQUEST_METHOD"] = _request->_method;
 		env["SCRIPT_NAME"] = dir_path;
+		// env["HTTP_COOKIE"] = _request->_cookie;
 		env["QUERY_STRING"] = _request->_query_string.empty() ? "" : _request->_query_string;
 		env["CONTENT_TYPE"] = _request->_content_type.empty() ? "text/plain" : _request->_content_type;
 		env["HTTP_HOST"] = _request->_host;
@@ -727,7 +728,7 @@ STR Response::getResponse() {
 
 	if (_request->_method == "POST") {
 		std::cerr << "Response::getResponse POST path " << dir_path << " isDIR " << isDIR << std::endl;
-		
+
 		return (handlePOST(dir_path));
 	}
 
