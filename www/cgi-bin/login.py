@@ -5,6 +5,8 @@ import cgi
 import uuid
 import time
 import sys
+import json
+from datetime import datetime
 
 # Print content type header first
 print("Content-Type: text/html; charset=utf-8\r\n\r\n")
@@ -12,14 +14,66 @@ print("Content-Type: text/html; charset=utf-8\r\n\r\n")
 # Debug information
 print("<!-- DEBUG: Script started -->")
 
-# directory to store session
+# Directory settings
 SESSION_DIR = "./session_data"
+USERS_FILE = "./users_data.json"
+LOGIN_LOG_DIR = "./login_logs"
 
+# Check if directories exist and create them if not
 try:
-    if not os.path.exists(SESSION_DIR):
-        os.makedirs(SESSION_DIR)
+    for directory in [SESSION_DIR, LOGIN_LOG_DIR]:
+        if not os.path.exists(directory):
+            os.makedirs(directory)
 except Exception as e:
-    print(f"<!-- Error creating session directory: {e} -->")
+    print(f"<!-- Error creating directories: {e} -->")
+
+# Load user data from JSON file
+def load_users():
+    if not os.path.exists(USERS_FILE):
+        # Create default users if the file doesn't exist
+        default_users = {
+            "admin": "admin123",
+            "test": "test123",
+            "user": "password"
+        }
+        try:
+            with open(USERS_FILE, "w") as file:
+                json.dump(default_users, file, indent=4)
+        except Exception as e:
+            print(f"<!-- Error creating user file: {e} -->")
+            return {}
+
+    try:
+        with open(USERS_FILE, "r") as file:
+            return json.load(file)
+    except Exception as e:
+        print(f"<!-- Error loading user file: {e} -->")
+        return {}
+
+# Save login activity log
+def save_login_log(username, success=True, ip_address=None):
+    try:
+        # Create log filename with today's date
+        today = datetime.now().strftime("%Y-%m-%d")
+        log_file = os.path.join(LOGIN_LOG_DIR, f"login_log_{today}.txt")
+
+        # Get current time and IP address
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        if ip_address is None:
+            ip_address = os.environ.get("REMOTE_ADDR", "unknown")
+
+        # Format log message
+        log_message = f"{current_time} | {username} | {'SUCCESS' if success else 'FAILED'} | {ip_address}\n"
+
+        # Append to log file
+        with open(log_file, "a") as file:
+            file.write(log_message)
+
+    except Exception as e:
+        print(f"<!-- Error saving login log: {e} -->")
+
+# Load user data
+USERS = load_users()
 
 # Get form data
 try:
@@ -33,13 +87,6 @@ except Exception as e:
     username = ""
     password = ""
     action = "login"
-
-# Simple user database (in real app, use secure storage)
-USERS = {
-    "admin": "admin123",
-    "test": "test123",
-    "user": "password"
-}
 
 # Check if we have a session already
 session_id = None
@@ -60,8 +107,33 @@ if cookies:
         except ValueError:
             continue
 
+# Validate session if session_id exists
+if session_id:
+    session_file = os.path.join(SESSION_DIR, f"{session_id}.txt")
+    if os.path.exists(session_file):
+        try:
+            with open(session_file, "r") as file:
+                session_data = {}
+                for line in file:
+                    if '=' in line:
+                        key, value = line.strip().split('=', 1)
+                        session_data[key] = value
+
+                if 'username' in session_data:
+                    current_username = session_data['username']
+                    logged_in = True
+        except Exception as e:
+            print(f"<!-- Error reading session file: {e} -->")
+    else:
+        # Invalidate session if file doesn't exist
+        logged_in = False
+        current_username = ""
+
 # Process logout
-if action == "logout":
+if action == "logout" and logged_in:
+    # Log the logout
+    save_login_log(current_username, success=True, ip_address=os.environ.get("REMOTE_ADDR", "unknown"))
+
     # Clear session
     if session_id:
         session_file = os.path.join(SESSION_DIR, f"{session_id}.txt")
@@ -80,6 +152,9 @@ if action == "logout":
 login_message = ""
 if action == "login" and username and password:
     if username in USERS and USERS[username] == password:
+        # Log successful login
+        save_login_log(username, success=True)
+
         # Successful login
         session_id = str(uuid.uuid4())
         expiration_time = time.time() + 60 * 60 * 24  # expires in 24 hours
@@ -102,19 +177,21 @@ if action == "login" and username and password:
         current_username = username
         login_message = f"✅ Login successful! Welcome, {username}!"
     else:
+        # Log failed login attempt
+        save_login_log(username, success=False)
         login_message = "❌ Username or password is incorrect."
 
-# HTML content based on login status
+# Generate HTML content
 if logged_in:
     html_content = f"""
     <!DOCTYPE html>
-    <html lang="en">
+    <html lang="ko">
     <head>
         <meta charset="UTF-8">
         <title>Login Status</title>
         <style>
             body {{
-                font-family: Arial, sans-serif;
+                font-family: 'Malgun Gothic', sans-serif;
                 text-align: center;
                 margin-top: 50px;
                 background-color: #f8f9fa;
@@ -161,18 +238,18 @@ if logged_in:
     </head>
     <body>
         <div class="container">
-            <h1>Login Status</h1>
+            <h1>로그인 상태</h1>
             {f'<p class="success">{login_message}</p>' if login_message else ''}
             <div class="user-info">
-                <h3>Session Information</h3>
-                <p><strong>Username:</strong> {current_username}</p>
-                <p><strong>Session ID:</strong> {session_id}</p>
-                <p><strong>Login Status:</strong> Logged In</p>
+                <h3>세션 정보</h3>
+                <p><strong>사용자:</strong> {current_username}</p>
+                <p><strong>세션 ID:</strong> {session_id}</p>
+                <p><strong>로그인 상태:</strong> 로그인됨</p>
             </div>
             <form action="/cgi-bin/login.py" method="get">
                 <input type="hidden" name="action" value="logout">
-                <button type="submit">Logout</button>
-                <button type="button" class="home-btn" onclick="window.location.href='/'">Back to Home</button>
+                <button type="submit">로그아웃</button>
+                <button type="button" class="home-btn" onclick="window.location.href='/'">홈으로</button>
             </form>
         </div>
     </body>
@@ -181,13 +258,13 @@ if logged_in:
 else:
     html_content = f"""
     <!DOCTYPE html>
-    <html lang="en">
+    <html lang="ko">
     <head>
         <meta charset="UTF-8">
         <title>Login</title>
         <style>
             body {{
-                font-family: Arial, sans-serif;
+                font-family: 'Malgun Gothic', sans-serif;
                 text-align: center;
                 margin-top: 50px;
                 background-color: #f8f9fa;
@@ -251,26 +328,26 @@ else:
     </head>
     <body>
         <div class="container">
-            <h1>Login</h1>
+            <h1>로그인</h1>
             {f'<p class="error">{login_message}</p>' if login_message else ''}
             <form action="/cgi-bin/login.py" method="post">
                 <div class="form-group">
-                    <label for="username">Username:</label>
+                    <label for="username">사용자 이름:</label>
                     <input type="text" id="username" name="username" required>
                 </div>
                 <div class="form-group">
-                    <label for="password">Password:</label>
+                    <label for="password">비밀번호:</label>
                     <input type="password" id="password" name="password" required>
                 </div>
-                <button type="submit">Login</button>
-                <button type="button" class="home-btn" onclick="window.location.href='/'">Back to Home</button>
+                <button type="submit">로그인</button>
+                <button type="button" class="home-btn" onclick="window.location.href='/'">홈으로</button>
             </form>
             <div class="user-note">
-                <p><strong>Available test accounts:</strong></p>
+                <p><strong>테스트 계정:</strong></p>
                 <ul style="text-align: left;">
-                    <li>Username: admin, Password: admin123</li>
-                    <li>Username: test, Password: test123</li>
-                    <li>Username: user, Password: password</li>
+                    <li>사용자 이름: admin, 비밀번호: admin123</li>
+                    <li>사용자 이름: test, 비밀번호: test123</li>
+                    <li>사용자 이름: user, 비밀번호: password</li>
                 </ul>
             </div>
         </div>

@@ -49,8 +49,7 @@ visits += 1
 with open(session_file, "w") as file:
     file.write(str(visits))
 
-# 방문 횟수를 쿠키로도 저장 (추가된 부분)
-expiration_time = time.time() + 60 * 60 * 24 * 30  # 30일 유지
+expiration_time = time.time() + 60 * 60 * 24 * 30
 formatted_time = time.strftime("%a, %d-%b-%Y %H:%M:%S GMT", time.gmtime(expiration_time))
 print(f"Set-Cookie: visits={visits}; Expires={formatted_time}; Path=/")
 

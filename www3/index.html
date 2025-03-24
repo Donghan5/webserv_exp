@@ -196,12 +196,12 @@
 			}
 
 			// Check if the selected item is a folder (directories typically have size=0 and/or no type)
-			if (file.size === 0 && file.type === "") {
-				status.className = 'error';
-				status.textContent = "Folders cannot be uploaded. Please select a file.";
-				fileInput.value = ''; // Clear the input to prevent repeated attempts
-				return;
-			}
+			// if (file.size === 0 && file.type === "") {
+			// 	status.className = 'error';
+			// 	status.textContent = "Folders cannot be uploaded. Please select a file.";
+			// 	fileInput.value = ''; // Clear the input to prevent repeated attempts
+			// 	return;
+			// }
 
 			status.textContent = "Uploading...";
 			status.className = '';
@@ -249,10 +249,11 @@
 			}
 		}
 
-        function deleteFile(filename) {
+        function deleteFile(filepath) {
             if (!confirm('Are you sure you want to delete this file?')) return;
-
-            fetch("/uploads/" + filename, {  // Changed to match server config
+            
+            // Use the complete filepath directly
+            fetch(filepath, {
                 method: "DELETE"
             })
             .then(response => {
@@ -299,19 +300,25 @@
                 const sizeCell = row.insertCell();
                 const dateCell = row.insertCell();
                 const actionsCell = row.insertCell();
-
-                const fileName = file.textContent.replace('/', '');
-                nameCell.innerHTML = `<a href="/uploads/${fileName}" target="_blank">${fileName}</a>`;
-
+                
+                // Get the anchor element properties
+                const hrefValue = file.getAttribute('href');
+                const displayName = file.textContent;
+                
+                // Create the link to the file
+                nameCell.innerHTML = `<a href="${hrefValue}" target="_blank">${displayName}</a>`;
+                
+                // Extract file information
                 const fileInfo = file.parentElement.textContent.trim();
                 const match = fileInfo.match(/(\d+)\s+(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})/);
                 if (match) {
                     sizeCell.textContent = formatFileSize(parseInt(match[1]));
                     dateCell.textContent = match[2];
                 }
-
+                
+                // Create delete button using the href value which contains the full path
                 actionsCell.innerHTML = `
-                    <button onclick="deleteFile('${fileName}')" class="btn btn-delete">Delete</button>
+                    <button onclick="deleteFile('${hrefValue}')" class="btn btn-delete">Delete</button>
                 `;
             });
 
@@ -323,7 +330,7 @@
             const fileList = document.getElementById("file-list");
             fileList.textContent = 'Loading...';
 
-            fetch("/uploads/")  // Changed to match server config
+            fetch("/uploads/")
             .then(response => {
                 if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 return response.text();

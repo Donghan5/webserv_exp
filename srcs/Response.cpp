@@ -281,12 +281,12 @@ STR	Response::getMime(STR path) {
 STR urlDecode(const STR& input) {
     STR result;
     result.reserve(input.length());
-
+    
     for (size_t i = 0; i < input.length(); ++i) {
         if (input[i] == '%' && i + 2 < input.length()) {
             // Get the two hex digits
             STR hexVal = input.substr(i + 1, 2);
-
+            
             // Convert from hex to decimal
             int value = 0;
             for (size_t j = 0; j < 2; ++j) {
@@ -300,7 +300,7 @@ STR urlDecode(const STR& input) {
                     value += 10 + (c - 'a');
                 }
             }
-
+            
             // Append the decoded character
             result += static_cast<char>(value);
             i += 2;
@@ -310,7 +310,7 @@ STR urlDecode(const STR& input) {
             result += input[i];
         }
     }
-
+    
     return result;
 }
 
@@ -330,23 +330,29 @@ STR Response::handleDIR(STR path) {
 		STR name = entry->d_name;
         struct stat st;
         STR root_path = path + "/" + name;
-		STR fullpath = _request->_file_path + "/" + name;
-
+		
         if (stat(root_path.c_str(), &st) == 0) {
+			if (S_ISDIR(st.st_mode)){
+				name += "/";
+			}
+			STR fullpath = _request->_file_path + "/" + name;
+
             char timeStr[100];
             strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", localtime(&st.st_mtime));	//REDO, bad funcs!
-
+            
             STR displayName = urlDecode(name);
+			
+			if (displayName.length() >= 45)
+				displayName = displayName.substr(0, 42) + "...";
+            
+			// std::cerr << "DEBUG Response::handleDIR: displayName is " << displayName << "\n";
 
-            // std::cerr << "DEBUG Response::handleDIR: displayName is " << displayName << "\n";
-
-			// original version
-            html << "<a href=\"" << fullpath << (S_ISDIR(st.st_mode) ? "/" : "") << "\">"
-                 << displayName << (S_ISDIR(st.st_mode) ? "/" : "") << "</a>"
-                 << STR(50 - displayName.length(), ' ')
-                 << timeStr
-                 << STR(50, ' ')
-                 << st.st_size << "\n";
+			html << "<a href=\"" << fullpath << "\">"
+			<< displayName << "</a>"
+			<< STR(50 - displayName.length(), ' ')
+			<< timeStr
+			<< STR(20, ' ')
+			<< st.st_size << "\n";
         }
     }
 
@@ -457,7 +463,6 @@ STR	Response::handleGET(STR full_path, bool isDIR) {
 	return createResponse(403, "text/plain", "HANDLEGET ERROR (Forbidden)");
 }
 
-//dummy, actual body doesn't exists yet
 STR Response::handlePOST(STR full_path) {
 	std::cerr << "DEBUG Response::handlePOST start\n";
 
@@ -474,10 +479,6 @@ STR Response::handlePOST(STR full_path) {
     std::ofstream file(full_path.c_str(), std::ios::binary);
     if (!file) {
         return createResponse(500, "text/plain", "HANDLEPOST ERROR (Internal Server Error - Cannot create file)");
-    }
-
-    if (_request->_body.empty()) {
-        return createResponse(400, "text/plain", "HANDLEPOST ERROR (Bad Request - Empty body)");
     }
 
     file << _request->_body;
@@ -705,8 +706,28 @@ STR Response::getResponse() {
 	if (!matchLocation)
 		return createResponse(404, "text/plain", "Not Found");
 
+	//if it's a script file - execute it
+	if (ends_with(dir_path, ".py") || ends_with(dir_path, ".php") || ends_with(dir_path, ".pl") || ends_with(dir_path, ".sh")) {
+		if (checkFile(dir_path) != NormalFile)
+			return createResponse(404, "text/plain", "Not Found");
+		
+		std::map<STR, STR> env;
+
+		env["REQUEST_METHOD"] = _request->_method;
+		env["SCRIPT_NAME"] = dir_path;
+		env["QUERY_STRING"] = _request->_query_string.empty() ? "" : _request->_query_string;
+		env["CONTENT_TYPE"] = _request->_content_type.empty() ? "text/plain" : _request->_content_type;
+		env["HTTP_HOST"] = _request->_host;
+		env["SERVER_PORT"] = intToString(_request->_port);
+		env["SERVER_PROTOCOL"] = _request->_http_version;
+
+		CgiHandler cgi(dir_path, env, _request->_body);
+		return cgi.executeCgi();
+	}
+
 	if (_request->_method == "POST") {
-		std::cerr << "Response::getResponse POST path" << dir_path << " isDIR " << isDIR << std::endl;
+		std::cerr << "Response::getResponse POST path " << dir_path << " isDIR " << isDIR << std::endl;
+		
 		return (handlePOST(dir_path));
 	}
 
@@ -714,21 +735,6 @@ STR Response::getResponse() {
 
 	//serve file if path is a file
 	if (checkFile(file_path) == NormalFile) {
-		//if it's a script file - execute it
-		if (ends_with(file_path, ".py") || ends_with(file_path, ".php") || ends_with(file_path, ".pl") || ends_with(file_path, ".sh")) {
-			std::map<STR, STR> env;
-
-			env["REQUEST_METHOD"] = _request->_method;
-			env["SCRIPT_NAME"] = file_path;
-			env["QUERY_STRING"] = _request->_query_string.empty() ? "" : _request->_query_string;
-			env["CONTENT_TYPE"] = _request->_content_type.empty() ? "text/plain" : _request->_content_type;
-			env["HTTP_HOST"] = _request->_host;
-			env["SERVER_PORT"] = intToString(_request->_port);
-			env["SERVER_PROTOCOL"] = _request->_http_version;
-
-			CgiHandler cgi(file_path, env, _request->_body);
-			return cgi.executeCgi();
-		}
 		return (matchMethod(file_path, false, matchLocation));
 	}
 	//--server file

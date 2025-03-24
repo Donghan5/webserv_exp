@@ -10,7 +10,6 @@
 #include <fcntl.h>
 #include <map>
 #include <cstring>
-#include "Response.hpp"
 
 class CgiHandler {
 	private:
