@@ -14,25 +14,23 @@ from datetime import datetime
 # Debug information
 print("<!-- DEBUG: Script started -->")
 
-# Hardcoded absolute paths as requested
-WWW_DIR = "/www"
-CGI_BIN_DIR = "/www/cgi-bin"
+# Get project and script directory paths for reliable file locations
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+WWW_DIR = os.path.dirname(SCRIPT_DIR)  # One level up to www directory
 
-# Data storage paths
+# Create a data directory within the www folder
 DATA_DIR = os.path.join(WWW_DIR, "data")
 SESSION_DIR = os.path.join(DATA_DIR, "session_data")
 USERS_FILE = os.path.join(DATA_DIR, "users_data.json")
 LOGIN_LOG_DIR = os.path.join(DATA_DIR, "login_logs")
 
-print(f"<!-- DEBUG: Using hardcoded paths: WWW_DIR={WWW_DIR}, CGI_BIN_DIR={CGI_BIN_DIR} -->")
-print(f"<!-- DEBUG: DATA_DIR={DATA_DIR} -->")
+print(f"<!-- DEBUG: WWW_DIR={WWW_DIR}, DATA_DIR={DATA_DIR} -->")
 
 # Check if directories exist and create them if not
 try:
     for directory in [DATA_DIR, SESSION_DIR, LOGIN_LOG_DIR]:
         if not os.path.exists(directory):
             os.makedirs(directory)
-            print(f"<!-- DEBUG: Created directory: {directory} -->")
 except Exception as e:
     print(f"<!-- Error creating directories: {e} -->")
 
@@ -48,16 +46,13 @@ def load_users():
         try:
             with open(USERS_FILE, "w") as file:
                 json.dump(default_users, file, indent=4)
-                print(f"<!-- DEBUG: Created default users file at {USERS_FILE} -->")
         except Exception as e:
             print(f"<!-- Error creating user file: {e} -->")
             return {}
 
     try:
         with open(USERS_FILE, "r") as file:
-            user_data = json.load(file)
-            print(f"<!-- DEBUG: Loaded {len(user_data)} users from {USERS_FILE} -->")
-            return user_data
+            return json.load(file)
     except Exception as e:
         print(f"<!-- Error loading user file: {e} -->")
         return {}
@@ -80,7 +75,6 @@ def save_login_log(username, success=True, ip_address=None):
         # Append to log file
         with open(log_file, "a") as file:
             file.write(log_message)
-            print(f"<!-- DEBUG: Saved login log to {log_file} -->")
 
     except Exception as e:
         print(f"<!-- Error saving login log: {e} -->")
@@ -379,15 +373,13 @@ else:
             </div>
             <div class="debug-info">
                 <p><strong>Debug Information:</strong></p>
-                <p>Current Directory: {os.getcwd()}</p>
-                <p>Using WWW Directory: {WWW_DIR}</p>
                 <p>Data Directory: {DATA_DIR}</p>
-                <p>Users File: {USERS_FILE}</p>
                 <p>Session Directory: {SESSION_DIR}</p>
+                <p>Users File: {USERS_FILE}</p>
                 <p>Log Directory: {LOGIN_LOG_DIR}</p>
+                <p>Cookies: {cookies}</p>
                 <p>Session ID: {session_id}</p>
-                <p>File Exists: Users={os.path.exists(USERS_FILE)}, Data Dir={os.path.exists(DATA_DIR)}</p>
-                <p>Write Permission: Data Dir={os.access(DATA_DIR, os.W_OK) if os.path.exists(DATA_DIR) else False}</p>
+                <p>Current Working Directory: {os.getcwd()}</p>
             </div>
         </div>
     </body>
