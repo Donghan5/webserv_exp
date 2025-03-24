@@ -8,22 +8,31 @@ import sys
 import json
 from datetime import datetime
 
-# Print content type header first
-print("Content-Type: text/html; charset=utf-8\r\n\r\n")
+# NO HTTP header here - let the CGI handler manage it
+# print("Content-Type: text/html; charset=utf-8\r\n\r\n")
 
 # Debug information
 print("<!-- DEBUG: Script started -->")
 
-# Directory settings
-SESSION_DIR = "./session_data"
-USERS_FILE = "./users_data.json"
-LOGIN_LOG_DIR = "./login_logs"
+# Hardcoded absolute paths as requested
+WWW_DIR = "/www"
+CGI_BIN_DIR = "/www/cgi-bin"
+
+# Data storage paths
+DATA_DIR = os.path.join(WWW_DIR, "data")
+SESSION_DIR = os.path.join(DATA_DIR, "session_data")
+USERS_FILE = os.path.join(DATA_DIR, "users_data.json")
+LOGIN_LOG_DIR = os.path.join(DATA_DIR, "login_logs")
+
+print(f"<!-- DEBUG: Using hardcoded paths: WWW_DIR={WWW_DIR}, CGI_BIN_DIR={CGI_BIN_DIR} -->")
+print(f"<!-- DEBUG: DATA_DIR={DATA_DIR} -->")
 
 # Check if directories exist and create them if not
 try:
-    for directory in [SESSION_DIR, LOGIN_LOG_DIR]:
+    for directory in [DATA_DIR, SESSION_DIR, LOGIN_LOG_DIR]:
         if not os.path.exists(directory):
             os.makedirs(directory)
+            print(f"<!-- DEBUG: Created directory: {directory} -->")
 except Exception as e:
     print(f"<!-- Error creating directories: {e} -->")
 
@@ -39,13 +48,16 @@ def load_users():
         try:
             with open(USERS_FILE, "w") as file:
                 json.dump(default_users, file, indent=4)
+                print(f"<!-- DEBUG: Created default users file at {USERS_FILE} -->")
         except Exception as e:
             print(f"<!-- Error creating user file: {e} -->")
             return {}
 
     try:
         with open(USERS_FILE, "r") as file:
-            return json.load(file)
+            user_data = json.load(file)
+            print(f"<!-- DEBUG: Loaded {len(user_data)} users from {USERS_FILE} -->")
+            return user_data
     except Exception as e:
         print(f"<!-- Error loading user file: {e} -->")
         return {}
@@ -68,6 +80,7 @@ def save_login_log(username, success=True, ip_address=None):
         # Append to log file
         with open(log_file, "a") as file:
             file.write(log_message)
+            print(f"<!-- DEBUG: Saved login log to {log_file} -->")
 
     except Exception as e:
         print(f"<!-- Error saving login log: {e} -->")
@@ -94,6 +107,8 @@ cookies = os.environ.get("HTTP_COOKIE", "")
 logged_in = False
 current_username = ""
 
+print(f"<!-- DEBUG: Cookies={cookies} -->")
+
 if cookies:
     for cookie in cookies.split(';'):
         try:
@@ -110,6 +125,7 @@ if cookies:
 # Validate session if session_id exists
 if session_id:
     session_file = os.path.join(SESSION_DIR, f"{session_id}.txt")
+    print(f"<!-- DEBUG: Checking session file {session_file} -->")
     if os.path.exists(session_file):
         try:
             with open(session_file, "r") as file:
@@ -140,7 +156,7 @@ if action == "logout" and logged_in:
         if os.path.exists(session_file):
             os.remove(session_file)
 
-    # Clear cookies
+    # Clear cookies (directly to output)
     print("Set-Cookie: session_id=; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/")
     print("Set-Cookie: username=; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/")
     print("Set-Cookie: logged_in=false; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/")
@@ -160,7 +176,7 @@ if action == "login" and username and password:
         expiration_time = time.time() + 60 * 60 * 24  # expires in 24 hours
         formatted_time = time.strftime("%a, %d-%b-%Y %H:%M:%S GMT", time.gmtime(expiration_time))
 
-        # Set cookies
+        # Set cookies (directly to output)
         print(f"Set-Cookie: session_id={session_id}; Expires={formatted_time}; Path=/")
         print(f"Set-Cookie: username={username}; Expires={formatted_time}; Path=/")
         print(f"Set-Cookie: logged_in=true; Expires={formatted_time}; Path=/")
@@ -185,13 +201,13 @@ if action == "login" and username and password:
 if logged_in:
     html_content = f"""
     <!DOCTYPE html>
-    <html lang="ko">
+    <html lang="en">
     <head>
         <meta charset="UTF-8">
         <title>Login Status</title>
         <style>
             body {{
-                font-family: 'Malgun Gothic', sans-serif;
+                font-family: Arial, sans-serif;
                 text-align: center;
                 margin-top: 50px;
                 background-color: #f8f9fa;
@@ -238,18 +254,19 @@ if logged_in:
     </head>
     <body>
         <div class="container">
-            <h1>로그인 상태</h1>
+            <h1>Login Status</h1>
             {f'<p class="success">{login_message}</p>' if login_message else ''}
             <div class="user-info">
-                <h3>세션 정보</h3>
-                <p><strong>사용자:</strong> {current_username}</p>
-                <p><strong>세션 ID:</strong> {session_id}</p>
-                <p><strong>로그인 상태:</strong> 로그인됨</p>
+                <h3>Session Information</h3>
+                <p><strong>Username:</strong> {current_username}</p>
+                <p><strong>Session ID:</strong> {session_id}</p>
+                <p><strong>Login Status:</strong> Logged In</p>
+                <p><strong>Session File:</strong> {os.path.join(SESSION_DIR, f"{session_id}.txt")}</p>
             </div>
             <form action="/cgi-bin/login.py" method="get">
                 <input type="hidden" name="action" value="logout">
-                <button type="submit">로그아웃</button>
-                <button type="button" class="home-btn" onclick="window.location.href='/'">홈으로</button>
+                <button type="submit">Logout</button>
+                <button type="button" class="home-btn" onclick="window.location.href='/'">Home</button>
             </form>
         </div>
     </body>
@@ -258,13 +275,13 @@ if logged_in:
 else:
     html_content = f"""
     <!DOCTYPE html>
-    <html lang="ko">
+    <html lang="en">
     <head>
         <meta charset="UTF-8">
         <title>Login</title>
         <style>
             body {{
-                font-family: 'Malgun Gothic', sans-serif;
+                font-family: Arial, sans-serif;
                 text-align: center;
                 margin-top: 50px;
                 background-color: #f8f9fa;
@@ -324,31 +341,53 @@ else:
                 background-color: #f8f9fa;
                 border-radius: 4px;
             }}
+            .debug-info {{
+                margin-top: 30px;
+                font-size: 0.8em;
+                color: #6c757d;
+                text-align: left;
+                padding: 10px;
+                background-color: #f8f9fa;
+                border-radius: 4px;
+                border: 1px dashed #ccc;
+            }}
         </style>
     </head>
     <body>
         <div class="container">
-            <h1>로그인</h1>
+            <h1>Login</h1>
             {f'<p class="error">{login_message}</p>' if login_message else ''}
             <form action="/cgi-bin/login.py" method="post">
                 <div class="form-group">
-                    <label for="username">사용자 이름:</label>
+                    <label for="username">Username:</label>
                     <input type="text" id="username" name="username" required>
                 </div>
                 <div class="form-group">
-                    <label for="password">비밀번호:</label>
+                    <label for="password">Password:</label>
                     <input type="password" id="password" name="password" required>
                 </div>
-                <button type="submit">로그인</button>
-                <button type="button" class="home-btn" onclick="window.location.href='/'">홈으로</button>
+                <button type="submit">Login</button>
+                <button type="button" class="home-btn" onclick="window.location.href='/'">Home</button>
             </form>
             <div class="user-note">
-                <p><strong>테스트 계정:</strong></p>
+                <p><strong>Test Accounts:</strong></p>
                 <ul style="text-align: left;">
-                    <li>사용자 이름: admin, 비밀번호: admin123</li>
-                    <li>사용자 이름: test, 비밀번호: test123</li>
-                    <li>사용자 이름: user, 비밀번호: password</li>
+                    <li>Username: admin, Password: admin123</li>
+                    <li>Username: test, Password: test123</li>
+                    <li>Username: user, Password: password</li>
                 </ul>
+            </div>
+            <div class="debug-info">
+                <p><strong>Debug Information:</strong></p>
+                <p>Current Directory: {os.getcwd()}</p>
+                <p>Using WWW Directory: {WWW_DIR}</p>
+                <p>Data Directory: {DATA_DIR}</p>
+                <p>Users File: {USERS_FILE}</p>
+                <p>Session Directory: {SESSION_DIR}</p>
+                <p>Log Directory: {LOGIN_LOG_DIR}</p>
+                <p>Session ID: {session_id}</p>
+                <p>File Exists: Users={os.path.exists(USERS_FILE)}, Data Dir={os.path.exists(DATA_DIR)}</p>
+                <p>Write Permission: Data Dir={os.access(DATA_DIR, os.W_OK) if os.path.exists(DATA_DIR) else False}</p>
             </div>
         </div>
     </body>
