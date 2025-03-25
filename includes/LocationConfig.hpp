@@ -19,7 +19,7 @@ struct LocationConfig : AConfigBase {
 
 	LocationConfig() :
 		_proxy_pass_host(""),
-		_proxy_pass_port(80),
+		_proxy_pass_port(8080),
         _path(""),
         _return(""),
         _allow(""),

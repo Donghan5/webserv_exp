@@ -30,12 +30,11 @@ void PollServer::setConfig(HttpConfig *config) {
 	VECTOR<int>	unique_ports;
 	for (size_t i = 0; i < config->_servers.size(); i++) {
 		for (size_t j = 0; j < unique_ports.size(); j++) {
-			if (unique_ports[j] != config->_servers[i]->_listen_port) {
-				unique_ports.push_back(config->_servers[i]->_listen_port);
+			if (unique_ports[j] == config->_servers[i]->_listen_port) {
+				continue;
 			}
 		}
-		if (unique_ports.empty())
-			unique_ports.push_back(config->_servers[i]->_listen_port);
+		unique_ports.push_back(config->_servers[i]->_listen_port);
 	}
 
 	for (size_t i = 0; i < unique_ports.size(); i++) {

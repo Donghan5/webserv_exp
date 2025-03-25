@@ -400,9 +400,9 @@ bool FillDirective(AConfigBase* block, STR line, int position) {
 			host_start = tokens[1].find_first_of(':') + 3;
 			delim_position = tokens[1].find(':', tokens[1].find_first_of(':') + 1);
 
-			if (delim_position == (int)STR::npos) { //Not tested
+			if (delim_position == (int)STR::npos) {
 			//host without port
-				host_end = tokens[1].find_last_not_of(' ') + 1; //		Future check required: newline included or not to remove +1
+				host_end = tokens[1].find_last_not_of(' ');
 				locConf->_proxy_pass_host = tokens[1].substr(host_start, host_end - host_start);
 			} else {
 			//host with port

@@ -10,13 +10,13 @@
 		server_name						Set up the server_names or not
 		max_body_size					Set the maximum allowed size for client request bodies
 		allow_method					Define a list of accepted HTTP methods for the route.
-		???	rewrite?					Define an HTTP redirect
+		return							Define an HTTP redirect
 		root							Define a directory or file where the requested file should be located (e.g.,
 										if url /kapouet is rooted to /tmp/www, url /kapouet/pouic/toto/pouet is
 										/tmp/www/pouic/toto/pouet).
 		autoindex						Enable or disable directory listing
 		???								Set a default file to serve when the request is for a directory.
-		?CGI							Execute CGI based on certain file extension (for example .php).
+										Execute CGI based on certain file extension (for example .php).
 		???								Allow the route to accept uploaded files and configure where they should be
 										saved.
 */

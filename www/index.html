@@ -8,22 +8,15 @@
     <script src="script.js" defer></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
-        .login-status {
+        .upload-container {
             background-color: #212529;
             color: #ffffff;
-            padding: 10px 20px;
+            padding: 20px;
             border-radius: 4px;
             margin-top: 20px;
             text-align: center;
         }
-        .login-status a {
-            color: #17a2b8;
-            text-decoration: none;
-        }
-        .login-status a:hover {
-            text-decoration: underline;
-        }
-        .session-info {
+        .upload-status {
             background-color: #343a40;
             padding: 15px;
             border-radius: 5px;
@@ -31,6 +24,33 @@
             text-align: left;
             color: #adb5bd;
             font-family: monospace;
+        }
+        .file-input {
+            margin: 15px 0;
+        }
+        .file-input input[type="file"] {
+            background-color: #495057;
+            color: #ffffff;
+            padding: 10px;
+            border-radius: 4px;
+            border: none;
+            width: 100%;
+            max-width: 300px;
+        }
+        .preview-area {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px dashed #495057;
+            border-radius: 4px;
+            min-height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .preview-area img {
+            max-width: 100%;
+            max-height: 200px;
+            display: none;
         }
     </style>
 </head>
@@ -60,22 +80,29 @@
         <p id="cgi-output">📄 CGI output will be displayed here.</p>
     </div>
 
-    <!-- Login status section -->
-	<div class="container" style="background-color: #111827; color: #ffffff; padding: 20px; border-radius: 8px; margin-top: 20px;">
-		<h1>👤 Session & Login</h1>
-		<div id="login-area">
-			<div id="login-status" class="login-status">
-				<p>Loading...</p>
-			</div>
-			<div id="session-info" class="session-info" style="display: none;">
-				<h3>🔐 Session Information</h3>
-				<pre id="session-data">Loading data...</pre>
-			</div>
-		</div>
-		<div style="margin-top: 20px; display: flex; justify-content: center; gap: 10px;">
-			<button class="btn-primary" onclick="window.location.href='/cgi-bin/login.py'">Login/Check Status</button>
-		</div>
-	</div>
+    <!-- 파일 업로드 섹션 (로그인 섹션 대체) -->
+    <div class="container" style="background-color: #111827; color: #ffffff; padding: 20px; border-radius: 8px; margin-top: 20px;">
+        <h1>📁 File Upload Test</h1>
+        <div class="upload-container">
+            <h3>🚀 Upload a File</h3>
+            <form id="uploadForm" action="/cgi-bin/upload.py" method="post" enctype="multipart/form-data">
+                <div class="file-input">
+                    <input type="file" name="filename" id="fileInput">
+                </div>
+                <button class="btn-primary" type="submit">Upload File</button>
+            </form>
+            <div id="upload-status" class="upload-status">
+                <p>Select a file and click upload...</p>
+            </div>
+            <div class="preview-area">
+                <img id="preview-image" src="" alt="Preview">
+                <p id="no-preview">No preview available</p>
+            </div>
+        </div>
+        <div style="margin-top: 20px; display: flex; justify-content: center; gap: 10px;">
+            <button class="btn-secondary" onclick="clearUpload()">Clear</button>
+        </div>
+    </div>
 
     <footer>
         <p>&copy; 2025 WEBSERV PROJECT</p>
@@ -154,108 +181,130 @@
             });
         }
 
-		function runCGI(cgiPath) {
-			// Update status display
-			const outputEl = document.getElementById("cgi-output");
-			outputEl.innerHTML = "🔄 Executing...";
+        function runCGI(cgiPath) {
+            // Update status display
+            const outputEl = document.getElementById("cgi-output");
+            outputEl.innerHTML = "🔄 Executing...";
 
-			fetch(cgiPath)
-			.then(response => response.text())
-			.then(data => {
-				let htmlContent = data;
+            fetch(cgiPath)
+            .then(response => response.text())
+            .then(data => {
+                let htmlContent = data;
 
-				const separators = ["\r\n\r\n", "\n\n", "\r\r"];
+                const separators = ["\r\n\r\n", "\n\n", "\r\r"];
 
-				for (const separator of separators) {
-					const index = htmlContent.indexOf(separator);
-					if (index !== -1) {
-						htmlContent = htmlContent.substring(index + separator.length);
-						break;
-					}
-				}
+                for (const separator of separators) {
+                    const index = htmlContent.indexOf(separator);
+                    if (index !== -1) {
+                        htmlContent = htmlContent.substring(index + separator.length);
+                        break;
+                    }
+                }
 
-				if (htmlContent.includes("Content-Type:") || htmlContent.includes("content-type:")) {
-					const contentTypeLineEnd = Math.max(
-						htmlContent.indexOf("\n", htmlContent.indexOf("Content-Type:")),
-						htmlContent.indexOf("\n", htmlContent.indexOf("content-type:"))
-					);
+                if (htmlContent.includes("Content-Type:") || htmlContent.includes("content-type:")) {
+                    const contentTypeLineEnd = Math.max(
+                        htmlContent.indexOf("\n", htmlContent.indexOf("Content-Type:")),
+                        htmlContent.indexOf("\n", htmlContent.indexOf("content-type:"))
+                    );
 
-					if (contentTypeLineEnd !== -1) {
-						htmlContent = htmlContent.substring(contentTypeLineEnd + 1);
-					}
-				}
+                    if (contentTypeLineEnd !== -1) {
+                        htmlContent = htmlContent.substring(contentTypeLineEnd + 1);
+                    }
+                }
 
-				if (!htmlContent.trim().startsWith("<!DOCTYPE") && !htmlContent.trim().startsWith("<html")) {
-					htmlContent = "<!DOCTYPE html><html><body>" + htmlContent + "</body></html>";
-				}
+                if (!htmlContent.trim().startsWith("<!DOCTYPE") && !htmlContent.trim().startsWith("<html")) {
+                    htmlContent = "<!DOCTYPE html><html><body>" + htmlContent + "</body></html>";
+                }
 
-				const iframe = document.createElement('iframe');
-				iframe.style.width = '100%';
-				iframe.style.height = '400px';
-				iframe.style.border = 'none';
-				iframe.style.borderRadius = '4px';
-				iframe.style.backgroundColor = 'transparent';
-				iframe.style.marginTop = '10px';
-				iframe.scrolling = 'no';
+                const iframe = document.createElement('iframe');
+                iframe.style.width = '100%';
+                iframe.style.height = '400px';
+                iframe.style.border = 'none';
+                iframe.style.borderRadius = '4px';
+                iframe.style.backgroundColor = 'transparent';
+                iframe.style.marginTop = '10px';
+                iframe.scrolling = 'no';
 
-				iframe.srcdoc = htmlContent;
+                iframe.srcdoc = htmlContent;
 
-				outputEl.innerHTML = "";
-				outputEl.appendChild(iframe);
+                outputEl.innerHTML = "";
+                outputEl.appendChild(iframe);
 
-				iframe.onload = function() {
-					try {
-						iframe.style.height = (iframe.contentWindow.document.body.scrollHeight + 20) + 'px';
-					} catch(e) {
-						console.error("Unable to adjust iframe height:", e);
-					}
-				};
-			})
-			.catch(error => {
-				outputEl.innerText = "❌ CGI Fail: " + error.message;
-			});
-		}
+                iframe.onload = function() {
+                    try {
+                        iframe.style.height = (iframe.contentWindow.document.body.scrollHeight + 20) + 'px';
+                    } catch(e) {
+                        console.error("Unable to adjust iframe height:", e);
+                    }
+                };
+            })
+            .catch(error => {
+                outputEl.innerText = "❌ CGI Fail: " + error.message;
+            });
+        }
 
-		function getCookie(name) {
-			const value = `; ${document.cookie}`;
-			const parts = value.split(`; ${name}=`);
-			if (parts.length === 2) return parts.pop().split(';').shift();
-			return null;
-		}
+        // 파일 업로드 관련 함수
+        function clearUpload() {
+            document.getElementById("fileInput").value = "";
+            document.getElementById("upload-status").innerHTML = "<p>Select a file and click upload...</p>";
+            document.getElementById("preview-image").style.display = "none";
+            document.getElementById("no-preview").style.display = "block";
+        }
 
-		function checkLoginStatus() {
-			const loginStatus = document.getElementById('login-status');
-			const sessionInfo = document.getElementById('session-info');
-			const sessionData = document.getElementById('session-data');
+        // 파일 선택시 미리보기
+        document.getElementById("fileInput").addEventListener("change", function() {
+            const file = this.files[0];
+            if (file) {
+                const previewImage = document.getElementById("preview-image");
+                const noPreview = document.getElementById("no-preview");
 
-			const sessionId = getCookie('session_id');
-			const loggedIn = getCookie('logged_in');
-			const username = getCookie('username');
+                if (file.type.startsWith("image/")) {
+                    previewImage.src = URL.createObjectURL(file);
+                    previewImage.style.display = "block";
+                    noPreview.style.display = "none";
+                } else {
+                    previewImage.style.display = "none";
+                    noPreview.textContent = `Selected file: ${file.name} (${Math.round(file.size / 1024)} KB)`;
+                    noPreview.style.display = "block";
+                }
+            }
+        });
 
-			if (sessionId && loggedIn === 'true') {
-				loginStatus.innerHTML = `
-					<p>✅ ${username || 'USER'} Logged in</p>
-					<p><a href="/cgi-bin/login.py">View Profile</a> | <a href="/cgi-bin/logout.py">Logout</a></p>
-				`;
+        // 폼 제출 처리
+        document.getElementById("uploadForm").addEventListener("submit", function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const uploadStatus = document.getElementById("upload-status");
 
-				sessionInfo.style.display = 'block';
-				sessionData.textContent = JSON.stringify({
-					sessionId: sessionId,
-					username: username,
-					lastActivity: new Date().toLocaleString()
-				}, null, 2);
-			} else {
-				loginStatus.innerHTML = `
-					<p>❌ Not logged in</p>
-					<p><a href="/cgi-bin/login.py">Login</a></p>
-				`;
-				sessionInfo.style.display = 'none';
-			}
-		}
+            uploadStatus.innerHTML = "<p>🔄 Uploading file...</p>";
+
+            fetch("/cgi-bin/upload.py", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.text())
+            .then(data => {
+                // CGI 응답에서 본문 추출
+                let htmlContent = data;
+                const separators = ["\r\n\r\n", "\n\n", "\r\r"];
+
+                for (const separator of separators) {
+                    const index = htmlContent.indexOf(separator);
+                    if (index !== -1) {
+                        htmlContent = htmlContent.substring(index + separator.length);
+                        break;
+                    }
+                }
+
+                uploadStatus.innerHTML = htmlContent;
+            })
+            .catch(error => {
+                uploadStatus.innerHTML = `<p>❌ Upload failed: ${error.message}</p>`;
+            });
+        });
 
         window.addEventListener('load', function() {
-            displayCurrentCookies();
-            checkLoginStatus();
+            // 필요한 초기화 코드...
         });
     </script>
 </body>

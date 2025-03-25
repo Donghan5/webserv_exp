@@ -94,7 +94,7 @@ bool Request::parseHeader() {
 
 			if (delim_position == (int)STR::npos) { //Not tested
 			//host without port
-				host_end = temp_line.find_last_not_of(' ') + 1; //		Future check required: newline included or not to remove +1
+				host_end = temp_line.find_last_not_of(' '); //		Future check required: newline included or not to remove +1
 				_host = temp_line.substr(host_start, host_end - host_start);
 			} else {
 			//host with port
