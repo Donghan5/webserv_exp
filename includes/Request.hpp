@@ -38,7 +38,7 @@ class Request {
 		bool								parseRequest();
 		void								parseQueryString();
 		void								parseTransferEncoding(const std::string &header);
-		std::string							parseDataChunked(const std::string &raw_body);
+		bool								processTransferEncoding(const char *data, size_t size);
 
 	public:
 		STR									_cookies;
@@ -60,6 +60,7 @@ class Request {
 		ChunkedState						_chunked_state;
 		unsigned long long					_chunk_size;
 		unsigned long long					_chunk_data_read;
+		STR									_chunk_buffer;
 
 		void								setRequest(STR request);
 

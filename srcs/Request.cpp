@@ -139,10 +139,17 @@ bool Request::parseHeader() {
 			delim_position = temp_line.find_first_of(':');
 			end_position = temp_line.length();
 			_body_size = atoi((temp_line.substr(delim_position + 1, delim_position + 1 - end_position)).c_str());
+		} else if (temp_token == "Transfer-Encoding:") {
+			std::string encoding_value = temp_line.substr(temp_line.find_first_of(':') + 2);
+			parseTransferEncoding(encoding_value);
+
+			if (_chunked_flag) {  // if chunked transfer encoding ignore content-length
+				_body_size = 0;
+			}
 		}
 		temp_line.clear();
 		temp_token.clear();
-    }
+	}
 
 	// process_path(_file_path, _file_name);
 	return true;
@@ -156,7 +163,13 @@ bool Request::parseBody() {
 	body_beginning = _full_request.find("\r\n\r\n");
 	if (body_beginning == CHAR_NOT_FOUND)
 		return false;
-	_body = _full_request.substr(body_beginning + 4, _full_request.length() - (body_beginning + 4));
+	if (_chunked_flag) {
+		const char *data = _full_request.c_str() + body_beginning + 4;  // skip \r\n\r\n (4 bytes)
+		size_t size = _full_request.length() - (body_beginning + 4);  // skip \r\n\r\n (4 bytes)
+		return processTransferEncoding(data, size);
+	} else {
+		_body = _full_request.substr(body_beginning + 4, _full_request.length() - (body_beginning + 4));
+	}
 
 	//if _full_request.length() - (body_beginning + 4) != _body_size 		potential error
 
@@ -211,27 +224,90 @@ void Request::parseTransferEncoding(const std::string &header) {
 	}
 }
 
-std::string Request::processTransferEncoding(const std::string &raw_body, size_t sizeq) {
-	size_t chunk_start, chunk_end;
-	size_t pos = 0;
-	std::string result;
-	std::string chunk_size_str;
+bool Request::processTransferEncoding(const char *data, size_t size) {
+	for (size_t i = 0; i < size; i++) {
+		char ch = data[i];
 
-	while (pos < raw_body.length()) {
-		chunk_start = pos;
-		chunk_end = raw_body.find("\r\n", chunk_start);
-		if (chunk_end == std::string::npos) {
-			std::cerr << "HTTP/1.1\r\n\r\n400 Bad Request" << std::endl;  // Malformed error
-			return NULL;
-		}
+		switch (_chunked_state) {
+			case CHUNK_SIZE:
+				if (isxdigit(ch)) {
+					_chunk_buffer += ch;
+				}
+				else if (ch == ';') { // after semicolon is chunk extension
+					if (_chunk_buffer.empty()) {
+						return false;
+					}
 
-		chunk_size_str = raw_body.substr(chunk_start, chunk_end - chunk_start);
-		if (chunk_size_str.empty()) {
-			std::cerr << "HTTP/1.1\r\n\r\n400 Bad Request" << std::endl;  // Empty body
-			return NULL;
+					_chunk_size = std::strtol(_chunk_buffer.c_str(), NULL, 16);
+					_chunk_buffer.clear();
+					_chunked_state = CHUNK_EXT;
+				}
+				else if (ch == '\r') {
+					if (_chunk_buffer.empty()) {
+						return false;
+					}
+					_chunk_size = std::strtol(_chunk_buffer.c_str(), NULL, 16);
+					_chunk_buffer.clear();
+					_chunked_state = CHUNK_LF;
+				}
+				else {
+					return false;
+				}
+				break;
+			case CHUNK_EXT:  // ignore extension and search for CRLF
+				if (ch == '\r') {
+					_chunked_state = CHUNK_LF;
+				}
+				break;
+			case CHUNK_LF:
+				if (ch == '\n') {
+					_chunk_data_read = 0;
+					if (_chunk_size == 0) {
+						_chunked_state = CHUNK_TRAILER;
+					}
+					else {
+						_chunked_state = CHUNK_DATA;
+					}
+				}
+				else {
+					return false;
+				}
+				break;
+			case CHUNK_DATA:
+				_body += ch;
+				_chunk_data_read++;
+				if (_chunk_data_read == _chunk_size) {
+					_chunked_state = CHUNK_CR;
+				}
+				break;
+			case CHUNK_CR:
+				if (ch == '\r') {
+					_chunked_state = CHUNK_LF;
+				}
+				else {
+					return false; // missing CRLF
+				}
+				break;
+			case CHUNK_TRAILER:
+				if (ch == '\r') {
+					_chunk_buffer += ch;
+				}
+				else if (ch == '\n' && ! _chunk_buffer.empty() && _chunk_buffer.find_last_of('\r')) {
+					_chunk_buffer += ch;
+					if (_chunk_buffer == "\r\n")
+						_chunked_state = CHUNK_COMPLETE;
+
+					_chunk_buffer.clear();
+				}
+				else {
+					_chunk_buffer.clear();
+				}
+				break;
+			case CHUNK_COMPLETE:
+				break;
 		}
 	}
-
+	return true;
 }
 
 Request::Request() {
@@ -259,6 +335,10 @@ Request::Request(STR request) {
 	_body = "";
 	_body_size = 0;
 	parseRequest();
+	_chunked_flag = false;
+	_chunked_state = CHUNK_SIZE;
+	_chunk_size = 0;
+	_chunk_data_read = 0;
 }
 
 Request::Request(const Request &obj) {
