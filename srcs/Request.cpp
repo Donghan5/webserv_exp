@@ -1,6 +1,27 @@
 #include "Request.hpp"
 #include <sstream>
 
+static bool isToken(uint8_t ch) {
+	if (ch == '!' || ch == '#' || ch == '$' || ch == '%' || ch == '&' || ch == '\'' || ch == '*'
+		|| ch == '+' || ch == '-' || ch == '.' || ch == '^' || ch == '_' || ch == '`' || ch == '|'
+		|| ch == '~' || isalnum(ch)) {
+		return true;
+	}
+	return false;
+}
+
+static void trimSpace(std::string &str) {
+	static const char *whitespace = " \r";
+	str.erase(0, str.find_first_not_of(whitespace));
+	str.erase(str.find_last_not_of(whitespace) + 1);
+}
+
+static void toLower(std::string &str) {
+	for (size_t i = 0; i < str.length(); i++) {
+		str[i] = tolower(str[i]);
+	}
+}
+
 void remove_trailing_r(STR &str) {
 	if (!str.empty() && str[str.length() - 1] == '\r') {
 		str.replace(str.length() - 1, 1, "\0");
@@ -110,7 +131,7 @@ bool Request::parseHeader() {
 			delim_position = temp_line.find_first_of(':');
 			end_position = temp_line.find_last_not_of(' ');
 			_content_type = temp_line.substr(delim_position + 2, end_position - delim_position - 2);
-			std::cerr << "cont type = " << _content_type << "\n";
+			std::cerr << "Content-Type: " << _content_type << "\n";
 		} else if (temp_token == "Content-Length:") {
 			int	delim_position;
 			int	end_position;
@@ -162,6 +183,55 @@ void Request::parseQueryString(void) {
 	else {
 		_query_string = "";
 	}
+}
+
+void Request::parseTransferEncoding(const std::string &header) {
+	std::vector<std::string> encodings;
+	size_t start = 0, end;
+
+	while ((end = header.find(',', start)) != std::string::npos) {
+		std::string encoding = header.substr(start, end - start);
+		trimSpace(encoding);
+		toLower(encoding);
+		encodings.push_back(encoding);
+		start = end + 1;
+	}
+
+	std::string last_encoding = header.substr(start);
+	trimSpace(last_encoding);
+	toLower(last_encoding);
+	encodings.push_back(last_encoding);
+
+	if (encodings.empty() || encodings.back() == "chunked") {
+		_chunked_flag = true;
+		_transfer_encoding = encodings;
+	}
+	else {
+		std::cerr << "HTTP/1.1\r\n\r\n400 Bad Request";
+	}
+}
+
+std::string Request::processTransferEncoding(const std::string &raw_body, size_t sizeq) {
+	size_t chunk_start, chunk_end;
+	size_t pos = 0;
+	std::string result;
+	std::string chunk_size_str;
+
+	while (pos < raw_body.length()) {
+		chunk_start = pos;
+		chunk_end = raw_body.find("\r\n", chunk_start);
+		if (chunk_end == std::string::npos) {
+			std::cerr << "HTTP/1.1\r\n\r\n400 Bad Request" << std::endl;  // Malformed error
+			return NULL;
+		}
+
+		chunk_size_str = raw_body.substr(chunk_start, chunk_end - chunk_start);
+		if (chunk_size_str.empty()) {
+			std::cerr << "HTTP/1.1\r\n\r\n400 Bad Request" << std::endl;  // Empty body
+			return NULL;
+		}
+	}
+
 }
 
 Request::Request() {

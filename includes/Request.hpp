@@ -20,12 +20,25 @@
 #include <fcntl.h>
 #include <map>
 
+enum ChunkedState {
+	CHUNK_SIZE,  // chunk size
+	CHUNK_EXT,  // chunk extension
+	CHUNK_DATA,  // chunk data
+	CHUNK_CR,  // chunk CR
+	CHUNK_LF,  // chunk LF
+	CHUNK_DATA_END, // chunk data end
+	CHUNK_TRAILER,  // chunk trailer
+	CHUNK_COMPLETE,  // chunk complete
+};
+
 class Request {
 	private:
 		bool								parseHeader();
 		bool								parseBody();
 		bool								parseRequest();
 		void								parseQueryString();
+		void								parseTransferEncoding(const std::string &header);
+		std::string							parseDataChunked(const std::string &raw_body);
 
 	public:
 		STR									_cookies;
@@ -42,6 +55,11 @@ class Request {
 		unsigned long long					_body_size;
 		STR									_body;
 		STR									_query_string;
+		std::vector<STR>					_transfer_encoding;
+		bool								_chunked_flag;
+		ChunkedState						_chunked_state;
+		unsigned long long					_chunk_size;
+		unsigned long long					_chunk_data_read;
 
 		void								setRequest(STR request);
 
