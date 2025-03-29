@@ -1,0 +1,11 @@
+
+--- CGI env ---
+CONTENT_TYPE: text/plain
+HTTP_COOKIE: undefined=undefined; session_id=LTpfWZmWCTTC2lsh; visits=63
+HTTP_HOST: localhost
+QUERY_STRING: 
+REQUEST_METHOD: POST
+SCRIPT_NAME: ./www/cgi-bin/upload.py
+SERVER_PORT: 8087
+SERVER_PROTOCOL: HTTP/1.1
+LC_CTYPE: C.UTF-8

@@ -52,15 +52,16 @@ class Request {
 		std::map<STR, float>				_accepted_types; //application/xml;q=0.9
 																	//STR      float
 		STR									_content_type;
+		STR									_http_content_type;  // added
 		unsigned long long					_body_size;
 		STR									_body;
 		STR									_query_string;
-		std::vector<STR>					_transfer_encoding;
-		bool								_chunked_flag;
-		ChunkedState						_chunked_state;
-		unsigned long long					_chunk_size;
-		unsigned long long					_chunk_data_read;
-		STR									_chunk_buffer;
+		std::vector<STR>					_transfer_encoding;  // added for transfer-encoding
+		bool								_chunked_flag;  // added for transfer-encoding
+		ChunkedState						_chunked_state;  // added for transfer-encoding
+		unsigned long long					_chunk_size;  // added for transfer-encoding
+		unsigned long long					_chunk_data_read; // added for transfer-encoding
+		STR									_chunk_buffer;  //	 added for transfer-encoding
 
 		void								setRequest(STR request);
 

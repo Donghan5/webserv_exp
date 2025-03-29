@@ -5,7 +5,14 @@ import cgitb
 import time
 import mimetypes
 
-cgitb.enable()
+cgitb.enable(display=0, logdir='./www/cgi-bin/tmp')
+
+debug_info = "\n--- CGI env ---\n"
+for key, value in os.environ.items():
+	debug_info += f"{key}: {value}\n"
+
+with open('./www/cgi-bin/tmp/debug.log', 'w') as f:
+	f.write(debug_info)
 
 def get_file_size_str(size_bytes):
     """Convert file size in bytes to human-readable format."""
@@ -109,7 +116,7 @@ html_end = """
 """
 
 try:
-    upload_dir = os.path.join(os.getcwd(), 'cgi-bin', 'tmp')
+    upload_dir = os.path.join('www', 'cgi-bin', 'tmp')
     if not os.path.exists(upload_dir):
         os.makedirs(upload_dir)
 

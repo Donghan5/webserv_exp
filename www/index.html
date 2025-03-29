@@ -80,14 +80,13 @@
         <p id="cgi-output">📄 CGI output will be displayed here.</p>
     </div>
 
-    <!-- 파일 업로드 섹션 (로그인 섹션 대체) -->
     <div class="container" style="background-color: #111827; color: #ffffff; padding: 20px; border-radius: 8px; margin-top: 20px;">
         <h1>📁 File Upload Test</h1>
         <div class="upload-container">
             <h3>🚀 Upload a File</h3>
-            <form id="uploadForm" action="/cgi-bin/upload.py" method="post" enctype="multipart/form-data">
+            <form action="/cgi-bin/upload.py" method="post" enctype="multipart/form-data">
                 <div class="file-input">
-                    <input type="file" name="filename" id="fileInput">
+                    <input type="file" name="filename" id="fileInput" required>
                 </div>
                 <button class="btn-primary" type="submit">Upload File</button>
             </form>
@@ -243,7 +242,6 @@
             });
         }
 
-        // 파일 업로드 관련 함수
         function clearUpload() {
             document.getElementById("fileInput").value = "";
             document.getElementById("upload-status").innerHTML = "<p>Select a file and click upload...</p>";
@@ -251,7 +249,6 @@
             document.getElementById("no-preview").style.display = "block";
         }
 
-        // 파일 선택시 미리보기
         document.getElementById("fileInput").addEventListener("change", function() {
             const file = this.files[0];
             if (file) {
@@ -268,39 +265,6 @@
                     noPreview.style.display = "block";
                 }
             }
-        });
-
-        // 폼 제출 처리
-        document.getElementById("uploadForm").addEventListener("submit", function(e) {
-            e.preventDefault();
-            const formData = new FormData(this);
-            const uploadStatus = document.getElementById("upload-status");
-
-            uploadStatus.innerHTML = "<p>🔄 Uploading file...</p>";
-
-            fetch("/cgi-bin/upload.py", {
-                method: "POST",
-                body: formData
-            })
-            .then(response => response.text())
-            .then(data => {
-                // CGI 응답에서 본문 추출
-                let htmlContent = data;
-                const separators = ["\r\n\r\n", "\n\n", "\r\r"];
-
-                for (const separator of separators) {
-                    const index = htmlContent.indexOf(separator);
-                    if (index !== -1) {
-                        htmlContent = htmlContent.substring(index + separator.length);
-                        break;
-                    }
-                }
-
-                uploadStatus.innerHTML = htmlContent;
-            })
-            .catch(error => {
-                uploadStatus.innerHTML = `<p>❌ Upload failed: ${error.message}</p>`;
-            });
         });
 
         window.addEventListener('load', function() {

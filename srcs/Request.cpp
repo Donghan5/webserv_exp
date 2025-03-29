@@ -127,6 +127,7 @@ bool Request::parseHeader() {
 		} else if (temp_token == "Content-Type:") {	//Not tested
 			int	delim_position;
 			int	end_position;
+			_http_content_type = temp_line.substr(temp_line.find_first_of(':') + 2);  // to test and this is chaned (added)
 
 			delim_position = temp_line.find_first_of(':');
 			end_position = temp_line.find_last_not_of(' ');
@@ -335,10 +336,10 @@ Request::Request(STR request) {
 	_body = "";
 	_body_size = 0;
 	parseRequest();
-	_chunked_flag = false;
-	_chunked_state = CHUNK_SIZE;
-	_chunk_size = 0;
-	_chunk_data_read = 0;
+	_chunked_flag = false;  // adding for transfer-encoding
+	_chunked_state = CHUNK_SIZE;  // adding for transfer-encoding
+	_chunk_size = 0;  // adding for transfer-encoding
+	_chunk_data_read = 0;  // adding for transfer-encoding
 }
 
 Request::Request(const Request &obj) {
