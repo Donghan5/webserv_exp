@@ -103,25 +103,84 @@ void SelectServer::HandleWrite(int client_fd) {
 	}
 }
 
+// void SelectServer::HandleRead(int client_fd) {
+//     try {
+//         char buffer[8192];
+// 		int nbytes;
+
+// 		nbytes = read (client_fd, buffer, 8192);
+// 		if (nbytes < 0)
+// 			throw std::runtime_error("read error");
+// 		else if (nbytes == 0)
+// 			/* End-of-file. */
+// 			std::cerr << "HandleRead: End-of-file\n";
+// 		else {
+// 			std::cerr << "HandleRead: Server: got message:" << buffer << "";
+
+// 		}
+//     } catch (const std::exception& e) {
+//         std::cerr << "Error in HandleRead: " << e.what() << std::endl;
+//         CloseClient(client_fd);
+//     }
+// }
+
+/* TEST VER */
 void SelectServer::HandleRead(int client_fd) {
-    try {
-        char buffer[8192];
+	try {
+		char buffer[8192];
 		int nbytes;
 
-		nbytes = read (client_fd, buffer, 8192);
-		if (nbytes < 0)
-			throw std::runtime_error("read error");
-		else if (nbytes == 0)
-			/* End-of-file. */
-			std::cerr << "HandleRead: End-of-file\n";
-		else {
-			std::cerr << "HandleRead: Server: got message:" << buffer << "";
+		STR &current_request = _partial_requests[client_fd];
 
+		nbytes = read (client_fd, buffer, 8192);
+		if (nbytes < 0) {
+			throw std::runtime_error("read error");
 		}
-    } catch (const std::exception& e) {
-        std::cerr << "Error in HandleRead: " << e.what() << std::endl;
-        CloseClient(client_fd);
-    }
+		else if (nbytes == 0) {
+			std::cerr << "HandleRead: End-of-file\n";
+		}
+		else {
+			current_request.append(buffer, nbytes);
+			std::cerr << "HandleRead: Server: got message:" << current_request << "";
+
+			size_t header_end = current_request.find("\r\n\r\n");
+			if (header_end == STR::npos) {
+				return;
+			}
+
+			size_t content_length = 0;
+			size_t content_length_pos = current_request.find("Content-Length: ");
+			if (content_length_pos != STR::npos && content_length_pos < header_end) {
+				content_length_pos += 16;
+				size_t content_length_end = current_request.find("\r\n", content_length_pos);
+				if (content_length_end != STR::npos) {
+					STR content_length_str = current_request.substr(content_length_pos, content_length_end - content_length_pos);
+					content_length = std::atoi(content_length_str.c_str());
+
+					size_t total_length = header_end + 4 + content_length;
+
+					if (current_request.length() < total_length) {
+						std::cerr << "SelectServer::HandleRead: Not enough data body needed of size " << content_length << "\n";
+						return;
+					}
+				}
+			}
+
+			std::cerr << "SelectServer::HandleRead: Full message:\n" << current_request << "\n";
+
+			Request request(current_request);
+			Response response;
+
+			response.setConfig(config);
+			response.setRequest(&request);
+
+			_partial_responses[client_fd] = response.getResponse();
+			_partial_requests.erase(client_fd);
+		}
+	} catch (const std::exception& e) {
+		std::cerr << "Error in HandleRead: " << e.what() << std::endl;
+		CloseClient(client_fd);
+	}
 }
 
 void SelectServer::HandleClient(struct pollfd client_poll) {

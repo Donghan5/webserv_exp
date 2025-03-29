@@ -747,13 +747,14 @@ STR Response::getResponse() {
 		env["REQUEST_METHOD"] = _request->_method;
 		env["SCRIPT_NAME"] = dir_path;
 		env["QUERY_STRING"] = _request->_query_string.empty() ? "" : _request->_query_string;
-		env["CONTENT_TYPE"] = _request->_http_content_type.empty() ? "text/plain" : _request->_http_content_type;  // this is changed
+		env["CONTENT_TYPE"] = _request->_content_type.empty() ? "text/plain" : _request->_content_type;  // this is changed
 		env["HTTP_HOST"] = _request->_host;
 		env["SERVER_PORT"] = intToString(_request->_port);
 		env["SERVER_PROTOCOL"] = _request->_http_version;
 		env["HTTP_COOKIE"] = _request->_cookies;
 
 		CgiHandler cgi(dir_path, env, _request->_body);
+		std::cerr << "DEBUG: Passing body to CGI, size: " << _request->_body.length() << std::endl;
 		return cgi.executeCgi();
 	}
 

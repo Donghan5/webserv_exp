@@ -52,7 +52,6 @@ class Request {
 		std::map<STR, float>				_accepted_types; //application/xml;q=0.9
 																	//STR      float
 		STR									_content_type;
-		STR									_http_content_type;  // added
 		unsigned long long					_body_size;
 		STR									_body;
 		STR									_query_string;

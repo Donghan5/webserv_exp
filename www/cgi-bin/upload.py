@@ -1,183 +1,93 @@
-#!/usr/bin/python3
+# #!/usr/bin/python3
 
-import cgi, os, sys
-import cgitb
-import time
-import mimetypes
+# import os
+# import sys
+# import time
 
-cgitb.enable(display=0, logdir='./www/cgi-bin/tmp')
+# # Create directory for debug logs
+# log_dir = './www/cgi-bin/tmp'
+# if not os.path.exists(log_dir):
+#     os.makedirs(log_dir)
 
-debug_info = "\n--- CGI env ---\n"
-for key, value in os.environ.items():
-	debug_info += f"{key}: {value}\n"
+# # Log environment variables
+# with open(os.path.join(log_dir, 'env_debug.log'), 'w') as f:
+#     f.write("--- CGI Environment Variables ---\n")
+#     for key, value in os.environ.items():
+#         f.write(f"{key}: {value}\n")
 
-with open('./www/cgi-bin/tmp/debug.log', 'w') as f:
-	f.write(debug_info)
+# # Read request body from standard input
+# try:
+#     body_data = sys.stdin.buffer.read()
+#     body_size = len(body_data)
 
-def get_file_size_str(size_bytes):
-    """Convert file size in bytes to human-readable format."""
-    if size_bytes < 1024:
-        return f"{size_bytes} bytes"
-    elif size_bytes < 1024 * 1024:
-        return f"{size_bytes/1024:.2f} KB"
-    elif size_bytes < 1024 * 1024 * 1024:
-        return f"{size_bytes/(1024*1024):.2f} MB"
-    else:
-        return f"{size_bytes/(1024*1024*1024):.2f} GB"
+#     # Log request body information
+#     with open(os.path.join(log_dir, 'request_debug.log'), 'wb') as f:
+#         f.write(f"Request body size: {body_size} bytes\n".encode('utf-8'))
+#         f.write(b"Request body content (first 100 bytes):\n")
+#         f.write(body_data[:100])
 
-print("Content-Type: text/html;charset=utf-8")
-print()
+#     # Save the uploaded file
+#     upload_path = os.path.join(log_dir, f"uploaded_file_{int(time.time())}")
+#     with open(upload_path, 'wb') as f:
+#         f.write(body_data)
 
-html_start = """<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>File Upload Result</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f9f9f9;
-        }
-        .result-card {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            padding: 20px;
-            margin-top: 20px;
-        }
-        .success {
-            border-left: 5px solid #4CAF50;
-        }
-        .error {
-            border-left: 5px solid #f44336;
-        }
-        h1 {
-            color: #2c3e50;
-            margin-top: 0;
-        }
-        .file-info {
-            background-color: #f5f5f5;
-            border-radius: 4px;
-            padding: 15px;
-            margin: 15px 0;
-        }
-        .file-preview {
-            margin: 20px 0;
-            text-align: center;
-        }
-        .file-preview img {
-            max-width: 100%;
-            max-height: 300px;
-            border-radius: 4px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        .btn {
-            display: inline-block;
-            background-color: #3498db;
-            color: white;
-            padding: 10px 15px;
-            text-decoration: none;
-            border-radius: 4px;
-            font-weight: 500;
-            margin-top: 15px;
-            transition: background-color 0.3s;
-        }
-        .btn:hover {
-            background-color: #2980b9;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 15px 0;
-        }
-        th, td {
-            padding: 10px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-        th {
-            background-color: #f2f2f2;
-        }
-    </style>
-</head>
-<body>
-"""
+#     # Generate HTML response
+#     print("Content-Type: text/html\n")
+#     print("""
+#     <!DOCTYPE html>
+#     <html>
+#     <head>
+#         <title>Simple Upload Result</title>
+#         <style>
+#             body { font-family: Arial, sans-serif; margin: 20px; }
+#             .success { color: green; }
+#             .info { background: #f0f0f0; padding: 10px; }
+#         </style>
+#     </head>
+#     <body>
+#         <h1>File Upload Result</h1>
+#     """)
 
-html_end = """
-    <a href="/" class="btn">Back to Home</a>
-</body>
-</html>
-"""
+#     print(f"<p class='success'>Upload successful! Received data: {body_size} bytes</p>")
+#     print(f"<p>Saved at: {upload_path}</p>")
 
-try:
-    upload_dir = os.path.join('www', 'cgi-bin', 'tmp')
-    if not os.path.exists(upload_dir):
-        os.makedirs(upload_dir)
+#     print("""
+#         <div class="info">
+#             <h3>Debug Information:</h3>
+#             <p>1. Environment variables are saved in env_debug.log</p>
+#             <p>2. Request body information is saved in request_debug.log</p>
+#             <p>3. The uploaded raw data is saved at the path shown above</p>
+#         </div>
+#         <p><a href="/">Back to Home</a></p>
+#     </body>
+#     </html>
+#     """)
 
-    form = cgi.FieldStorage()
+# except Exception as e:
+#     # Error handling
+#     print("Content-Type: text/html\n")
+#     print(f"""
+#     <!DOCTYPE html>
+#     <html>
+#     <head>
+#         <title>Upload Error</title>
+#         <style>
+#             body {{ font-family: Arial, sans-serif; margin: 20px; }}
+#             .error {{ color: red; }}
+#         </style>
+#     </head>
+#     <body>
+#         <h1>File Upload Error</h1>
+#         <p class="error">An error occurred during processing: {str(e)}</p>
+#         <p><a href="/">Back to Home</a></p>
+#     </body>
+#     </html>
+#     """)
 
-    if 'filename' not in form:
-        print(html_start)
-        print('<div class="result-card error">')
-        print('<h1>⚠️ Upload Error</h1>')
-        print('<p>No file was provided. Please select a file to upload.</p>')
-        print('</div>')
-        print(html_end)
-    else:
-        fileitem = form['filename']
+#     # Log the error
+#     with open(os.path.join(log_dir, 'error.log'), 'w') as f:
+#         import traceback
+#         f.write(traceback.format_exc())
 
-        if fileitem.filename:
-            filename = os.path.basename(fileitem.filename)
-            file_content = fileitem.file.read()
-            file_size = len(file_content)
-            file_type = mimetypes.guess_type(filename)[0] or "Unknown"
 
-            filepath = os.path.join(upload_dir, filename)
-            with open(filepath, 'wb') as f:
-                f.write(file_content)
 
-            print(html_start)
-            print('<div class="result-card success">')
-            print(f'<h1>✅ File Upload Successful</h1>')
-            print(f'<p>Your file has been uploaded successfully.</p>')
-
-            print('<div class="file-info">')
-            print('<table>')
-            print(f'<tr><th>File Name</th><td>{filename}</td></tr>')
-            print(f'<tr><th>File Size</th><td>{get_file_size_str(file_size)}</td></tr>')
-            print(f'<tr><th>File Type</th><td>{file_type}</td></tr>')
-            print(f'<tr><th>Upload Time</th><td>{time.strftime("%Y-%m-%d %H:%M:%S")}</td></tr>')
-            print(f'<tr><th>Saved Path</th><td>{filepath}</td></tr>')
-            print('</table>')
-            print('</div>')
-
-            if file_type and file_type.startswith('image/'):
-                print('<div class="file-preview">')
-                print('<h3>File Preview</h3>')
-                print(f'<img src="/cgi-bin/tmp/{filename}" alt="{filename}">')
-                print('</div>')
-
-            print('</div>')
-            print(html_end)
-        else:
-            print(html_start)
-            print('<div class="result-card error">')
-            print('<h1>⚠️ Upload Error</h1>')
-            print('<p>The file has an invalid filename. Please try again with a valid file.</p>')
-            print('</div>')
-            print(html_end)
-
-except Exception as e:
-    print(html_start)
-    print('<div class="result-card error">')
-    print('<h1>❌ Upload Failed</h1>')
-    print(f'<p>An error occurred during the upload process: {str(e)}</p>')
-    print('<p>Please try again or contact the administrator if the problem persists.</p>')
-    print('</div>')
-    print(html_end)

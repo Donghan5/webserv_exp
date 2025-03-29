@@ -125,14 +125,15 @@ bool Request::parseHeader() {
 				_port = atoi(temp_line.substr(delim_position + 1, delim_position + 1 - port_end).c_str());
 			}
 		} else if (temp_token == "Content-Type:") {	//Not tested
-			int	delim_position;
-			int	end_position;
-			_http_content_type = temp_line.substr(temp_line.find_first_of(':') + 2);  // to test and this is chaned (added)
+			// int	delim_position;
+			// int	end_position;
 
-			delim_position = temp_line.find_first_of(':');
-			end_position = temp_line.find_last_not_of(' ');
-			_content_type = temp_line.substr(delim_position + 2, end_position - delim_position - 2);
-			std::cerr << "Content-Type: " << _content_type << "\n";
+			// delim_position = temp_line.find_first_of(':');
+			// end_position = temp_line.find_last_not_of(' ');
+			// _content_type = temp_line.substr(delim_position + 2, end_position - delim_position - 2);
+			// std::cerr << "Content-Type: " << _content_type << "\n";
+			_content_type = temp_line.substr(temp_line.find_first_of(':') + 2);
+			std::cerr << "DEBUG: Content-Type full value: " << _content_type << "\n";
 		} else if (temp_token == "Content-Length:") {
 			int	delim_position;
 			int	end_position;
@@ -169,7 +170,13 @@ bool Request::parseBody() {
 		size_t size = _full_request.length() - (body_beginning + 4);  // skip \r\n\r\n (4 bytes)
 		return processTransferEncoding(data, size);
 	} else {
+		if (_content_type.find("multipart/form-data") != STR::npos) {
+            std::cerr << "DEBUG: Processing multipart/form-data" << std::endl;
+        }
+
+        // _body = _full_request.substr(body_beginning + 4);
 		_body = _full_request.substr(body_beginning + 4, _full_request.length() - (body_beginning + 4));
+		std::cerr << "DEBUG: parseBody - Body size after extraction: " << _body.length() << " bytes" << std::endl;
 	}
 
 	//if _full_request.length() - (body_beginning + 4) != _body_size 		potential error
@@ -229,83 +236,82 @@ bool Request::processTransferEncoding(const char *data, size_t size) {
 	for (size_t i = 0; i < size; i++) {
 		char ch = data[i];
 
-		switch (_chunked_state) {
-			case CHUNK_SIZE:
-				if (isxdigit(ch)) {
-					_chunk_buffer += ch;
-				}
-				else if (ch == ';') { // after semicolon is chunk extension
-					if (_chunk_buffer.empty()) {
-						return false;
-					}
-
-					_chunk_size = std::strtol(_chunk_buffer.c_str(), NULL, 16);
-					_chunk_buffer.clear();
-					_chunked_state = CHUNK_EXT;
-				}
-				else if (ch == '\r') {
-					if (_chunk_buffer.empty()) {
-						return false;
-					}
-					_chunk_size = std::strtol(_chunk_buffer.c_str(), NULL, 16);
-					_chunk_buffer.clear();
-					_chunked_state = CHUNK_LF;
-				}
-				else {
+		if (_chunked_state == CHUNK_SIZE) {
+			if (isxdigit(ch)) {
+				_chunk_buffer += ch;
+			}
+			else if (ch == ';') { // after semicolon is chunk extension
+				if (_chunk_buffer.empty()) {
 					return false;
 				}
-				break;
-			case CHUNK_EXT:  // ignore extension and search for CRLF
-				if (ch == '\r') {
-					_chunked_state = CHUNK_LF;
-				}
-				break;
-			case CHUNK_LF:
-				if (ch == '\n') {
-					_chunk_data_read = 0;
-					if (_chunk_size == 0) {
-						_chunked_state = CHUNK_TRAILER;
-					}
-					else {
-						_chunked_state = CHUNK_DATA;
-					}
-				}
-				else {
+
+				_chunk_size = std::strtol(_chunk_buffer.c_str(), NULL, 16);
+				_chunk_buffer.clear();
+				_chunked_state = CHUNK_EXT;
+			}
+			else if (ch == '\r') {
+				if (_chunk_buffer.empty()) {
 					return false;
 				}
-				break;
-			case CHUNK_DATA:
-				_body += ch;
-				_chunk_data_read++;
-				if (_chunk_data_read == _chunk_size) {
-					_chunked_state = CHUNK_CR;
-				}
-				break;
-			case CHUNK_CR:
-				if (ch == '\r') {
-					_chunked_state = CHUNK_LF;
+				_chunk_size = std::strtol(_chunk_buffer.c_str(), NULL, 16);
+				_chunk_buffer.clear();
+				_chunked_state = CHUNK_LF;
+			}
+			else {
+				return false;
+			}
+		}
+		else if (_chunked_state == CHUNK_EXT) {  // ignore extension and search for CRLF
+			if (ch == '\r') {
+				_chunked_state = CHUNK_LF;
+			}
+		}
+		else if (_chunked_state == CHUNK_LF) {
+			if (ch == '\n') {
+				_chunk_data_read = 0;
+				if (_chunk_size == 0) {
+					_chunked_state = CHUNK_TRAILER;
 				}
 				else {
-					return false; // missing CRLF
+					_chunked_state = CHUNK_DATA;
 				}
-				break;
-			case CHUNK_TRAILER:
-				if (ch == '\r') {
-					_chunk_buffer += ch;
-				}
-				else if (ch == '\n' && ! _chunk_buffer.empty() && _chunk_buffer.find_last_of('\r')) {
-					_chunk_buffer += ch;
-					if (_chunk_buffer == "\r\n")
-						_chunked_state = CHUNK_COMPLETE;
+			}
+			else {
+				return false;
+			}
+		}
+		else if (_chunked_state == CHUNK_DATA) {
+			_body += ch;
+			_chunk_data_read++;
+			if (_chunk_data_read == _chunk_size) {
+				_chunked_state = CHUNK_CR;
+			}
+		}
+		else if (_chunked_state == CHUNK_CR) {
+			if (ch == '\r') {
+				_chunked_state = CHUNK_LF;
+			}
+			else {
+				return false; // missing CRLF
+			}
+		}
+		else if (_chunked_state ==  CHUNK_TRAILER) {
+			if (ch == '\r') {
+				_chunk_buffer += ch;
+			}
+			else if (ch == '\n' && ! _chunk_buffer.empty() && _chunk_buffer.find_last_of('\r')) {
+				_chunk_buffer += ch;
+				if (_chunk_buffer == "\r\n")
+					_chunked_state = CHUNK_COMPLETE;
 
-					_chunk_buffer.clear();
-				}
-				else {
-					_chunk_buffer.clear();
-				}
-				break;
-			case CHUNK_COMPLETE:
-				break;
+				_chunk_buffer.clear();
+			}
+			else {
+				_chunk_buffer.clear();
+			}
+		}
+		else if (_chunked_state == CHUNK_COMPLETE) {
+			// do nothing
 		}
 	}
 	return true;
@@ -354,6 +360,13 @@ Request::Request(const Request &obj) {
 	_accepted_types = obj._accepted_types;
 	_body = obj._body;
 	_body_size = obj._body_size;
+	_query_string = obj._query_string;
+	_transfer_encoding = obj._transfer_encoding;  // adding for transfer-encoding
+	_chunked_flag = obj._chunked_flag;  // adding for transfer-encoding
+	_chunked_state = obj._chunked_state;  // adding for transfer-encoding
+	_chunk_size = obj._chunk_size;  // adding for transfer-encoding
+	_chunk_data_read = obj._chunk_data_read;  // adding for transfer-encoding
+	_chunk_buffer = obj._chunk_buffer;  // adding for transfer-encoding
 }
 
 Request::~Request() {

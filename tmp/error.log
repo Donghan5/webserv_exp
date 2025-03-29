@@ -1,0 +1,8 @@
+
+--- Error at 2025-03-29 17:17:20 ---
+Traceback (most recent call last):
+  File "/home/donghank/webserv_exp/./www/cgi-bin/upload.py", line 130, in <module>
+    if 'filename' not in form:
+  File "/usr/lib/python3.10/cgi.py", line 576, in __contains__
+    raise TypeError("not indexable")
+TypeError: not indexable

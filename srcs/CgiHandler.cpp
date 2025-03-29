@@ -45,6 +45,10 @@ char **CgiHandler::convertArgsToCharArray(const std::string &interpreter) {
 }
 
 std::string CgiHandler::executeCgi() {
+	std::cerr << "DEBUG: CgiHandler executing script: " << _scriptPath << std::endl;
+    std::cerr << "DEBUG: Body size: " << _body.size() << " bytes" << std::endl;
+    std::cerr << "DEBUG: Content-Type: " << _env.at("CONTENT_TYPE") << std::endl;
+
 	int pipefd_in[2], pipefd_out[2];
 
 	if (pipe(pipefd_in) == -1 || pipe(pipefd_out) == -1) {
@@ -110,9 +114,16 @@ std::string CgiHandler::executeCgi() {
 		int status;
 		waitpid(pid, &status, 0);
 		if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
-			return "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n" + output;
+			return "HTTP/1.1 200 OK\r\n"
+				   "Content-Type: text/html\r\n"
+				   "Content-Length: " + intToString(output.length()) + "\r\n"
+				   "\r\n" + output;
 		} else {
-			return "500 Internal Server Error\r\n\r\nCGI Execution Failed";
+			std::string error_msg = "CGI Execution Failed";
+			return "HTTP/1.1 500 Internal Server Error\r\n"
+				   "Content-Type: text/plain\r\n"
+				   "Content-Length: " + intToString(error_msg.length()) + "\r\n"
+				   "\r\n" + error_msg;
 		}
 	}
 }
@@ -129,7 +140,7 @@ std::string CgiHandler::executeProxy() {
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(atoi(_env["SERVER_PORT"].c_str()));
-    
+
     // Convert hostname to IP
     struct hostent *server = gethostbyname(_env["HTTP_HOST"].c_str());
     if (server == NULL) {
@@ -149,20 +160,20 @@ std::string CgiHandler::executeProxy() {
     if (!_env["QUERY_STRING"].empty()) {
         path += "?" + _env["QUERY_STRING"];
     }
-    
+
     // Prepare HTTP request
     std::string request = _env["REQUEST_METHOD"] + " " + path + " " + _env["SERVER_PROTOCOL"] + "\r\n";
     request += "Host: " + _env["HTTP_HOST"] + "\r\n";
     request += "Content-Type: application/x-www-form-urlencoded\r\n";
-    
+
     if (!_env["HTTP_COOKIE"].empty()) {
         request += "Cookie: " + _env["HTTP_COOKIE"] + "\r\n";
     }
-    
+
     if (!_body.empty()) {
         request += "Content-Length: " + intToString(_body.length()) + "\r\n";
     }
-    
+
     request += "Connection: close\r\n";  // Add Connection: close header
     request += "\r\n";
     if (!_body.empty()) {
