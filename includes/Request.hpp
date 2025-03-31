@@ -26,8 +26,8 @@ enum ChunkedState {
 	CHUNK_DATA,  // chunk data
 	CHUNK_CR,  // chunk CR
 	CHUNK_LF,  // chunk LF
-	CHUNK_DATA_END, // chunk data end
 	CHUNK_TRAILER,  // chunk trailer
+	TRAILER_FINAL_LF,  // final LF
 	CHUNK_COMPLETE,  // chunk complete
 };
 

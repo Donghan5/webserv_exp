@@ -74,6 +74,9 @@ int RequestsManager::HandleRead() {
 			}
 
 			if (body_read != -1 && _config->_client_max_body_size && (body_read > _config->_client_max_body_size)) {
+				std::cerr << "Body read: " << body_read << "\n";
+				std::cerr << "Config max body size: " << _config->_client_max_body_size << "\n";
+
 				std::cerr << "413 (Request Entity Too Large) error\n";
 
 				_partial_responses[_client_fd] = response.createResponse(413, "text/plain", "Request Entity Too Large");
@@ -82,6 +85,7 @@ int RequestsManager::HandleRead() {
 			}
 
 			_partial_requests[_client_fd].append(buffer, nbytes);
+			std::cerr << "Requests HandleRead: REQUEST:\n" << _partial_requests[_client_fd] << "\n";
 
 			int header_end = _partial_requests[_client_fd].find("\r\n\r\n");
 			if (body_read == -1 && header_end != CHAR_NOT_FOUND) {

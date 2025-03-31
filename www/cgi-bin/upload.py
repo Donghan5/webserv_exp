@@ -25,8 +25,6 @@ def get_file_size_str(size_bytes):
     else:
         return f"{size_bytes/(1024*1024*1024):.2f} GB"
 
-print("Content-Type: text/html;charset=utf-8")
-print()
 
 html_start = """<!DOCTYPE html>
 <html lang="en">

@@ -157,26 +157,10 @@ bool Request::parseHeader() {
 	return true;
 }
 
-bool Request::parseBody() {
-	// if (_body_size == 0)
-	// 	return false;
-
-	int	body_beginning = -1;
-	if (_full_request == "")
-		return false;
-
-	body_beginning = _full_request.find("\r\n\r\n");
-	if (body_beginning == CHAR_NOT_FOUND)
-		return false;
-	_body = _full_request.substr(body_beginning + 4, _full_request.length() - (body_beginning + 4));
-
-	//if _full_request.length() - (body_beginning + 4) != _body_size 		potential error
-
-	// std::cerr << "DEBUG Requet::parseBody _body = |" << _body << "|\n";
-	return true;
-}
-
 // bool Request::parseBody() {
+// 	// if (_body_size == 0)
+// 	// 	return false;
+
 // 	int	body_beginning = -1;
 // 	if (_full_request == "")
 // 		return false;
@@ -184,19 +168,39 @@ bool Request::parseBody() {
 // 	body_beginning = _full_request.find("\r\n\r\n");
 // 	if (body_beginning == CHAR_NOT_FOUND)
 // 		return false;
-// 	if (_chunked_flag) {
-// 		const char *data = _full_request.c_str() + body_beginning + 4;  // skip \r\n\r\n (4 bytes)
-// 		size_t size = _full_request.length() - (body_beginning + 4);  // skip \r\n\r\n (4 bytes)
-// 		return processTransferEncoding(data, size);
-// 	} else {
-// 		_body = _full_request.substr(body_beginning + 4, _full_request.length() - (body_beginning + 4));
-// 	}
+// 	_body = _full_request.substr(body_beginning + 4, _full_request.length() - (body_beginning + 4));
 
 // 	//if _full_request.length() - (body_beginning + 4) != _body_size 		potential error
 
 // 	// std::cerr << "DEBUG Requet::parseBody _body = |" << _body << "|\n";
 // 	return true;
 // }
+
+bool Request::parseBody() {
+	int	body_beginning = -1;
+	if (_full_request == "")
+		return false;
+
+	body_beginning = _full_request.find("\r\n\r\n");
+	if (body_beginning == CHAR_NOT_FOUND)
+		return false;
+
+	if (_content_type.find("multipart/form-data") != STR::npos) {
+		_body = _full_request.substr(body_beginning + 4, _full_request.length() - (body_beginning + 4));
+		return true;
+	}
+	if (_chunked_flag) {
+		const char *data = _full_request.c_str() + body_beginning + 4;  // skip \r\n\r\n (4 bytes)
+		size_t size = _full_request.length() - (body_beginning + 4);  // skip \r\n\r\n (4 bytes)
+		return processTransferEncoding(data, size);
+	}
+	_body = _full_request.substr(body_beginning + 4, _full_request.length() - (body_beginning + 4));
+
+	//if _full_request.length() - (body_beginning + 4) != _body_size 		potential error
+
+	// std::cerr << "DEBUG Requet::parseBody _body = |" << _body << "|\n";
+	return true;
+}
 
 void Request::parseQueryString(void) {
 	size_t query_pos = _file_path.find('?');
@@ -302,22 +306,21 @@ bool Request::processTransferEncoding(const char *data, size_t size) {
 				break;
 			case CHUNK_TRAILER:
 				if (ch == '\r') {
-					_chunk_buffer += ch;
+					_chunked_state = TRAILER_FINAL_LF;
 				}
-				else if (ch == '\n' && ! _chunk_buffer.empty() && _chunk_buffer.find_last_of('\r')) {
-					_chunk_buffer += ch;
-					if (_chunk_buffer == "\r\n")
-						_chunked_state = CHUNK_COMPLETE;
-
-					_chunk_buffer.clear();
+				break;
+			case TRAILER_FINAL_LF:
+				if (ch == '\n') {
+					_chunked_state = CHUNK_COMPLETE;
 				}
 				else {
-					_chunk_buffer.clear();
+					_chunked_state = CHUNK_TRAILER;
+					if (ch == '\r') {
+						_chunked_state = TRAILER_FINAL_LF;
+					}
 				}
 				break;
 			case CHUNK_COMPLETE:
-				break;
-			case CHUNK_DATA_END:
 				break;
 		}
 	}
