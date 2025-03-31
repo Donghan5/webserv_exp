@@ -41,7 +41,7 @@ void SelectServer::setConfig(HttpConfig *config) {
 
 	for (size_t i = 0; i < unique_ports.size(); i++) {
 		int server_socket = socket(AF_INET, SOCK_STREAM, 0);
-
+	
 		if (server_socket < 0) {
 			throw std::runtime_error("Failed to create socket");
 		}
@@ -62,7 +62,7 @@ void SelectServer::setConfig(HttpConfig *config) {
 		server_addr.sin_family = AF_INET;
 		server_addr.sin_port = htons(unique_ports[i]);
 		server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-
+	
 		if (bind(server_socket, (struct sockaddr *) &server_addr, sizeof(struct sockaddr)) < 0) {
 			close(server_socket);
 			throw std::runtime_error("Bind error");
@@ -79,7 +79,7 @@ void SelectServer::setConfig(HttpConfig *config) {
     	std::cout << "Server listening on port " << unique_ports[i] << std::endl;
 	}
 
-
+	
 }
 
 void SelectServer::HandleWrite(int client_fd) {
@@ -105,10 +105,10 @@ void SelectServer::HandleWrite(int client_fd) {
 
 void SelectServer::HandleRead(int client_fd) {
     try {
-        char buffer[8192];
+        char buffer[4096];
 		int nbytes;
 
-		nbytes = read (client_fd, buffer, 8192);
+		nbytes = read (client_fd, buffer, 4096);
 		if (nbytes < 0)
 			throw std::runtime_error("read error");
 		else if (nbytes == 0)
@@ -179,7 +179,7 @@ bool SelectServer::WaitAndService(RequestsManager &manager, fd_set &temp_fd_set)
 			return true;
 		throw std::runtime_error("Select failed");
 	}
-
+	
 	for (int i = 0; i < FD_SETSIZE; ++i)
 	{
 		if (!FD_ISSET (i, &temp_fd_set))
@@ -221,7 +221,7 @@ void SelectServer::start() {
 			throw std::runtime_error("Poll error");
 
 		// requests.CloseClient(); //??
-
+		
 	} while (running);
 }
 

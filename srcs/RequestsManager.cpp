@@ -86,12 +86,21 @@ int RequestsManager::HandleRead() {
 			int header_end = _partial_requests[_client_fd].find("\r\n\r\n");
 			if (body_read == -1 && header_end != CHAR_NOT_FOUND) {
 				std::cerr << "Requests HandleRead: End-of-file Full message:\n" << _partial_requests[_client_fd] << "\n";
-				request.setRequest(_partial_requests[_client_fd]);
+				if (!request.setRequest(_partial_requests[_client_fd])) {
+					std::cerr << "Requests HandleRead: Error parsing request\n";
+					_partial_responses[_client_fd] = response.createResponse(400, "text/plain", "Bad Request");
+					return 2;
+				}
 
 				if (request._body_size > 0) {
 					std::cerr << "RequestsManager::HandleRead Body needed of size " << request._body_size << "\n";
 					body_read = _partial_requests[_client_fd].size() - header_end - 4;
 				} else {
+					if (!request.parseBody()) {
+						std::cerr << "Requests HandleRead: Error parsing body\n";
+						_partial_responses[_client_fd] = response.createResponse(400, "text/plain", "Bad Request");
+						return 2;
+					}
 					response.setConfig(_config);
 					response.setRequest(&request);
 
@@ -108,8 +117,18 @@ int RequestsManager::HandleRead() {
 				std::cerr << "RequestsManager::HandleRead Full body read! \n";
 				body_read = -1;
 
-				// std::cerr << "RequestsManager::HandleRead Full request :|" << _partial_requests[_client_fd] << "|\n";
-				request.setRequest(_partial_requests[_client_fd]);
+				request.clear();
+				std::cerr << "RequestsManager::HandleRead Full request :|" << _partial_requests[_client_fd] << "|\n";
+				if (!request.setRequest(_partial_requests[_client_fd])) {
+					std::cerr << "Requests HandleRead: Error parsing request\n";
+					_partial_responses[_client_fd] = response.createResponse(400, "text/plain", "Bad Request");
+					return 2;
+				}
+				if (!request.parseBody()) {
+					std::cerr << "Requests HandleRead: Error parsing body\n";
+					_partial_responses[_client_fd] = response.createResponse(400, "text/plain", "Bad Request");
+					return 2;
+				}
 				response.setConfig(_config);
 				response.setRequest(&request);
 

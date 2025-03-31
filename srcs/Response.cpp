@@ -753,6 +753,25 @@ STR Response::getResponse() {
 		env["SERVER_PROTOCOL"] = _request->_http_version;
 		env["HTTP_COOKIE"] = _request->_cookies;
 
+		// Open a file to write _request->_body
+		std::ofstream log_file("./cgi_body.log", std::ios::binary | std::ios::app);
+		if (!log_file.is_open()) {
+			std::cerr << "ERROR: Could not open cgi_body.log" << std::endl;
+			return "500 Internal Server Error\r\n\r\nFailed to open body log";
+		}
+	
+		// Write _request->_body as binary data
+		if (!_request->_body.empty()) {
+			log_file.write(_request->_body.data(), _request->_body.size());
+			log_file << "\n----------------\n"; // Separator for readability
+		} else {
+			log_file << "Body: <empty>\n----------------\n";
+		}
+	
+		// Close the file
+		log_file.close();
+
+
 		CgiHandler cgi(dir_path, env, _request->_body);
 		return cgi.executeCgi();
 	}

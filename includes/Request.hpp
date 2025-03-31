@@ -33,9 +33,6 @@ enum ChunkedState {
 
 class Request {
 	private:
-		bool								parseHeader();
-		bool								parseBody();
-		bool								parseRequest();
 		void								parseQueryString();
 		void								parseTransferEncoding(const std::string &header);
 		bool								processTransferEncoding(const char *data, size_t size);
@@ -63,8 +60,11 @@ class Request {
 		unsigned long long					_chunk_data_read; // added for transfer-encoding
 		STR									_chunk_buffer;  //	 added for transfer-encoding
 
-		void								setRequest(STR request);
+		bool								setRequest(STR request);
 
+		bool								parseHeader();
+		bool								parseBody();
+		void 								clear();
 		Request();
 		Request(STR request);
 		Request(const Request &obj);

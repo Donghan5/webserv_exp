@@ -1,14 +1,14 @@
 #include "Request.hpp"
 #include <sstream>
 
-static bool isToken(uint8_t ch) {
-	if (ch == '!' || ch == '#' || ch == '$' || ch == '%' || ch == '&' || ch == '\'' || ch == '*'
-		|| ch == '+' || ch == '-' || ch == '.' || ch == '^' || ch == '_' || ch == '`' || ch == '|'
-		|| ch == '~' || isalnum(ch)) {
-		return true;
-	}
-	return false;
-}
+// static bool isToken(uint8_t ch) {
+// 	if (ch == '!' || ch == '#' || ch == '$' || ch == '%' || ch == '&' || ch == '\'' || ch == '*'
+// 		|| ch == '+' || ch == '-' || ch == '.' || ch == '^' || ch == '_' || ch == '`' || ch == '|'
+// 		|| ch == '~' || isalnum(ch)) {
+// 		return true;
+// 	}
+// 	return false;
+// }
 
 static void trimSpace(std::string &str) {
 	static const char *whitespace = " \r";
@@ -75,7 +75,7 @@ bool Request::parseHeader() {
 		getline(temp_line_stream, temp_token, ' ');
 
 		//searching for 	Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
-		if (temp_token == "Accept:") {
+		if (temp_token == "Accept:" && _accepted_types.empty()) {
 			STR			filetypes_line;
 			std::istringstream	filetypes_stream;
 			STR 		filetype_token;
@@ -100,10 +100,10 @@ bool Request::parseHeader() {
 					type_quality = atof(name_quality_token.c_str() + 2);
 				_accepted_types[type_name.c_str()] = type_quality;
 			}
-		} else if (temp_token == "Cookie:") {
+		} else if (temp_token == "Cookie:" && _cookies == "") {
 			//to do cookies
 			_cookies = temp_line.substr(temp_line.find_first_of(':') + 2);
-		} else if (temp_token == "Host:") {
+		} else if (temp_token == "Host:" && _host == "localhost") {
 			int	host_start;
 			int	host_end;
 			int	delim_position;
@@ -124,7 +124,7 @@ bool Request::parseHeader() {
 				_host = temp_line.substr(host_start, host_end - host_start);
 				_port = atoi(temp_line.substr(delim_position + 1, delim_position + 1 - port_end).c_str());
 			}
-		} else if (temp_token == "Content-Type:") {	//Not tested
+		} else if (temp_token == "Content-Type:" && _content_type == "") {	//Not tested
 			int	delim_position;
 			int	end_position;
 			_http_content_type = temp_line.substr(temp_line.find_first_of(':') + 2);  // to test and this is chaned (added)
@@ -132,8 +132,8 @@ bool Request::parseHeader() {
 			delim_position = temp_line.find_first_of(':');
 			end_position = temp_line.find_last_not_of(' ');
 			_content_type = temp_line.substr(delim_position + 2, end_position - delim_position - 2);
-			std::cerr << "Content-Type: " << _content_type << "\n";
-		} else if (temp_token == "Content-Length:") {
+			std::cerr << "Request::parseHeader() Content-Type: " << _content_type << "\n";
+		} else if (temp_token == "Content-Length:" && _body_size == 0) {
 			int	delim_position;
 			int	end_position;
 
@@ -141,6 +141,7 @@ bool Request::parseHeader() {
 			end_position = temp_line.length();
 			_body_size = atoi((temp_line.substr(delim_position + 1, delim_position + 1 - end_position)).c_str());
 		} else if (temp_token == "Transfer-Encoding:") {
+
 			std::string encoding_value = temp_line.substr(temp_line.find_first_of(':') + 2);
 			parseTransferEncoding(encoding_value);
 
@@ -157,6 +158,9 @@ bool Request::parseHeader() {
 }
 
 bool Request::parseBody() {
+	// if (_body_size == 0)
+	// 	return false;
+
 	int	body_beginning = -1;
 	if (_full_request == "")
 		return false;
@@ -164,13 +168,7 @@ bool Request::parseBody() {
 	body_beginning = _full_request.find("\r\n\r\n");
 	if (body_beginning == CHAR_NOT_FOUND)
 		return false;
-	if (_chunked_flag) {
-		const char *data = _full_request.c_str() + body_beginning + 4;  // skip \r\n\r\n (4 bytes)
-		size_t size = _full_request.length() - (body_beginning + 4);  // skip \r\n\r\n (4 bytes)
-		return processTransferEncoding(data, size);
-	} else {
-		_body = _full_request.substr(body_beginning + 4, _full_request.length() - (body_beginning + 4));
-	}
+	_body = _full_request.substr(body_beginning + 4, _full_request.length() - (body_beginning + 4));
 
 	//if _full_request.length() - (body_beginning + 4) != _body_size 		potential error
 
@@ -178,14 +176,27 @@ bool Request::parseBody() {
 	return true;
 }
 
+// bool Request::parseBody() {
+// 	int	body_beginning = -1;
+// 	if (_full_request == "")
+// 		return false;
 
-bool Request::parseRequest() {
-	if (!parseHeader())
-		return false;
-	if (_body_size && !parseBody())
-		return false;
-	return true;
-}
+// 	body_beginning = _full_request.find("\r\n\r\n");
+// 	if (body_beginning == CHAR_NOT_FOUND)
+// 		return false;
+// 	if (_chunked_flag) {
+// 		const char *data = _full_request.c_str() + body_beginning + 4;  // skip \r\n\r\n (4 bytes)
+// 		size_t size = _full_request.length() - (body_beginning + 4);  // skip \r\n\r\n (4 bytes)
+// 		return processTransferEncoding(data, size);
+// 	} else {
+// 		_body = _full_request.substr(body_beginning + 4, _full_request.length() - (body_beginning + 4));
+// 	}
+
+// 	//if _full_request.length() - (body_beginning + 4) != _body_size 		potential error
+
+// 	// std::cerr << "DEBUG Requet::parseBody _body = |" << _body << "|\n";
+// 	return true;
+// }
 
 void Request::parseQueryString(void) {
 	size_t query_pos = _file_path.find('?');
@@ -306,6 +317,8 @@ bool Request::processTransferEncoding(const char *data, size_t size) {
 				break;
 			case CHUNK_COMPLETE:
 				break;
+			case CHUNK_DATA_END:
+				break;
 		}
 	}
 	return true;
@@ -335,7 +348,7 @@ Request::Request(STR request) {
 	_content_type = "";
 	_body = "";
 	_body_size = 0;
-	parseRequest();
+	parseHeader();
 	_chunked_flag = false;  // adding for transfer-encoding
 	_chunked_state = CHUNK_SIZE;  // adding for transfer-encoding
 	_chunk_size = 0;  // adding for transfer-encoding
@@ -360,11 +373,26 @@ Request::~Request() {
 
 }
 
-void Request::setRequest(STR request) {
+void Request::clear() {
+	_cookies = "";
+	_full_request = "";
+	_file_path = "";
+	_method = "";
+	_http_version = "";
+	_host = "localhost";
+	_port = 80;
+	_content_type = "";
+	_body = "";
+	_body_size = 0;
+}
+
+bool Request::setRequest(STR request) {
 	_full_request = request;
 	_body = "";
 
-	if (!parseRequest()) {
-		std::cerr << "Request::setRequest: Request Parsing error!\n";
+	if (!parseHeader()) {
+		std::cerr << "Request::setRequest: Header Parsing error!\n";
+		return false;
 	}
+	return true;
 }
