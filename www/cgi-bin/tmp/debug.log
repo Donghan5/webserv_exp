@@ -1,7 +1,7 @@
 
 --- CGI env ---
-CONTENT_TYPE: multipart/form-data; boundary=----WebKitFormBoundaryLaaOljoVE5a6oixv
-HTTP_COOKIE: visits=43
+CONTENT_TYPE: multipart/form-data; boundary=----WebKitFormBoundary6g63KqfYP4EA3QGO
+HTTP_COOKIE: visits=1
 HTTP_HOST: localhost
 QUERY_STRING: 
 REQUEST_METHOD: POST

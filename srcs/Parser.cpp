@@ -418,7 +418,20 @@ bool FillDirective(AConfigBase* block, STR line, int position) {
 		} else if (tokens[0] == "add_header") {
 			locConf->_add_header = tokens[1];
 		} else if (tokens[0] == "return") {
-			locConf->_return = tokens[1];
+			if (tokens.size() < 2) {
+				std::cerr << "Invalid return directive" << std::endl;
+				return false;
+			}
+			else if (tokens.size() == 3) {
+				int code = atoi(tokens[1].c_str());
+				if (code < 300 || code > 400) {
+					std::cerr << "Invalid return code" << std::endl;
+					return false;
+				}
+				locConf->_return = tokens[2];
+			}
+			else // tokens.size() == 2
+				locConf->_return = tokens[1];
 		} else if (tokens[0] == "allow") {
 			locConf->_allow = tokens[1];
 		} else if (tokens[0] == "deny") {

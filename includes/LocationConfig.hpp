@@ -2,6 +2,7 @@
 # define LOCATIONCONFIG_HPP
 # include "AConfigBase.hpp"
 
+/* server and location return */
 struct LocationConfig : AConfigBase {
 	STR								_proxy_pass_host;
 	int								_proxy_pass_port;
