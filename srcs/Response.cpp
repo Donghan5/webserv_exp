@@ -650,16 +650,38 @@ static STR intToString(int num) {
 
 STR	Response::checkRedirect(LocationConfig *matchLocation) {
 	AConfigBase*	back_ref = matchLocation;
+	ServerConfig* tempServer;
+	LocationConfig* tempLocation;
 
-	while (back_ref->_identify(back_ref) != HTTP) {
-		LocationConfig* tempLocation = dynamic_cast<LocationConfig*>(back_ref);
+	while (back_ref && back_ref->_identify(back_ref) != HTTP) {
+		switch (back_ref->_identify(back_ref))
+		{
+		case SERVER:
+			 tempServer = dynamic_cast<ServerConfig*>(back_ref);
 
-		if (tempLocation->_return_url != "" && tempLocation->_return_code == -1) {
-			return createResponse(301, "text/plain", "Redirect", "Location: " + tempLocation->_return_url);
+			if (tempServer->_return_url != "" && tempServer->_return_code == -1) {
+				return createResponse(301, "text/plain", "Redirect", "Location: " + tempServer->_return_url);
+			}
+			if (tempServer->_return_url != "") {
+				return createResponse(tempServer->_return_code, "text/plain", "Redirect", "Location: " + tempServer->_return_url);
+			}
+			break;
+		case LOCATION:
+			 tempLocation = dynamic_cast<LocationConfig*>(back_ref);
+
+			if (tempLocation->_return_url != "" && tempLocation->_return_code == -1) {
+				return createResponse(301, "text/plain", "Redirect", "Location: " + tempLocation->_return_url);
+			}
+			if (tempLocation->_return_url != "") {
+				return createResponse(tempLocation->_return_code, "text/plain", "Redirect", "Location: " + tempLocation->_return_url);
+			}
+			break;
+		case HTTP:
+			return "";
+		default:
+			break;
 		}
-		if (tempLocation->_return_url != "") {
-			return createResponse(tempLocation->_return_code, "text/plain", "Redirect", "Location: " + tempLocation->_return_url);
-		}
+
 		back_ref = back_ref->back_ref;
 	}
 	return "";
