@@ -382,9 +382,23 @@ bool FillDirective(AConfigBase* block, STR line, int position) {
 				std::cerr << "Invalid client_max_body_size value" << std::endl;
 				return false;
 			}
+		} else if (tokens[0] == "return") {  // indicate that it's a return directive
+			if (tokens.size() < 2) {
+				std::cerr << "Invalid return directive" << std::endl;
+				return false;
+			}
+			else if (tokens.size() == 3) {
+				int code = atoi(tokens[1].c_str());
+				if (code < 300 || code > 400) {
+					std::cerr << "Invalid return code" << std::endl;
+					return false;
+				}
+				serverConf->_return = tokens[2];
+			}
+			else // tokens.size() == 2
+				serverConf->_return = tokens[1];
 		} else {
-
-	std::cerr << "DEBUG CHECKFillDirective ServerConfig extra type " << tokens[0] << "\n";
+			std::cerr << "DEBUG CHECKFillDirective ServerConfig extra type " << tokens[0] << "\n";
 			return false;
 		}
         return true;
