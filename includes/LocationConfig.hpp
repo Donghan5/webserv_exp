@@ -7,7 +7,8 @@ struct LocationConfig : AConfigBase {
 	STR								_proxy_pass_host;
 	int								_proxy_pass_port;
 	STR								_path;
-	STR								_return;
+	int								_return_code; // return code
+	STR								_return_url;
 	STR								_allow;
 	STR								_deny;
 	STR								_alias;
@@ -22,7 +23,8 @@ struct LocationConfig : AConfigBase {
 		_proxy_pass_host(""),
 		_proxy_pass_port(8080),
         _path(""),
-        _return(""),
+		_return_code(-1),
+        _return_url(""),
         _allow(""),
         _deny(""),
         _alias(""),

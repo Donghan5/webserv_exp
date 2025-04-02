@@ -33,6 +33,7 @@ class Response {
 		LocationConfig 				*buildDirPath(ServerConfig *matchServer, STR &full_path, bool &isDIR);
 		int							buildIndexPath(LocationConfig *matchLocation, STR &best_file_path);
 		STR							matchMethod(STR path, bool isDIR, LocationConfig *matchLocation);
+		STR							checkRedirect(LocationConfig *matchLocation);
 
 	public:
 		Response();
@@ -42,7 +43,7 @@ class Response {
 
 		void	setRequest(Request *request);
 		void	setConfig(HttpConfig *config);
-		STR		createResponse(int status, const STR& type, const STR& body);
+		STR		createResponse(int status, const STR& type, const STR& body, const STR& extra);
 		STR		getResponse();
 };
 

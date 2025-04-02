@@ -193,7 +193,7 @@ Response::Response(Request *request, HttpConfig *config) {
 	_config = config;
 }
 
-STR Response::createResponse(int statusCode, const STR& contentType, const STR& body) {
+STR Response::createResponse(int statusCode, const STR& contentType, const STR& body, const STR& extra) {
     std::stringstream response;
     response << "HTTP/1.1 " << _all_status_codes[statusCode] << "\r\n"
              << "Content-Type: " << contentType << "\r\n"
@@ -202,6 +202,7 @@ STR Response::createResponse(int statusCode, const STR& contentType, const STR& 
              << "Access-Control-Allow-Methods: GET, POST, DELETE, OPTIONS\r\n"
              << "Access-Control-Allow-Headers: Content-Type\r\n"
              << "Access-Control-Allow-Credentials: true\r\n"
+			 << extra << "\r\n"
              << "Connection: close\r\n"
              << "\r\n"
              << body;
@@ -319,7 +320,7 @@ STR urlDecode(const STR& input) {
 STR Response::handleDIR(STR path) {
     DIR* dir = opendir(path.c_str());
     if (!dir) {
-        return createResponse(500, "text/plain", "Failed to read directory");
+        return createResponse(500, "text/plain", "Failed to read directory", "");
     }
 
     std::stringstream html;
@@ -359,7 +360,7 @@ STR Response::handleDIR(STR path) {
 
     html << "</pre><hr></body></html>";
     closedir(dir);
-    return createResponse(200, "text/html", html.str());
+    return createResponse(200, "text/html", html.str(), "");
 }
 
 void	Response::selectIndexIndexes(VECTOR<STR> indexes, STR &best_match, float &match_quality) {
@@ -458,10 +459,10 @@ STR	Response::handleGET(STR full_path, bool isDIR) {
 		if (file) {
 			std::stringstream content;
 			content << file.rdbuf();
-			return createResponse(200, getMimeType(full_path), content.str());
+			return createResponse(200, getMimeType(full_path), content.str(), "");
 		}
 	}
-	return createResponse(403, "text/plain", "HANDLEGET ERROR (Forbidden)");
+	return createResponse(403, "text/plain", "HANDLEGET ERROR (Forbidden)", "");
 }
 
 STR Response::handlePOST(STR full_path) {
@@ -470,7 +471,7 @@ STR Response::handlePOST(STR full_path) {
     // Check if directory exists to upload to
     STR dir_path = full_path.substr(0, full_path.find_last_of('/'));
     if (access(dir_path.c_str(), W_OK) != 0) {
-        return createResponse(403, "text/plain", "HANDLEPOST ERROR (Forbidden - Cannot write to directory)");
+        return createResponse(403, "text/plain", "HANDLEPOST ERROR (Forbidden - Cannot write to directory)", "");
     }
 
     // Check if file already exists
@@ -479,7 +480,7 @@ STR Response::handlePOST(STR full_path) {
     // Open file for writing
     std::ofstream file(full_path.c_str(), std::ios::binary);
     if (!file) {
-        return createResponse(500, "text/plain", "HANDLEPOST ERROR (Internal Server Error - Cannot create file)");
+        return createResponse(500, "text/plain", "HANDLEPOST ERROR (Internal Server Error - Cannot create file)", "");
     }
 
     file << _request->_body;
@@ -494,27 +495,27 @@ STR Response::handlePOST(STR full_path) {
 
 	std::cerr << "DEBUG Response::handlePOST end\n";
 
-    return createResponse(status_code, "text/plain", status_message);
+    return createResponse(status_code, "text/plain", status_message, "");
 }
 
 STR Response::handleDELETE(STR full_path) {
     // Check if file exists
     if (access(full_path.c_str(), F_OK) != 0) {
-        return createResponse(404, "text/plain", "Not Found");
+        return createResponse(404, "text/plain", "Not Found", "");
     }
 
     // Check if we have permission to delete
     if (access(full_path.c_str(), W_OK) != 0) {
-        return createResponse(403, "text/plain", "Forbidden");
+        return createResponse(403, "text/plain", "Forbidden", "");
     }
 
     // Try to delete the file
     if (remove(full_path.c_str()) != 0) {
-        return createResponse(500, "text/plain", "Internal Server Error - Failed to delete");
+        return createResponse(500, "text/plain", "Internal Server Error - Failed to delete", "");
     }
 
     // Return success response
-    return createResponse(204, "text/plain", "");
+    return createResponse(204, "text/plain", "", "");
 }
 
 STR	regress_path(STR path) {
@@ -608,7 +609,7 @@ int Response::buildIndexPath(LocationConfig *matchLocation, STR &best_file_path)
 	}
 	catch(const std::exception& e)
 	{
-		// return createResponse(403, "text/plain", "NO SUCH FILE FOUND (change later)");
+		// return createResponse(403, "text/plain", "NO SUCH FILE FOUND (change later)", "");
 
 		std::cerr << "selectIndexAll(matchLocation) error: " << e.what() << "\n";
 		return 0;
@@ -621,22 +622,22 @@ int Response::buildIndexPath(LocationConfig *matchLocation, STR &best_file_path)
 STR	Response::matchMethod(STR path, bool isDIR, LocationConfig *matchLocation) {
 	if (_request->_method == "GET") {
 		if (matchLocation->_allowed_methods["GET"] == false)
-			return createResponse(405, "text/plain", "Method Not Allowed");
+			return createResponse(405, "text/plain", "Method Not Allowed", "");
 		std::cerr << "Response::matchMethod GET path" << path << " isDIR " << isDIR << std::endl;
 		return (handleGET(path, isDIR));
 	} else if (_request->_method == "POST") {
 		if (matchLocation->_allowed_methods["POST"] == false)
-			return createResponse(405, "text/plain", "Method Not Allowed");
+			return createResponse(405, "text/plain", "Method Not Allowed", "");
 		std::cerr << "Response::matchMethod POST path" << path << " isDIR " << isDIR << std::endl;
 		return (handlePOST(path));
 	} else if (_request->_method == "DELETE") {
 		if (matchLocation->_allowed_methods["DELETE"] == false)
-			return createResponse(405, "text/plain", "Method Not Allowed");
+			return createResponse(405, "text/plain", "Method Not Allowed", "");
 		std::cerr << "Response::matchMethod DELETE path" << path << " isDIR " << isDIR << std::endl;
 		return (handleDELETE(path));
 	} else {
 		std::cerr << "Response::matchMethod UNUSUAL METHOD ERROR: " << _request->_method << "\n";
-		return createResponse(405, "text/plain", "Method Not Allowed");
+		return createResponse(405, "text/plain", "Method Not Allowed", "");
 	}
 }
 
@@ -645,6 +646,23 @@ static STR intToString(int num) {
 	oss << num;
 
 	return oss.str();
+}
+
+STR	Response::checkRedirect(LocationConfig *matchLocation) {
+	AConfigBase*	back_ref = matchLocation;
+
+	while (back_ref->_identify(back_ref) != HTTP) {
+		LocationConfig* tempLocation = dynamic_cast<LocationConfig*>(back_ref);
+
+		if (tempLocation->_return_url != "" && tempLocation->_return_code == -1) {
+			return createResponse(301, "text/plain", "Redirect", "Location: " + tempLocation->_return_url);
+		}
+		if (tempLocation->_return_url != "") {
+			return createResponse(tempLocation->_return_code, "text/plain", "Redirect", "Location: " + tempLocation->_return_url);
+		}
+		back_ref = back_ref->back_ref;
+	}
+	return "";
 }
 
 /*
@@ -695,7 +713,7 @@ STR Response::getResponse() {
 
 	// if (!matchServer) {
 	// 	std::cerr << "404no server\n";
-	// 	return createResponse(404, "text/plain", "Not Found");
+	// 	return createResponse(404, "text/plain", "Not Found", "");
 	// }
 
 	if (_request->_file_path.size() > 1 && _request->_file_path.at(_request->_file_path.size() - 1) == '/') {
@@ -709,7 +727,11 @@ STR Response::getResponse() {
 
 	matchLocation = buildDirPath(matchServer, dir_path, isDIR);
 	if (!matchLocation)
-		return createResponse(404, "text/plain", "Not Found");
+		return createResponse(404, "text/plain", "Not Found", "");
+
+	STR temp_str = checkRedirect(matchLocation);
+	if (temp_str != "")
+		return temp_str;
 
 	//if location is a proxy pass
 	if (matchLocation->_proxy_pass_host != "") {
@@ -740,7 +762,7 @@ STR Response::getResponse() {
 	if (ends_with(dir_path, ".py") || ends_with(dir_path, ".php") || ends_with(dir_path, ".pl") || ends_with(dir_path, ".sh")) {
 		// not sure if we must have a requested file
 		// if (checkFile(dir_path) != NormalFile)
-		// 	return createResponse(404, "text/plain", "Not Found");
+		// 	return createResponse(404, "text/plain", "Not Found", "");
 
 		std::map<STR, STR> env;
 
@@ -759,7 +781,7 @@ STR Response::getResponse() {
 			std::cerr << "ERROR: Could not open cgi_body.log" << std::endl;
 			return "500 Internal Server Error\r\n\r\nFailed to open body log";
 		}
-	
+
 		// Write _request->_body as binary data
 		if (!_request->_body.empty()) {
 			log_file.write(_request->_body.data(), _request->_body.size());
@@ -767,7 +789,7 @@ STR Response::getResponse() {
 		} else {
 			log_file << "Body: <empty>\n----------------\n";
 		}
-	
+
 		// Close the file
 		log_file.close();
 
@@ -792,7 +814,7 @@ STR Response::getResponse() {
 
 	//if it's not a directory return error
 	if (checkFile(dir_path) != Directory)
-		return createResponse(404, "text/plain", "Not Found");
+		return createResponse(404, "text/plain", "Not Found", "");
 	//--check dir
 
 	// REDIRECT TO 301 path with slash
@@ -812,9 +834,9 @@ STR Response::getResponse() {
 		return matchMethod(dir_path, true, matchLocation);
 	} else {
 		//autoindex is off
-		return createResponse(403, "text/plain", "Forbidden");
+		return createResponse(403, "text/plain", "Forbidden", "");
 	}
 
-	return createResponse(403, "text/plain", "TERRIBLE ERROR (Impossible)");
+	return createResponse(403, "text/plain", "TERRIBLE ERROR (Impossible)", "");
 
 }

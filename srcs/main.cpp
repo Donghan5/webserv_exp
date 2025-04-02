@@ -60,7 +60,8 @@ void printLocationConfig(const LocationConfig* loc, int indent = 2) {
     std::cout << pad << "  _proxy_pass_port: " << loc->_proxy_pass_port << "\n";
     std::cout << pad << "  _path: " << loc->_path << "\n";
     std::cout << pad << "  _add_header: " << loc->_add_header << "\n";
-    std::cout << pad << "  _return: " << loc->_return << "\n";
+	std::cout << pad << "  _return_code: " << loc->_return_code << "\n";
+    std::cout << pad << "  _return_url: " << loc->_return_url << "\n";
     std::cout << pad << "  _allow: " << loc->_allow << "\n";
     std::cout << pad << "  _deny: " << loc->_deny << "\n";
     std::cout << pad << "  _alias: " << loc->_alias << "\n";

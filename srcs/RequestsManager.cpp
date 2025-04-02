@@ -79,7 +79,7 @@ int RequestsManager::HandleRead() {
 
 				std::cerr << "413 (Request Entity Too Large) error\n";
 
-				_partial_responses[_client_fd] = response.createResponse(413, "text/plain", "Request Entity Too Large");
+				_partial_responses[_client_fd] = response.createResponse(413, "text/plain", "Request Entity Too Large", "");
 				body_read = -1;
 				return 2;
 			}
@@ -92,7 +92,7 @@ int RequestsManager::HandleRead() {
 				std::cerr << "Requests HandleRead: End-of-file Full message:\n" << _partial_requests[_client_fd] << "\n";
 				if (!request.setRequest(_partial_requests[_client_fd])) {
 					std::cerr << "Requests HandleRead: Error parsing request\n";
-					_partial_responses[_client_fd] = response.createResponse(400, "text/plain", "Bad Request");
+					_partial_responses[_client_fd] = response.createResponse(400, "text/plain", "Bad Request", "");
 					return 2;
 				}
 
@@ -102,7 +102,7 @@ int RequestsManager::HandleRead() {
 				} else {
 					if (!request.parseBody()) {
 						std::cerr << "Requests HandleRead: Error parsing body\n";
-						_partial_responses[_client_fd] = response.createResponse(400, "text/plain", "Bad Request");
+						_partial_responses[_client_fd] = response.createResponse(400, "text/plain", "Bad Request", "");
 						return 2;
 					}
 					response.setConfig(_config);
@@ -125,12 +125,12 @@ int RequestsManager::HandleRead() {
 				std::cerr << "RequestsManager::HandleRead Full request :|" << _partial_requests[_client_fd] << "|\n";
 				if (!request.setRequest(_partial_requests[_client_fd])) {
 					std::cerr << "Requests HandleRead: Error parsing request\n";
-					_partial_responses[_client_fd] = response.createResponse(400, "text/plain", "Bad Request");
+					_partial_responses[_client_fd] = response.createResponse(400, "text/plain", "Bad Request", "");
 					return 2;
 				}
 				if (!request.parseBody()) {
 					std::cerr << "Requests HandleRead: Error parsing body\n";
-					_partial_responses[_client_fd] = response.createResponse(400, "text/plain", "Bad Request");
+					_partial_responses[_client_fd] = response.createResponse(400, "text/plain", "Bad Request", "");
 					return 2;
 				}
 				response.setConfig(_config);
@@ -147,7 +147,7 @@ int RequestsManager::HandleRead() {
     } catch (const std::exception& e) {
 		body_read = -1;
         std::cerr << "Error in Requests HandleRead: " << e.what() << std::endl;
-		_partial_responses[_client_fd] = response.createResponse(500, "text/plain", "Internal Server Error");
+		_partial_responses[_client_fd] = response.createResponse(500, "text/plain", "Internal Server Error", "");
 		return 2;
     }
 	body_read = -1;

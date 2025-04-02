@@ -388,15 +388,15 @@ bool FillDirective(AConfigBase* block, STR line, int position) {
 				return false;
 			}
 			else if (tokens.size() == 3) {
-				int code = atoi(tokens[1].c_str());
-				if (code < 300 || code > 400) {
+				serverConf->_return_code = atoi(tokens[1].c_str());
+				if (serverConf->_return_code < 300 || serverConf->_return_code > 400) {
 					std::cerr << "Invalid return code" << std::endl;
 					return false;
 				}
-				serverConf->_return = tokens[2];
+				serverConf->_return_url = tokens[2];
 			}
 			else // tokens.size() == 2
-				serverConf->_return = tokens[1];
+				serverConf->_return_url = tokens[1];
 		} else {
 			std::cerr << "DEBUG CHECKFillDirective ServerConfig extra type " << tokens[0] << "\n";
 			return false;
@@ -437,15 +437,15 @@ bool FillDirective(AConfigBase* block, STR line, int position) {
 				return false;
 			}
 			else if (tokens.size() == 3) {
-				int code = atoi(tokens[1].c_str());
-				if (code < 300 || code > 400) {
+				locConf->_return_code = atoi(tokens[1].c_str());
+				if (locConf->_return_code < 300 || locConf->_return_code > 400) {
 					std::cerr << "Invalid return code" << std::endl;
 					return false;
 				}
-				locConf->_return = tokens[2];
+				locConf->_return_url = tokens[2];
 			}
 			else // tokens.size() == 2
-				locConf->_return = tokens[1];
+			locConf->_return_url = tokens[1];
 		} else if (tokens[0] == "allow") {
 			locConf->_allow = tokens[1];
 		} else if (tokens[0] == "deny") {
