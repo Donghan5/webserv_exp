@@ -202,7 +202,7 @@ STR Response::createResponse(int statusCode, const STR& contentType, const STR& 
              << "Access-Control-Allow-Methods: GET, POST, DELETE, OPTIONS\r\n"
              << "Access-Control-Allow-Headers: Content-Type\r\n"
              << "Access-Control-Allow-Credentials: true\r\n"
-			 << extra << "\r\n"
+			 << extra << ((extra.empty()) ? "" : "\r\n")
              << "Connection: close\r\n"
              << "\r\n"
              << body;
