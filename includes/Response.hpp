@@ -43,7 +43,8 @@ class Response {
 
 		void	setRequest(Request *request);
 		void	setConfig(HttpConfig *config);
-		STR		createResponse(int status, const STR& type, const STR& body, const STR& extra);
+		STR		createResponse(int statusCode, const STR& contentType, const STR& body, const STR& extra);
+		STR		createErrorResponse(int statusCode, const STR& contentType, const STR& body, AConfigBase *base);
 		STR		getResponse();
 };
 

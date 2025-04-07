@@ -318,12 +318,6 @@ bool FillDirective(AConfigBase* block, STR line, int position) {
 			}
 		} else if (tokens[0] == "use") {
 			httpConf->_event_use = tokens[1];
-		} else if (tokens[0] == "log_format") {
-			httpConf->_log_format = tokens[1];
-		} else if (tokens[0] == "access_log") {
-			httpConf->_access_log = tokens[1];
-		} else if (tokens[0] == "sendfile") {
-			httpConf->_sendfile = tokens[1];
 		} else if (tokens[0] == "keepalive_timeout") {
 			httpConf->_keepalive_timeout = tokens[1];
 		} else if (tokens[0] == "add_header") {
@@ -340,9 +334,9 @@ bool FillDirective(AConfigBase* block, STR line, int position) {
 			for (size_t j = 1; j < tokens.size(); j++) {
 				httpConf->_index.push_back(tokens[j]);
 			}
-		} else if (tokens[0] == "DEBUG_page") {
+		} else if (tokens[0] == "error_page") {
 			int code = atoi(tokens[1].c_str());
-			httpConf->_error_pages[code] = tokens[2];  // Assumes "DEBUG_page 404 /404.html"
+			httpConf->_error_pages[code] = tokens[2];  // Assumes "error_page 404 /404.html"
 		} else {
 			std::cerr << "DEBUG CHECKFillDirective HttpConfig extra type " << tokens[0] << "\n";
 			return false;
@@ -362,18 +356,13 @@ bool FillDirective(AConfigBase* block, STR line, int position) {
 			for (size_t j = 1; j < tokens.size(); j++) {
 				serverConf->_server_name.push_back(tokens[j]);
 			}
-
-		// } else if (tokens[0] == "location") {
-		//     serverConf->_location = tokens[1];
-		} else if (tokens[0] == "try_files") {
-			serverConf->_try_files = tokens[1];
 		} else if (tokens[0] == "root") {
 			serverConf->_root = tokens[1];
 		} else if (tokens[0] == "index") {
 			for (size_t j = 1; j < tokens.size(); j++) {
 				serverConf->_index.push_back(tokens[j]);
 			}
-		} else if (tokens[0] == "DEBUG_page") {
+		} else if (tokens[0] == "error_page") {
 			int code = atoi(tokens[1].c_str());
 			serverConf->_error_pages[code] = tokens[2];
 		} else if (tokens[0] == "client_max_body_size") {
@@ -446,14 +435,6 @@ bool FillDirective(AConfigBase* block, STR line, int position) {
 			}
 			else // tokens.size() == 2
 			locConf->_return_url = tokens[1];
-		} else if (tokens[0] == "allow") {
-			locConf->_allow = tokens[1];
-		} else if (tokens[0] == "deny") {
-			locConf->_deny = tokens[1];
-		} else if (tokens[0] == "alias") {
-			locConf->_alias = tokens[1];
-		} else if (tokens[0] == "try_files") {
-			locConf->_try_files = tokens[1];
 		} else if (tokens[0] == "root") {
 			locConf->_root = tokens[1];
 		} else if (tokens[0] == "client_max_body_size") {
@@ -469,7 +450,7 @@ bool FillDirective(AConfigBase* block, STR line, int position) {
 			for (size_t j = 1; j < tokens.size(); j++) {
 				locConf->_index.push_back(tokens[j]);
 			}
-		} else if (tokens[0] == "DEBUG_page") {
+		} else if (tokens[0] == "error_page") {
             int code = atoi(tokens[1].c_str());
             locConf->_error_pages[code] = tokens[2];
         } else if (tokens[0] == "allowed_methods") {
@@ -478,9 +459,10 @@ bool FillDirective(AConfigBase* block, STR line, int position) {
 					return false;
 				locConf->_allowed_methods[tokens[j]] = true;
 			}
-        } else {
-
-	std::cerr << "DEBUG CHECKFillDirective LocationConfig extra type "  << tokens[0] << "\n";
+        } else if (tokens[0] == "upload_store") {
+			locConf->_upload_store = tokens[1];
+		} else {
+			std::cerr << "DEBUG CHECKFillDirective LocationConfig extra type "  << tokens[0] << "\n";
 			return false;
 		}
         return true;

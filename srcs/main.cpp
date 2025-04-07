@@ -60,12 +60,8 @@ void printLocationConfig(const LocationConfig* loc, int indent = 2) {
     std::cout << pad << "  _proxy_pass_port: " << loc->_proxy_pass_port << "\n";
     std::cout << pad << "  _path: " << loc->_path << "\n";
     std::cout << pad << "  _add_header: " << loc->_add_header << "\n";
-	std::cout << pad << "  _return_code: " << loc->_return_code << "\n";
+    std::cout << pad << "  _return_code: " << loc->_return_code << "\n";
     std::cout << pad << "  _return_url: " << loc->_return_url << "\n";
-    std::cout << pad << "  _allow: " << loc->_allow << "\n";
-    std::cout << pad << "  _deny: " << loc->_deny << "\n";
-    std::cout << pad << "  _alias: " << loc->_alias << "\n";
-    std::cout << pad << "  _try_files: " << loc->_try_files << "\n";
     std::cout << pad << "  _root: " << loc->_root << "\n";
     std::cout << pad << "  _client_max_body_size: " << loc->_client_max_body_size << "\n";
     std::cout << pad << "  _autoindex: " << (loc->_autoindex ? "true" : "false") << "\n";
@@ -103,8 +99,6 @@ void printServerConfig(const ServerConfig* server, int indent = 2) {
     std::cout << pad << "  _add_header: " << server->_add_header << "\n";
     std::cout << pad << "  _listen_port: " << server->_listen_port << "\n";
     std::cout << pad << "  _listen_server: " << server->_listen_server << "\n";
-    std::cout << pad << "  _location: " << server->_location << "\n";
-    std::cout << pad << "  _try_files: " << server->_try_files << "\n";
     std::cout << pad << "  _root: " << server->_root << "\n";
     std::cout << pad << "  _client_max_body_size: " << server->_client_max_body_size << "\n";
 
@@ -141,9 +135,6 @@ void printHttpConfig(const HttpConfig& http, int indent = 0) {
     std::cout << pad << "  _global_pid: " << http._global_pid << "\n";
     std::cout << pad << "  _event_worker_connections: " << http._event_worker_connections << "\n";
     std::cout << pad << "  _event_use: " << http._event_use << "\n";
-    std::cout << pad << "  _log_format: " << http._log_format << "\n";
-    std::cout << pad << "  _access_log: " << http._access_log << "\n";
-    std::cout << pad << "  _sendfile: " << http._sendfile << "\n";
     std::cout << pad << "  _keepalive_timeout: " << http._keepalive_timeout << "\n";
     std::cout << pad << "  _add_header: " << http._add_header << "\n";
     std::cout << pad << "  _client_max_body_size: " << http._client_max_body_size << "\n";

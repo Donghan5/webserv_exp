@@ -5,24 +5,20 @@
 struct LocationConfig;
 
 struct ServerConfig : AConfigBase {
+	int								_return_code;				//server, location
+	STR								_return_url;				//server, location
 	int								_listen_port;
 	STR								_listen_server;
-	STR								_location;
-	int								_return_code; // return code
-	STR								_return_url;
-	STR 							_try_files; 			//server, location
 	VECTOR<STR>						_server_name;
 
 	MAP<STR, LocationConfig*>		_locations;
 	void							_self_destruct();
 
 	ServerConfig() :
-        _listen_port(-1), //80 only if it's the only block
-        _listen_server(""),
-        _location(""),
 		_return_code(-1),
 		_return_url(""),
-        _try_files(""),
+        _listen_port(-1), //80 only if it's the only block
+        _listen_server(""),
         _server_name()
     {
 		_server_name.push_back("localhost");

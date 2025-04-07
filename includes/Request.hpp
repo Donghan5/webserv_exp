@@ -45,7 +45,7 @@ class Request {
 		STR									_file_name; //based on original path from request or empty if path is a location
 		STR									_http_version;
 		STR									_host;
-		int											_port;
+		int									_port;
 		std::map<STR, float>				_accepted_types; //application/xml;q=0.9
 																	//STR      float
 		STR									_content_type;

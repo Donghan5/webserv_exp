@@ -5,7 +5,7 @@
 
 /*
 	Needed for sure:					Subject line
-		error_pages						Your server must have default error pages if none are provided
+	!	error_pages						Your server must have default error pages if none are provided
 		host and port					Choose the port and host of each ’server’.
 		server_name						Set up the server_names or not
 		max_body_size					Set the maximum allowed size for client request bodies
@@ -15,9 +15,9 @@
 										if url /kapouet is rooted to /tmp/www, url /kapouet/pouic/toto/pouet is
 										/tmp/www/pouic/toto/pouet).
 		autoindex						Enable or disable directory listing
-		???								Set a default file to serve when the request is for a directory.
-										Execute CGI based on certain file extension (for example .php).
-		???								Allow the route to accept uploaded files and configure where they should be
+		index							Set a default file to serve when the request is for a directory.
+		(cgi support)					Execute CGI based on certain file extension (for example .php).
+	!	upload_store??					Allow the route to accept uploaded files and configure where they should be
 										saved.
 */
 
@@ -33,9 +33,6 @@ struct HttpConfig : AConfigBase
 	int						_event_worker_connections;
 	STR						_event_use;
 
-	STR						_log_format;
-	STR						_access_log;
-	STR						_sendfile;
 	STR						_keepalive_timeout;
 
 	VECTOR<ServerConfig*>	_servers;
@@ -48,9 +45,6 @@ struct HttpConfig : AConfigBase
         _global_pid("logs/nginx.pid"),
         _event_worker_connections(1024),
         _event_use(""),
-        _log_format("main"),
-        _access_log("logs/access.log"),
-        _sendfile("off"),
         _keepalive_timeout("65"),
 		_servers()
     {
