@@ -20,10 +20,10 @@ class RequestsManager {
 		RequestsManager(HttpConfig *config, int client_fd);
 		RequestsManager(const RequestsManager &obj);
 		~RequestsManager();
-		
+
 		void setConfig(HttpConfig *config);
 		void setClientFd(int client_fd);
-		int HandleClient();
+		int HandleClient(short int revents);
 		void CloseClient();
 };
 

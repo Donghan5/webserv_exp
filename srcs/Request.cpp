@@ -140,6 +140,7 @@ bool Request::parseHeader() {
 			delim_position = temp_line.find_first_of(':');
 			end_position = temp_line.length();
 			_body_size = atoi((temp_line.substr(delim_position + 1, delim_position + 1 - end_position)).c_str());
+			_chunked_flag = false;  // if content-length is present, chunked transfer encoding is not used
 		} else if (temp_token == "Transfer-Encoding:") {
 
 			std::string encoding_value = temp_line.substr(temp_line.find_first_of(':') + 2);
@@ -178,24 +179,40 @@ bool Request::parseHeader() {
 
 bool Request::parseBody() {
 	int	body_beginning = -1;
-	if (_full_request == "")
+	if (_full_request == "") {
+		std::cerr << "Empty request\n";
 		return false;
+	}
 
 	body_beginning = _full_request.find("\r\n\r\n");
-	if (body_beginning == CHAR_NOT_FOUND)
+	if (body_beginning == CHAR_NOT_FOUND) {
+		std::cerr << "No body beginning found\n";
 		return false;
+	}
 
 	if (_content_type.find("multipart/form-data") != STR::npos) {
 		_body = _full_request.substr(body_beginning + 4, _full_request.length() - (body_beginning + 4));
+		std::cerr << "multipart/form-data\n";
 		return true;
 	}
 	if (_chunked_flag) {
 		const char *data = _full_request.c_str() + body_beginning + 4;  // skip \r\n\r\n (4 bytes)
 		size_t size = _full_request.length() - (body_beginning + 4);  // skip \r\n\r\n (4 bytes)
+		std::cerr << "_chunked_flag\n";
+
 		return processTransferEncoding(data, size);
 	}
-	_body = _full_request.substr(body_beginning + 4, _full_request.length() - (body_beginning + 4));
 
+	// std::cerr << "DEBUG Request::parseBody _full_request = |" << _full_request << "|\n";
+
+	try {
+		_body = _full_request.substr(body_beginning + 4, _full_request.length() - (body_beginning + 4));
+	} catch (std::exception &e) {
+		std::cerr << "Error parsing body: " << e.what() << "\n";
+		return false;
+	}
+
+	// std::cerr << "endeded body beginning = " << body_beginning << "\n";
 	//if _full_request.length() - (body_beginning + 4) != _body_size 		potential error
 
 	// std::cerr << "DEBUG Requet::parseBody _body = |" << _body << "|\n";

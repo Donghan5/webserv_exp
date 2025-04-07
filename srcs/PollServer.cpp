@@ -39,7 +39,7 @@ void PollServer::setConfig(HttpConfig *config) {
 
 	for (size_t i = 0; i < unique_ports.size(); i++) {
 		int server_socket = socket(AF_INET, SOCK_STREAM, 0);
-	
+
 		if (server_socket < 0) {
 			throw std::runtime_error("Failed to create socket");
 		}
@@ -66,7 +66,7 @@ void PollServer::setConfig(HttpConfig *config) {
 		server_addr.sin_family = AF_INET;
 		server_addr.sin_port = htons(unique_ports[i]);
 		server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	
+
 		if (bind(server_socket, (struct sockaddr *) &server_addr, sizeof(struct sockaddr)) < 0) {
 			close(server_socket);
 			throw std::runtime_error("Bind error");
@@ -132,11 +132,11 @@ void PollServer::AcceptClient(int new_fd) {
 bool PollServer::WaitAndService(RequestsManager &manager, VECTOR<struct pollfd>	&temp_pollfds) {
 	temp_pollfds = _pollfds;
 
-	if (poll(&_pollfds[0], _pollfds.size(), -1) < 0) {
-		if (errno == EINTR)
-			return true;
-		throw std::runtime_error("Poll failed");
-	}
+	if (poll(&temp_pollfds[0], temp_pollfds.size(), -1) < 0) {
+        if (errno == EINTR)
+            return true;
+        throw std::runtime_error("Poll failed");
+    }
 
 	for (size_t i = 0; i < temp_pollfds.size(); i++)
 	{
@@ -151,12 +151,13 @@ bool PollServer::WaitAndService(RequestsManager &manager, VECTOR<struct pollfd>	
 			}
 		}
 
-		if (is_server_socket && POLLIN) {
+		// if (is_server_socket && POLLIN) {
+		if (is_server_socket && (temp_pollfds[i].revents & POLLIN)) {
 			AcceptClient(temp_pollfds[i].fd);
 		} else {
 			std::cerr << "new request came in\n";
 			manager.setClientFd(temp_pollfds[i].fd);
-			int status = manager.HandleClient();
+			int status = manager.HandleClient(temp_pollfds[i].revents);
 			std::cerr << "status: " << status << "\n";
 			if (!status) {
 				for (size_t j = 0; j < _pollfds.size(); ++j) {
@@ -166,9 +167,9 @@ bool PollServer::WaitAndService(RequestsManager &manager, VECTOR<struct pollfd>	
 					}
 				}
 			} else if (status == 2) {
-				for (size_t i = 0; i < _pollfds.size(); ++i) {
-					if (_pollfds[i].fd == temp_pollfds[i].fd) {
-						_pollfds[i].events = POLLOUT;
+				for (size_t j = 0; j < _pollfds.size(); ++j) {
+					if (_pollfds[j].fd == temp_pollfds[i].fd) {
+						_pollfds[j].events = POLLOUT;
 						break;
 					}
 				}
@@ -193,7 +194,7 @@ void PollServer::start() {
 			throw std::runtime_error("Poll error");
 
 		// requests.CloseClient(); //??
-		
+
 	} while (running);
 }
 

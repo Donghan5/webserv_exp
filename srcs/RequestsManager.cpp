@@ -85,7 +85,7 @@ int RequestsManager::HandleRead() {
 
 			int header_end = _partial_requests[_client_fd].find("\r\n\r\n");
 			if (body_read == -1 && header_end != CHAR_NOT_FOUND) {
-				std::cerr << "Requests HandleRead: End-of-file Full message:\n" << _partial_requests[_client_fd] << "\n";
+				// std::cerr << "Requests HandleRead: End-of-file Full message:\n" << _partial_requests[_client_fd] << "\n";
 				if (!request.setRequest(_partial_requests[_client_fd])) {
 					std::cerr << "Requests HandleRead: Error parsing request\n";
 					_partial_responses[_client_fd] = response.createErrorResponse(400, "text/plain", "Bad Request", NULL);
@@ -96,11 +96,11 @@ int RequestsManager::HandleRead() {
 					std::cerr << "RequestsManager::HandleRead Body needed of size " << request._body_size << "\n";
 					body_read = _partial_requests[_client_fd].size() - header_end - 4;
 				} else {
-					if (!request.parseBody()) {
-						std::cerr << "Requests HandleRead: Error parsing body\n";
-						_partial_responses[_client_fd] = response.createErrorResponse(400, "text/plain", "Bad Request", NULL);
-						return 2;
-					}
+					// if (!request.parseBody()) {
+					// 	std::cerr << "Requests HandleRead: Error parsing body\n";
+					// 	_partial_responses[_client_fd] = response.createErrorResponse(400, "text/plain", "Bad Request", NULL);
+					// 	return 2;
+					// }
 					response.setConfig(_config);
 					response.setRequest(&request);
 
@@ -115,7 +115,6 @@ int RequestsManager::HandleRead() {
 				body_read = -1;
 
 				request.clear();
-				std::cerr << "RequestsManager::HandleRead Full request :|" << _partial_requests[_client_fd] << "|\n";
 				if (!request.setRequest(_partial_requests[_client_fd])) {
 					std::cerr << "Requests HandleRead: Error parsing request\n";
 					_partial_responses[_client_fd] = response.createErrorResponse(400, "text/plain", "Bad Request", NULL);
@@ -138,7 +137,7 @@ int RequestsManager::HandleRead() {
 		body_read = -1;
         std::cerr << "Error in Requests HandleRead: " << e.what() << std::endl;
 		_partial_responses[_client_fd] = response.createErrorResponse(500, "text/plain", "Internal Server Error", NULL);
-		return 2;
+		return 0;
     }
 	body_read = -1;
 	return 1;
@@ -158,13 +157,12 @@ int RequestsManager::HandleWrite() {
 		}
 
 		response.erase(0, bytes_written);
-
+		_partial_requests.erase(_client_fd);
 		if (response.empty()) {
 			CloseClient();
 			return 0;
 		}
 		return 1;
-
 	}
 	catch(const std::exception& e)
 	{
@@ -174,19 +172,19 @@ int RequestsManager::HandleWrite() {
 	return 0;
 }
 
-int RequestsManager::HandleClient() {
+int RequestsManager::HandleClient(short int revents) {
 	int status = 0;
 
 	if (_client_fd == -1) {
 		return 0;
 	}
-	if (POLLIN) {
+	if (revents & POLLIN) {
 		status = HandleRead();
 	}
-	if (POLLOUT) {
+	if (revents & POLLOUT) {
 		HandleWrite();
 	}
-	if (POLLERR | POLLHUP | POLLNVAL) {
+	if (revents & (POLLERR | POLLHUP | POLLNVAL)) {
 		std::cerr << "Requests else\n";
 		CloseClient();
 		return 0;

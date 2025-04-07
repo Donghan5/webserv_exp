@@ -7,30 +7,11 @@
 #include "LocationConfig.hpp"
 #include "ServerConfig.hpp"
 #include "PollServer.hpp"
-#include "SelectServer.hpp"
-
 #include "Parser.hpp"
 
 int	init_start_webserv(HttpConfig *config) {
-	SelectServer	select_server;
 	PollServer		poll_server;
 
-	if (config->_event_use == "select") {
-        std::cerr << "USING SELECT\n";
-		try {
-			select_server.setConfig(config);
-		} catch (const std::exception& e) {
-			std::cerr << "Select Initialization Error: " << e.what() << std::endl;
-			return 0;
-		}
-
-		try {
-			select_server.start();
-		} catch (const std::exception& e) {
-			std::cerr << "Select Running Error: " << e.what() << std::endl;
-			return 0;
-		}
-	} else {
 		try {
 			poll_server.setConfig(config);
 		} catch (const std::exception& e) {
@@ -44,7 +25,6 @@ int	init_start_webserv(HttpConfig *config) {
 			std::cerr << "Poll Running Error: " << e.what() << std::endl;
 			return 0;
 		}
-	}
 	return 0;
 }
 

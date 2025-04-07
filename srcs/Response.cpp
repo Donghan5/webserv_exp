@@ -709,7 +709,7 @@ STR	Response::createErrorResponse(int statusCode, const STR& contentType, const 
 		}
 		base = base->back_ref;
 	}
-	
+
 	return createResponse(statusCode, contentType, body, "");
 }
 
@@ -807,12 +807,18 @@ STR Response::getResponse() {
 	if (_request->_method == "POST") {
 		std::cerr << "Response::getResponse POST path " << dir_path << " isDIR " << isDIR << std::endl;
 
-		if (!matchLocation->_upload_store.empty()) {  // this part is to be tested, upload_store
-			if (dir_path.find_last_of('/') != std::string::npos)
-				dir_path = matchLocation->_upload_store + "/" + dir_path.substr(dir_path.find_last_of('/' + 1));
-			else
-				dir_path = matchLocation->_upload_store + dir_path;
-			std::cerr << "DEBUG Response::handlePOST: new upload dir is " << dir_path << "\n";
+		try {
+			if (!matchLocation->_upload_store.empty()) {  // this part is to be tested, upload_store
+				if (dir_path.find_last_of('/') != std::string::npos) {
+					dir_path = matchLocation->_upload_store + "/" + dir_path.substr(dir_path.find_last_of('/') + 1);
+				} else {
+					dir_path = matchLocation->_upload_store + dir_path;
+				}
+				std::cerr << "DEBUG Response::handlePOST: new upload dir is " << dir_path << "\n";
+			}
+		}
+		catch (const std::exception& e) {
+			std::cerr << "DEBUG Response::handlePOST: upload_store error: " << e.what() << "\n";
 		}
 		return (handlePOST(dir_path));
 	}
