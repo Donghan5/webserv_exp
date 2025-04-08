@@ -1,0 +1,3 @@
+curl --resolve test42.fr:809:127.0.0.1 http://test42.fr:809
+
+test with this command!!!!!!!!

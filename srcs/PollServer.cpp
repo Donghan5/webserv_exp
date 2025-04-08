@@ -27,17 +27,30 @@ void PollServer::setConfig(HttpConfig *config) {
 
 	this->config = config;
 
-	VECTOR<int>	unique_ports;
-	for (size_t i = 0; i < config->_servers.size(); i++) {
-		for (size_t j = 0; j < unique_ports.size(); j++) {
-			if (unique_ports[j] == config->_servers[i]->_listen_port) {
-				continue;
+    MAP<int, STR> unique_servers;
+    // iterate through the servers and add them to the map. changed to map
+    for (size_t i = 0; i < config->_servers.size(); i++) {
+		bool is_port_found = false;
+        try
+		{
+			if (unique_servers[(config->_servers[i]->_listen_port)] != "") {
+				is_port_found = true;
 			}
 		}
-		unique_ports.push_back(config->_servers[i]->_listen_port);
-	}
+		catch(const std::exception& e)
+		{
+			is_port_found = false;
+		}
 
-	for (size_t i = 0; i < unique_ports.size(); i++) {
+		if (!is_port_found) {
+			unique_servers[(config->_servers[i]->_listen_port)] = config->_servers[i]->_listen_server;
+		}
+    }
+
+	// iterate through the unique servers and create sockets/ switch to map
+	for (std::map<int, STR>::iterator it = unique_servers.begin(); it != unique_servers.end(); it++) {
+		std::cerr << "DEBUG: PollServer::setConfig() - Creating socket for port " << it->first << "\n";
+		std::cerr << "DEBUG: PollServer::setConfig() - Creating socket for server " << it->second << "\n";
 		int server_socket = socket(AF_INET, SOCK_STREAM, 0);
 
 		if (server_socket < 0) {
@@ -53,7 +66,7 @@ void PollServer::setConfig(HttpConfig *config) {
 		// 	throw std::runtime_error("Failed to set socket options");
 		// }
 
-		int empty;
+		int empty = 1;
 		if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, (char *) &empty, sizeof(empty)) < 0) {
 			close(server_socket);
 			throw std::runtime_error("Failed to set socket options");
@@ -61,11 +74,36 @@ void PollServer::setConfig(HttpConfig *config) {
 
 		fcntl(server_socket, F_SETFL, O_NONBLOCK);
 
+		// import part, changing map and using IP address
 		struct sockaddr_in server_addr;
 		memset(&server_addr, 0, sizeof(server_addr));
 		server_addr.sin_family = AF_INET;
-		server_addr.sin_port = htons(unique_ports[i]);
-		server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+		server_addr.sin_port = htons(it->first);
+		if (it->second == "0.0.0.0") {
+			server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+		} else {
+			struct addrinfo hints, *result;
+			memset(&hints, 0, sizeof(hints));
+			hints.ai_family = AF_INET;
+			hints.ai_socktype = SOCK_STREAM;
+			hints.ai_flags = AI_NUMERICHOST;  // Ensure numeric IP parsing
+
+			int status = getaddrinfo(it->second.c_str(), NULL, &hints, &result);
+			if (status != 0) {
+				// Failed to parse IP
+				close(server_socket);
+				throw std::runtime_error("Failed to parse IP address");
+			}
+
+			// Copy IP address from resolved address
+			memcpy(&server_addr.sin_addr,
+				   &((struct sockaddr_in*)result->ai_addr)->sin_addr,
+				   sizeof(struct in_addr));
+
+			// Free allocated memory
+			freeaddrinfo(result);
+		}
+		// server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
 		if (bind(server_socket, (struct sockaddr *) &server_addr, sizeof(struct sockaddr)) < 0) {
 			close(server_socket);
@@ -76,7 +114,8 @@ void PollServer::setConfig(HttpConfig *config) {
 			throw std::runtime_error("Failed to listen on port");
 		}
 
-		_server_sockets[unique_ports[i]] = server_socket;
+		// switch map
+		_server_sockets[it->first] = server_socket;
 
 		struct pollfd temp_pollfd;
 		temp_pollfd.fd = server_socket;
@@ -84,7 +123,7 @@ void PollServer::setConfig(HttpConfig *config) {
 		temp_pollfd.revents = 0;
 		_pollfds.push_back(temp_pollfd);
 
-    	std::cout << "Server listening on port " << unique_ports[i] << std::endl;
+    	std::cout << "Server listening on port " << it->first << std::endl;
 	}
 }
 

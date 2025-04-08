@@ -18,7 +18,7 @@ struct ServerConfig : AConfigBase {
 		_return_code(-1),
 		_return_url(""),
         _listen_port(-1), //80 only if it's the only block
-        _listen_server(""),
+        _listen_server("0.0.0.0"),
         _server_name()
     {
 		_server_name.push_back("localhost");

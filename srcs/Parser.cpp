@@ -346,12 +346,28 @@ bool FillDirective(AConfigBase* block, STR line, int position) {
 	else if (ServerConfig* serverConf = dynamic_cast<ServerConfig*>(block)) {
 		if (tokens[0] == "add_header") {
 			serverConf->_add_header = tokens[1];
-		} else if (tokens[0] == "listen") {
-			serverConf->_listen_port = Parser::verifyPort(tokens[1]);
-			if (serverConf->_listen_port == -1) {
-				std::cerr << "Invalid port value" << std::endl;
-				return false;
+		} else if (tokens[0] == "listen") {  // change listen server and port
+			// parse server address and port
+			size_t position = tokens[1].find(':');
+			if (position == STR::npos) {
+				serverConf->_listen_port = Parser::verifyPort(tokens[1]);
+				if (serverConf->_listen_port == -1) {
+					std::cerr << "Invalid port value" << std::endl;
+					return false;
+				}
+			} else {
+				serverConf->_listen_server = tokens[1].substr(0, position);
+				if (serverConf->_listen_server == "") {
+					std::cerr << "Invalid server address" << std::endl;
+					return false;
+				}
+				serverConf->_listen_port = Parser::verifyPort(tokens[1].substr(position + 1));
+				if (serverConf->_listen_port == -1) {
+					std::cerr << "Invalid port value" << std::endl;
+					return false;
+				}
 			}
+
 		} else if (tokens[0] == "server_name") {
 			for (size_t j = 1; j < tokens.size(); j++) {
 				serverConf->_server_name.push_back(tokens[j]);
@@ -513,17 +529,32 @@ AConfigBase	*CreateBlock(STR line, int start) {
 
 bool	check_location_path_duplicate(STR new_path, MAP<STR, LocationConfig*> locs) {
 	//if path is new trying to access it may throw exception
+
+	// still test more, check loc_loc (check location recursively)
 	try
 	{
-		LocationConfig *test = locs[new_path];
-		if (!test)
-			return true;
+		MAP<STR, LocationConfig*> loc_loc = locs;
+		while (loc_loc.size() > 0) {
+			std::cerr << "DEBUG AConfigBase	*check_location_path_duplicate loc_loc.size() " << loc_loc.size() << "\n";
+			std::cerr << "DEBUG AConfigBase	*check_location_path_duplicate loc_loc.begin()->first " << loc_loc.begin()->first << "\n";
+			MAP<STR, LocationConfig*>::iterator it = loc_loc.begin();
+			if (it->first == new_path)
+				return false;
+			if (it->second->_locations.size() > 0) {
+				std::cerr << "DEBUG AConfigBase	*check_location_path_duplicate loc_loc.begin()->second->_locations.size() " << it->second->_locations.size() << "\n";
+				loc_loc.insert(it->second->_locations.begin(), it->second->_locations.end());
+			}
+			loc_loc.erase(it);
+		}
+		// LocationConfig *test = locs[new_path];
+		// if (!test)
+		// 	return true;
 	}
 	catch(const std::exception& e)
 	{
-		return true;
+		return false;
 	}
-	return false;
+	return true;
 }
 
 AConfigBase	*AddBlock(AConfigBase *prev_block, STR line, int start) {
@@ -588,6 +619,9 @@ AConfigBase	*AddBlock(AConfigBase *prev_block, STR line, int start) {
 		LocationConfig* locParent = dynamic_cast<LocationConfig*>(prev_block);
 		LocationConfig* locChild;
 
+		// this is changed, adding verication dup server name
+		ServerConfig* serverConf = NULL;
+
 		child = CreateBlock(line, start);
 		if (!child || !locParent || locParent->_identify(child) != LOCATION) {
 			if (child)
@@ -597,6 +631,33 @@ AConfigBase	*AddBlock(AConfigBase *prev_block, STR line, int start) {
 			return NULL;
 		}
 		locChild = dynamic_cast<LocationConfig*>(child);
+
+		// find server
+		AConfigBase* temp = prev_block;
+		while (temp && temp->_identify(temp) != HTTP) {
+			if (temp->_identify(temp) == SERVER) {
+				serverConf = dynamic_cast<ServerConfig*>(temp);
+				break;
+			}
+			temp = temp->back_ref;
+		}
+
+		if (!serverConf || serverConf->_identify(serverConf) != SERVER) {
+			if (child)
+				child->_self_destruct();
+			std::cerr << "DEBUG AConfigBase	*AddBlock !serverConf" << !serverConf << "\n";
+			return NULL;
+		}
+
+		// new thing, check dup server name
+		if (!check_location_path_duplicate(locChild->_path, serverConf->_locations)) {
+			child->_self_destruct();
+
+			std::cerr << "DEBUG AConfigBase	*AddBlock LOCATION DUPLICATE " << locChild->_path << "\n";
+
+			return NULL;
+		}
+
 		locParent->_locations[locChild->_path] = locChild;
 		// locChild->back_ref = locParent;
 		child->back_ref = prev_block;
