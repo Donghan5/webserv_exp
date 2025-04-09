@@ -27,11 +27,11 @@ class Response {
 		STR							handleDELETE(STR path);
 		STR							getMime(STR path);
 		STR							handleDIR(STR path);
-		void						selectIndexIndexes(VECTOR<STR> indexes, STR &best_match, float &match_quality);
-		STR							selectIndexAll(LocationConfig* location);
+		void						selectIndexIndexes(VECTOR<STR> indexes, STR &best_match, float &match_quality, STR dir_path);
+		STR							selectIndexAll(LocationConfig* location, STR dir_path);
 		FileType 					checkFile(const STR& path);
 		LocationConfig 				*buildDirPath(ServerConfig *matchServer, STR &full_path, bool &isDIR);
-		int							buildIndexPath(LocationConfig *matchLocation, STR &best_file_path);
+		int							buildIndexPath(LocationConfig *matchLocation, STR &best_file_path, STR dir_path);
 		STR							matchMethod(STR path, bool isDIR, LocationConfig *matchLocation);
 		STR							checkRedirect(LocationConfig *matchLocation);
 

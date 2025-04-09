@@ -363,7 +363,7 @@ STR Response::handleDIR(STR path) {
     return createResponse(200, "text/html", html.str(), "");
 }
 
-void	Response::selectIndexIndexes(VECTOR<STR> indexes, STR &best_match, float &match_quality) {
+void	Response::selectIndexIndexes(VECTOR<STR> indexes, STR &best_match, float &match_quality, STR dir_path) {
 	size_t	i = 0;
 
 	while (i < indexes.size()) {
@@ -373,7 +373,7 @@ void	Response::selectIndexIndexes(VECTOR<STR> indexes, STR &best_match, float &m
 
 		try
 		{
-			if (_request->_accepted_types[index_mime] > match_quality) {
+			if (_request->_accepted_types[index_mime] > match_quality && checkFile(dir_path + "/" + indexes[i]) == NormalFile) {
 				std::cerr << index_mime << " is the better match that " << best_match
 					<< "! Quality " << _request->_accepted_types[index_mime] << " is better than " << match_quality << "\n";
 				best_match = indexes[i];
@@ -388,7 +388,7 @@ void	Response::selectIndexIndexes(VECTOR<STR> indexes, STR &best_match, float &m
 		}
 		try
 		{
-			if (_request->_accepted_types["*/*"] > match_quality) {
+			if (_request->_accepted_types["*/*"] > match_quality && checkFile(dir_path + "/" + indexes[i]) == NormalFile) {
 				std::cerr << "*/* is the better match than " << best_match
 					<< "! Quality " << _request->_accepted_types["*/*"] << " is better than " << match_quality << "\n";
 				best_match = indexes[i];
@@ -405,7 +405,7 @@ void	Response::selectIndexIndexes(VECTOR<STR> indexes, STR &best_match, float &m
 		i++;
 	}
 }
-STR	Response::selectIndexAll(LocationConfig* location) {
+STR	Response::selectIndexAll(LocationConfig* location, STR dir_path) {
 	STR best_match = "";
 	float		match_quality = 0.0;
 
@@ -414,12 +414,21 @@ STR	Response::selectIndexAll(LocationConfig* location) {
 
 		quality is not needed - remove later
 	*/
-	if (!location->_index.empty()) {
-		selectIndexIndexes(location->_index, best_match, match_quality);
-	} else if (!location->back_ref->_index.empty())
-		selectIndexIndexes(location->back_ref->_index, best_match, match_quality);
-	else
-		selectIndexIndexes(location->back_ref->back_ref->_index, best_match, match_quality);
+	AConfigBase* local_ref = location;
+	while (local_ref) {
+		if (!local_ref->_index.empty()) {
+			selectIndexIndexes(local_ref->_index, best_match, match_quality, dir_path);
+			if (match_quality == 1)
+				break;
+		}
+		local_ref = local_ref->back_ref;
+	}
+	// if (!location->_index.empty()) {
+	// 	selectIndexIndexes(location->_index, best_match, match_quality);
+	// } else if (!location->back_ref->_index.empty())
+	// 	selectIndexIndexes(location->back_ref->_index, best_match, match_quality);
+	// else
+	// 	selectIndexIndexes(location->back_ref->back_ref->_index, best_match, match_quality);
 
 	if (best_match == "")
 	{
@@ -534,37 +543,52 @@ STR	regress_path(STR path) {
 LocationConfig	*Response::buildDirPath(ServerConfig *matchServer, STR &full_path, bool &isDIR) {
 	LocationConfig* matchLocation = NULL;
 	STR	path_to_match = _request->_file_path;
+	(void) isDIR;
+	while (path_to_match != "" && !matchLocation)
+	{
+		MAP<STR, LocationConfig*> loc_loc = matchServer->_locations;
+		while (loc_loc.size() > 0) {
+			MAP<STR, LocationConfig*>::iterator it = loc_loc.begin();
+			if (it->first == path_to_match) {
+				matchLocation = it->second;
+				break;
+			}
+			if (it->second->_locations.size() > 0) {
+				loc_loc.insert(it->second->_locations.begin(), it->second->_locations.end());
+			}
+			loc_loc.erase(it);
+		}
+
+		// if (matchLocation && (matchLocation->_proxy_pass_host == "" && !isDIR)) {
+		// 	matchLocation = NULL;
+		// }
+
+		if (!matchLocation)
+			std::cerr << "Regressed path " << path_to_match << " -> " << regress_path(path_to_match) << std::endl;
+		path_to_match = regress_path(path_to_match);
+	}
+
+	path_to_match += "/";
 
 	while (path_to_match != "" && !matchLocation)
 	{
-		try
-		{
-			matchLocation = matchServer->_locations[path_to_match];
-		}
-		catch(const std::exception& e)
-		{
-			//if it's not dir (ends with /) and it's not found - return failure
-			matchLocation = NULL;
-			if (!isDIR)
-				return NULL;
+		MAP<STR, LocationConfig*> loc_loc = matchServer->_locations;
+		while (loc_loc.size() > 0) {
+			MAP<STR, LocationConfig*>::iterator it = loc_loc.begin();
+			if (it->first == path_to_match) {
+				matchLocation = it->second;
+				break;
+			}
+			if (it->second->_locations.size() > 0) {
+				loc_loc.insert(it->second->_locations.begin(), it->second->_locations.end());
+			}
+			loc_loc.erase(it);
 		}
 
-		// if (isDIR && !matchLocation)
-		if (!matchLocation)
-		{
-			try
-			{
-				matchLocation = matchServer->_locations[path_to_match + "/"];
-				if (matchLocation && (matchLocation->_proxy_pass_host == "" && !isDIR)) {
-					matchLocation = NULL;
-				}
-			}
-			catch(const std::exception& e)
-			{
-				//if it's dir (ends with /) and it's still not found with / - return failure
-				return NULL;
-			}
-		}
+		// if (matchLocation && (matchLocation->_proxy_pass_host == "" && !isDIR)) {
+		// 	matchLocation = NULL;
+		// }
+
 		if (!matchLocation)
 			std::cerr << "Regressed path " << path_to_match << " -> " << regress_path(path_to_match) << std::endl;
 		path_to_match = regress_path(path_to_match);
@@ -575,14 +599,23 @@ LocationConfig	*Response::buildDirPath(ServerConfig *matchServer, STR &full_path
 		return NULL;
 
 	//add root to final path first
-	if ((matchLocation)->_root != "") {
-		full_path.append((matchLocation)->_root);
-	}
-	else if ((matchLocation)->back_ref->_root != "") {
-		full_path.append((matchLocation)->back_ref->_root);
-	}
-	else {
-		full_path.append((matchLocation)->back_ref->back_ref->_root);
+	// if ((matchLocation)->_root != "") {
+	// 	full_path.append((matchLocation)->_root);
+	// }
+	// else if ((matchLocation)->back_ref->_root != "") {
+	// 	full_path.append((matchLocation)->back_ref->_root);
+	// }
+	// else {
+	// 	full_path.append((matchLocation)->back_ref->back_ref->_root);
+	// }
+
+	AConfigBase* local_ref = matchLocation;
+	while (local_ref) {
+		if (local_ref->_root != "") {
+			full_path.append(local_ref->_root);
+			break;
+		}
+		local_ref = local_ref->back_ref;
 	}
 
 	full_path.append(_request->_file_path);
@@ -591,7 +624,7 @@ LocationConfig	*Response::buildDirPath(ServerConfig *matchServer, STR &full_path
 	return matchLocation;
 }
 
-int Response::buildIndexPath(LocationConfig *matchLocation, STR &best_file_path) {
+int Response::buildIndexPath(LocationConfig *matchLocation, STR &best_file_path, STR dir_path) {
 	if (best_file_path != "/" && best_file_path[best_file_path.length() - 1] != '/')
 		best_file_path.append("/");
 
@@ -605,7 +638,7 @@ int Response::buildIndexPath(LocationConfig *matchLocation, STR &best_file_path)
 	//if request doesn't have file name - searching for index
 	try
 	{
-		best_file_path.append(selectIndexAll(matchLocation));
+		best_file_path.append(selectIndexAll(matchLocation, dir_path));
 	}
 	catch(const std::exception& e)
 	{
@@ -619,19 +652,30 @@ int Response::buildIndexPath(LocationConfig *matchLocation, STR &best_file_path)
 	return 1;
 }
 
+bool	check_method_allowed(STR method, LocationConfig *matchLocation) {
+	AConfigBase* local_ref = matchLocation;
+	while (local_ref && local_ref->_identify(local_ref) != SERVER) {
+		LocationConfig* location = dynamic_cast<LocationConfig*>(local_ref);
+		if (location->_allowed_methods[method] == true)
+			return true;
+		local_ref = local_ref->back_ref;
+	}
+	return false;
+}
+
 STR	Response::matchMethod(STR path, bool isDIR, LocationConfig *matchLocation) {
 	if (_request->_method == "GET") {
-		if (matchLocation->_allowed_methods["GET"] == false)
+		if (!check_method_allowed("GET", matchLocation))
 			return createErrorResponse(405, "text/plain", "Method Not Allowed", matchLocation);
 		std::cerr << "Response::matchMethod GET path" << path << " isDIR " << isDIR << std::endl;
 		return (handleGET(path, isDIR));
 	} else if (_request->_method == "POST") {
-		if (matchLocation->_allowed_methods["POST"] == false)
+		if (!check_method_allowed("POST", matchLocation))
 			return createErrorResponse(405, "text/plain", "Method Not Allowed", matchLocation);
 		std::cerr << "Response::matchMethod POST path" << path << " isDIR " << isDIR << std::endl;
 		return (handlePOST(path));
 	} else if (_request->_method == "DELETE") {
-		if (matchLocation->_allowed_methods["DELETE"] == false)
+		if (!check_method_allowed("DELETE", matchLocation))
 			return createErrorResponse(405, "text/plain", "Method Not Allowed", matchLocation);
 		std::cerr << "Response::matchMethod DELETE path" << path << " isDIR " << isDIR << std::endl;
 		return (handleDELETE(path));
@@ -840,7 +884,7 @@ STR Response::getResponse() {
 
 
 	//add index file name to file_path
-	buildIndexPath(matchLocation, file_path);
+	buildIndexPath(matchLocation, file_path, dir_path);
 
 	//index file exists - serve it
 	if (checkFile(file_path) == NormalFile) {
