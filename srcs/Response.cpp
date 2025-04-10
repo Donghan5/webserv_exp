@@ -369,6 +369,13 @@ void	Response::selectIndexIndexes(VECTOR<STR> indexes, STR &best_match, float &m
 	while (i < indexes.size()) {
 		if (match_quality == 1)
 			break;
+
+		// check the file exists
+		STR full_path = dir_path + "/" + indexes[i];
+		if (checkFile(full_path) != NormalFile) {
+			continue;
+		}
+
 		STR index_mime = getMime(indexes[i]);
 
 		try
@@ -540,15 +547,16 @@ STR	regress_path(STR path) {
 	return path;
 }
 
-LocationConfig	*Response::buildDirPath(ServerConfig *matchServer, STR &full_path, bool &isDIR) {
-	LocationConfig* matchLocation = NULL;
-	STR	path_to_match = _request->_file_path;
-	(void) isDIR;
-	while (path_to_match != "" && !matchLocation)
-	{
-		MAP<STR, LocationConfig*> loc_loc = matchServer->_locations;
+// test buildDirPath function
+LocationConfig *Response::buildDirPath(ServerConfig *matchServer, STR &full_path, bool &isDIR) {
+	LocationConfig *matchLocation = NULL;
+	STR path_to_match = _request->_file_path;
+
+	// search exact match first
+	while (path_to_match != "" && !matchLocation) {
+		MAP<STR, LocationConfig *> loc_loc = matchServer->_locations;
 		while (loc_loc.size() > 0) {
-			MAP<STR, LocationConfig*>::iterator it = loc_loc.begin();
+			MAP<STR, LocationConfig *>::iterator it = loc_loc.begin();
 			if (it->first == path_to_match) {
 				matchLocation = it->second;
 				break;
@@ -559,56 +567,32 @@ LocationConfig	*Response::buildDirPath(ServerConfig *matchServer, STR &full_path
 			loc_loc.erase(it);
 		}
 
-		// if (matchLocation && (matchLocation->_proxy_pass_host == "" && !isDIR)) {
-		// 	matchLocation = NULL;
-		// }
-
-		if (!matchLocation)
-			std::cerr << "Regressed path " << path_to_match << " -> " << regress_path(path_to_match) << std::endl;
-		path_to_match = regress_path(path_to_match);
-	}
-
-	path_to_match += "/";
-
-	while (path_to_match != "" && !matchLocation)
-	{
-		MAP<STR, LocationConfig*> loc_loc = matchServer->_locations;
-		while (loc_loc.size() > 0) {
-			MAP<STR, LocationConfig*>::iterator it = loc_loc.begin();
-			if (it->first == path_to_match) {
-				matchLocation = it->second;
-				break;
+		if (!matchLocation && path_to_match != "" && path_to_match[path_to_match.length() - 1] != '/') {
+			STR path_with_slash = path_to_match + "/";
+			loc_loc = matchServer->_locations;
+			while (loc_loc.size() > 0) {
+				MAP<STR, LocationConfig *>::iterator it = loc_loc.begin();
+				if (it->first == path_with_slash) {
+					matchLocation = it->second;
+					break;
+				}
+				if (it->second->_locations.size() > 0) {
+					loc_loc.insert(it->second->_locations.begin(), it->second->_locations.end());
+				}
+				loc_loc.erase(it);
 			}
-			if (it->second->_locations.size() > 0) {
-				loc_loc.insert(it->second->_locations.begin(), it->second->_locations.end());
-			}
-			loc_loc.erase(it);
 		}
 
-		// if (matchLocation && (matchLocation->_proxy_pass_host == "" && !isDIR)) {
-		// 	matchLocation = NULL;
-		// }
-
-		if (!matchLocation)
+		if (!matchLocation) {
 			std::cerr << "Regressed path " << path_to_match << " -> " << regress_path(path_to_match) << std::endl;
-		path_to_match = regress_path(path_to_match);
+			path_to_match = regress_path(path_to_match);
+		}
 	}
 
-	// std::cerr << "TEST TEST buildDirPath is matchLocation " << (matchLocation != NULL) << std::endl;
 	if (!matchLocation)
 		return NULL;
 
-	//add root to final path first
-	// if ((matchLocation)->_root != "") {
-	// 	full_path.append((matchLocation)->_root);
-	// }
-	// else if ((matchLocation)->back_ref->_root != "") {
-	// 	full_path.append((matchLocation)->back_ref->_root);
-	// }
-	// else {
-	// 	full_path.append((matchLocation)->back_ref->back_ref->_root);
-	// }
-
+	// add root path
 	AConfigBase* local_ref = matchLocation;
 	while (local_ref) {
 		if (local_ref->_root != "") {
@@ -623,6 +607,91 @@ LocationConfig	*Response::buildDirPath(ServerConfig *matchServer, STR &full_path
 	std::cerr << "Response::buildDirPath: dir path is " << full_path << "\n";
 	return matchLocation;
 }
+
+// Original buildDirPath function
+// LocationConfig	*Response::buildDirPath(ServerConfig *matchServer, STR &full_path, bool &isDIR) {
+// 	LocationConfig* matchLocation = NULL;
+// 	STR	path_to_match = _request->_file_path;
+// 	(void) isDIR;
+// 	while (path_to_match != "" && !matchLocation)
+// 	{
+// 		MAP<STR, LocationConfig*> loc_loc = matchServer->_locations;
+// 		while (loc_loc.size() > 0) {
+// 			MAP<STR, LocationConfig*>::iterator it = loc_loc.begin();
+// 			if (it->first == path_to_match) {
+// 				matchLocation = it->second;
+// 				break;
+// 			}
+// 			if (it->second->_locations.size() > 0) {
+// 				loc_loc.insert(it->second->_locations.begin(), it->second->_locations.end());
+// 			}
+// 			loc_loc.erase(it);
+// 		}
+
+// 		// if (matchLocation && (matchLocation->_proxy_pass_host == "" && !isDIR)) {
+// 		// 	matchLocation = NULL;
+// 		// }
+
+// 		if (!matchLocation)
+// 			std::cerr << "Regressed path " << path_to_match << " -> " << regress_path(path_to_match) << std::endl;
+// 		path_to_match = regress_path(path_to_match);
+// 	}
+
+// 	path_to_match += "/";
+
+// 	while (path_to_match != "" && !matchLocation)
+// 	{
+// 		MAP<STR, LocationConfig*> loc_loc = matchServer->_locations;
+// 		while (loc_loc.size() > 0) {
+// 			MAP<STR, LocationConfig*>::iterator it = loc_loc.begin();
+// 			if (it->first == path_to_match) {
+// 				matchLocation = it->second;
+// 				break;
+// 			}
+// 			if (it->second->_locations.size() > 0) {
+// 				loc_loc.insert(it->second->_locations.begin(), it->second->_locations.end());
+// 			}
+// 			loc_loc.erase(it);
+// 		}
+
+// 		// if (matchLocation && (matchLocation->_proxy_pass_host == "" && !isDIR)) {
+// 		// 	matchLocation = NULL;
+// 		// }
+
+// 		if (!matchLocation)
+// 			std::cerr << "Regressed path " << path_to_match << " -> " << regress_path(path_to_match) << std::endl;
+// 		path_to_match = regress_path(path_to_match);
+// 	}
+
+// 	// std::cerr << "TEST TEST buildDirPath is matchLocation " << (matchLocation != NULL) << std::endl;
+// 	if (!matchLocation)
+// 		return NULL;
+
+// 	//add root to final path first
+// 	// if ((matchLocation)->_root != "") {
+// 	// 	full_path.append((matchLocation)->_root);
+// 	// }
+// 	// else if ((matchLocation)->back_ref->_root != "") {
+// 	// 	full_path.append((matchLocation)->back_ref->_root);
+// 	// }
+// 	// else {
+// 	// 	full_path.append((matchLocation)->back_ref->back_ref->_root);
+// 	// }
+
+// 	AConfigBase* local_ref = matchLocation;
+// 	while (local_ref) {
+// 		if (local_ref->_root != "") {
+// 			full_path.append(local_ref->_root);
+// 			break;
+// 		}
+// 		local_ref = local_ref->back_ref;
+// 	}
+
+// 	full_path.append(_request->_file_path);
+
+// 	std::cerr << "Response::buildDirPath: dir path is " << full_path << "\n";
+// 	return matchLocation;
+// }
 
 int Response::buildIndexPath(LocationConfig *matchLocation, STR &best_file_path, STR dir_path) {
 	if (best_file_path != "/" && best_file_path[best_file_path.length() - 1] != '/')
