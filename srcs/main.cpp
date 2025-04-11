@@ -8,6 +8,7 @@
 #include "ServerConfig.hpp"
 #include "PollServer.hpp"
 #include "Parser.hpp"
+#include "Logger.hpp"
 
 int	init_start_webserv(HttpConfig *config) {
 	PollServer		poll_server;
@@ -15,14 +16,14 @@ int	init_start_webserv(HttpConfig *config) {
 		try {
 			poll_server.setConfig(config);
 		} catch (const std::exception& e) {
-			std::cerr << "Poll Initialization Error: " << e.what() << std::endl;
+			Logger::cerrlog(Logger::ERROR, "Poll Initialization error: " + std::string(e.what()));
 			return 0;
 		}
 
 		try {
 			poll_server.start();
 		} catch (const std::exception& e) {
-			std::cerr << "Poll Running Error: " << e.what() << std::endl;
+			Logger::cerrlog(Logger::ERROR, "Poll Running error: " + std::string(e.what()));
 			return 0;
 		}
 	return 0;
@@ -113,8 +114,6 @@ void printHttpConfig(const HttpConfig& http, int indent = 0) {
     std::cout << pad << "  _global_worker_process: " << http._global_worker_process << "\n";
     std::cout << pad << "  _global_error_log: " << http._global_error_log << "\n";
     std::cout << pad << "  _global_pid: " << http._global_pid << "\n";
-    std::cout << pad << "  _event_worker_connections: " << http._event_worker_connections << "\n";
-    std::cout << pad << "  _event_use: " << http._event_use << "\n";
     std::cout << pad << "  _keepalive_timeout: " << http._keepalive_timeout << "\n";
     std::cout << pad << "  _add_header: " << http._add_header << "\n";
     std::cout << pad << "  _client_max_body_size: " << http._client_max_body_size << "\n";
@@ -140,7 +139,7 @@ void printHttpConfig(const HttpConfig& http, int indent = 0) {
 
 int main(int argc, char **argv) {
 	if (argc != 2) {
-		std::cerr << "Error: no config file\n";
+		Logger::log(Logger::ERROR, "No config file");
 		exit (1);
 	}
 
@@ -151,12 +150,13 @@ int main(int argc, char **argv) {
     try {
         newConf = parser.Parse();
     } catch (const std::exception& e) {
-        std::cerr << "ERROR Parsing failure: " << e.what() << std::endl;
+		// Using logger
+		Logger::cerrlog(Logger::ERROR, "Parsing failure: " + std::string(e.what()));
         return 1;
     }
 
 	if (!newConf) {
-        std::cerr << "ERROR Parsing failed\n";
+		Logger::cerrlog(Logger::ERROR, "Parsing failed");
         return 1;
     }
 
@@ -165,7 +165,7 @@ int main(int argc, char **argv) {
     try {
         init_start_webserv(newConf);
     } catch (const std::exception& e) {
-        std::cerr << "ERROR Running failure: " << e.what() << std::endl;
+		Logger::cerrlog(Logger::ERROR, "Running failure: " + std::string(e.what()));
         newConf->_self_destruct();
         return 1;
     }

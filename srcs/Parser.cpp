@@ -45,25 +45,15 @@ bool Parser::verifyAutoIndex(std::string autoindex_str) {
 	return autoindex;
 }
 
-/* default limit */
-int Parser::veriftEventWorkerConnections(std::string event_worker_connections_str) {
-	std::stringstream ss(event_worker_connections_str);
-	int value;
-
-	for (size_t i = 0; i < event_worker_connections_str.length(); i++) {
-		if (!std::isdigit(event_worker_connections_str[i])) {
-			return -1;
-		}
-	}
-
-	if (!(ss >> value) || value <= 0) {
-		return -1;
-	}
-
-	return value;
-}
-
-/* max value 1048576 */
+/*
+	 * client_max_body_size we use MB NOT MiB
+ * 1b = 1 byte
+ * 1k = 1000 bytes
+ * 1m = 1000 * 1000 bytes
+ * 1g = 1000 * 1000 * 1000 bytes
+ *
+ * default is 1M
+*/
 long long Parser::verifyClientMaxBodySize(std::string client_max_body_size_str) {
 	std::stringstream ss(client_max_body_size_str);
 	long long value;
@@ -82,13 +72,13 @@ long long Parser::verifyClientMaxBodySize(std::string client_max_body_size_str) 
 		value *= 1;
 	}
 	else if (unit == "k" || unit == "K") {
-		value *= 1024;
+		value *= 1000;
 	}
 	else if (unit == "m" || unit == "M") {
-		value *= 1024 * 1024;
+		value *= 1000 * 1000;
 	}
 	else if (unit == "g" || unit == "G") {
-		value *= 1024 * 1024 * 1024;
+		value *= 1000 * 1000 * 1000;
 	}
 
 	if (value > LLONG_MAX) {
@@ -310,14 +300,6 @@ bool FillDirective(AConfigBase* block, STR line, int position) {
 			httpConf->_global_error_log = tokens[1];
 		} else if (tokens[0] == "pid") {
 			httpConf->_global_pid = tokens[1];
-		} else if (tokens[0] == "worker_connections") {
-			httpConf->_event_worker_connections = Parser::veriftEventWorkerConnections(tokens[1]);  // C++98 int conversion
-			if (httpConf->_event_worker_connections == -1) {
-				std::cerr << "Invalid worker_connections value";
-				return false;
-			}
-		} else if (tokens[0] == "use") {
-			httpConf->_event_use = tokens[1];
 		} else if (tokens[0] == "keepalive_timeout") {
 			httpConf->_keepalive_timeout = tokens[1];
 		} else if (tokens[0] == "add_header") {

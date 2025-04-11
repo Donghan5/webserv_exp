@@ -36,17 +36,16 @@ class Parser {
 
 		ElemType	DetectNextType(STR line, int position, int &block_size);
 		bool		ValidateConfig(STR full_config);
-		
+
 	public:
 		Parser();
 		Parser(STR file);
 		Parser(const Parser &obj);
 		Parser &operator=(const Parser &obj);
 		~Parser();
-		
+
 		HttpConfig	*Parse();
 		static long long	verifyClientMaxBodySize(std::string client_max_body_size_str);
-		static int			veriftEventWorkerConnections(std::string event_worker_connections_str);
 		static bool			verifyAutoIndex(std::string autoindex_str);
 		static int 			verifyPort(std::string port_str);
 };

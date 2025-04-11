@@ -1,21 +1,7 @@
 #include "../includes/Logger.hpp"
 
-std::ofstream Logger::logFile;
 
-/*
-	Initialize and create log folder (if not exist)
-*/
-void Logger::init() {
-	struct stat info;
-	if (stat("logs", &info) != 0) {
-		mkdir ("logs", 0777);
-	}
-	logFile.open("logs/webserv.log", std::ios::app);
-}
-
-/*
-	Return current time
-*/
+// get current time
 std::string Logger::getCurrentTime() {
 	time_t now = time(0);
 	struct tm tstruct;
@@ -27,9 +13,7 @@ std::string Logger::getCurrentTime() {
 	return std::string(buf);
 }
 
-/*
-	Convert to string log-level
-*/
+// convert log level to string
 std::string Logger::logLevelToString(LogLevel level) {
 	switch(level) {
 		case INFO: return "INFO";
@@ -40,16 +24,17 @@ std::string Logger::logLevelToString(LogLevel level) {
 	}
 }
 
-/*
-	Save the log
-*/
+// Just print the log cout
 void Logger::log(LogLevel level, const std::string &message) {
+
 	std::string logEntry = "[" + Logger::getCurrentTime() + "] " + "[" + Logger::logLevelToString(level) + "] " + ": " + message;
 
-	if (logFile.is_open()) {
-		logFile << logEntry << std::endl;
-		logFile.flush();
-	}
-
 	std::cout << logEntry << std::endl;
+}
+
+// separate error log using cerr
+void Logger::cerrlog(LogLevel level, const std::string &message) {
+	std::string logEntry = "[" + Logger::getCurrentTime() + "] " + "[" + Logger::logLevelToString(level) + "] " + ": " + message;
+
+	std::cerr << logEntry << std::endl;
 }

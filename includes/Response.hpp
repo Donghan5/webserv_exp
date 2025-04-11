@@ -34,6 +34,7 @@ class Response {
 		int							buildIndexPath(LocationConfig *matchLocation, STR &best_file_path, STR dir_path);
 		STR							matchMethod(STR path, bool isDIR, LocationConfig *matchLocation);
 		STR							checkRedirect(LocationConfig *matchLocation);
+		bool						checkBodySize(LocationConfig *matchLocation);
 
 	public:
 		Response();

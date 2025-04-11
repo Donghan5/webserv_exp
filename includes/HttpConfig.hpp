@@ -30,9 +30,6 @@ struct HttpConfig : AConfigBase
 	STR						_global_error_log;
 	STR						_global_pid;
 
-	int						_event_worker_connections;
-	STR						_event_use;
-
 	STR						_keepalive_timeout;
 
 	VECTOR<ServerConfig*>	_servers;
@@ -43,12 +40,11 @@ struct HttpConfig : AConfigBase
         _global_worker_process("1"),
         _global_error_log("logs/error.log"),
         _global_pid("logs/nginx.pid"),
-        _event_worker_connections(1024),
-        _event_use(""),
         _keepalive_timeout("65"),
 		_servers()
     {
 		_root = "./www";
+		_client_max_body_size = 1000000; // 1MB
 	}
 };
 

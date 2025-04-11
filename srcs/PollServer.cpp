@@ -1,4 +1,5 @@
 #include "PollServer.hpp"
+#include "Logger.hpp"
 
 PollServer::PollServer(/* args */) {
 	config = NULL;
@@ -20,6 +21,15 @@ PollServer::~PollServer() {
 	// 	delete config;
 	// }
 }
+
+static STR intToString(int num) {
+	std::ostringstream oss;
+
+	oss << num;
+
+	return oss.str();
+}
+
 
 void PollServer::setConfig(HttpConfig *config) {
 	if (!config)
@@ -49,8 +59,8 @@ void PollServer::setConfig(HttpConfig *config) {
 
 	// iterate through the unique servers and create sockets/ switch to map
 	for (std::map<int, STR>::iterator it = unique_servers.begin(); it != unique_servers.end(); it++) {
-		std::cerr << "DEBUG: PollServer::setConfig() - Creating socket for port " << it->first << "\n";
-		std::cerr << "DEBUG: PollServer::setConfig() - Creating socket for server " << it->second << "\n";
+		Logger::cerrlog(Logger::DEBUG, "PollServer::setConfig() - Creating socket for port " + intToString(it->first));
+		Logger::cerrlog(Logger::DEBUG, "PollServer::setConfig() - Creating socket for server " + it->second);
 		int server_socket = socket(AF_INET, SOCK_STREAM, 0);
 
 		if (server_socket < 0) {
@@ -123,7 +133,7 @@ void PollServer::setConfig(HttpConfig *config) {
 		temp_pollfd.revents = 0;
 		_pollfds.push_back(temp_pollfd);
 
-    	std::cout << "Server listening on port " << it->first << std::endl;
+		Logger::log(Logger::INFO, "Server listening on port " + intToString(it->first));
 	}
 }
 
@@ -152,7 +162,7 @@ void PollServer::AcceptClient(int new_fd) {
 		if (client_fd < 0)
 		{
 			if (errno != EAGAIN && errno != EWOULDBLOCK)
-				std::cerr << "Failed to accept connection" << std::endl;
+				Logger::cerrlog(Logger::ERROR, "Failed to accept connection");
 			return;
 		}
 
@@ -164,7 +174,7 @@ void PollServer::AcceptClient(int new_fd) {
 		client_pollfd.revents = 0;
 		_pollfds.push_back(client_pollfd);
 	} catch (const std::exception& e) {
-		std::cerr << "AcceptClient Error: " << e.what() << std::endl;
+		Logger::cerrlog(Logger::ERROR, "AcceptClient error: " + std::string(e.what()));
 	}
 }
 
@@ -194,10 +204,10 @@ bool PollServer::WaitAndService(RequestsManager &manager, VECTOR<struct pollfd>	
 		if (is_server_socket && (temp_pollfds[i].revents & POLLIN)) {
 			AcceptClient(temp_pollfds[i].fd);
 		} else {
-			std::cerr << "new request came in\n";
+			Logger::cerrlog(Logger::INFO, "New request came in");
 			manager.setClientFd(temp_pollfds[i].fd);
 			int status = manager.HandleClient(temp_pollfds[i].revents);
-			std::cerr << "status: " << status << "\n";
+			Logger::cerrlog(Logger::DEBUG, "status: " + intToString(status));
 			if (!status) {
 				for (size_t j = 0; j < _pollfds.size(); ++j) {
 					if (_pollfds[j].fd == temp_pollfds[i].fd) {
@@ -223,7 +233,7 @@ void PollServer::start() {
 	VECTOR<struct pollfd>	temp_pollfds;
 
 	if (!config) {
-		std::cout << "Can't start server: config is not set\n";
+		Logger::cerrlog(Logger::ERROR, "Can't start server: config is not set");
 	}
 	manager.setConfig(config);
 	running = true;
@@ -239,7 +249,7 @@ void PollServer::start() {
 
 void PollServer::stop() {
 	if (!config) {
-		std::cout << "Can't stop server: config is not set\n";
+		Logger::cerrlog(Logger::ERROR, "Can't stop server: config is not set");
 	}
 	running = false;
 }

@@ -1,4 +1,5 @@
 #include "Response.hpp"
+#include "Logger.hpp"
 
 void	init_mimetypes(std::map<STR, STR>	&mime_types) {
 	mime_types[".html"] = "text/html";
@@ -371,8 +372,8 @@ void	Response::selectIndexIndexes(VECTOR<STR> indexes, STR &best_match, float &m
 			break;
 
 		// check the file exists
-		STR full_path = dir_path + "/" + indexes[i];
-		if (checkFile(full_path) != NormalFile) {
+		if (checkFile(dir_path + "/" + indexes[i]) != NormalFile) {
+			i++;
 			continue;
 		}
 
@@ -380,33 +381,32 @@ void	Response::selectIndexIndexes(VECTOR<STR> indexes, STR &best_match, float &m
 
 		try
 		{
-			if (_request->_accepted_types[index_mime] > match_quality && checkFile(dir_path + "/" + indexes[i]) == NormalFile) {
-				std::cerr << index_mime << " is the better match that " << best_match
-					<< "! Quality " << _request->_accepted_types[index_mime] << " is better than " << match_quality << "\n";
+			if (_request->_accepted_types[index_mime] > match_quality) {
+				Logger::cerrlog(Logger::DEBUG, index_mime + " is better match that" + best_match + "! Quality " + floatToString(_request->_accepted_types[index_mime]) + " is better than " + floatToString(match_quality));
 				best_match = indexes[i];
 				match_quality = _request->_accepted_types[index_mime];
 			}
 			else
-				std::cerr << index_mime << " is not more than " << match_quality << "\n";
+				Logger::cerrlog(Logger::DEBUG, index_mime + " is not more than " + floatToString(match_quality));
 		}
 		catch(const std::exception& e)
 		{
-			std::cerr << index_mime << " is not accepted: " << index_mime << "\n";
+			Logger::cerrlog(Logger::ERROR, index_mime + " is not accepted: " + index_mime);
 		}
 		try
 		{
-			if (_request->_accepted_types["*/*"] > match_quality && checkFile(dir_path + "/" + indexes[i]) == NormalFile) {
-				std::cerr << "*/* is the better match than " << best_match
-					<< "! Quality " << _request->_accepted_types["*/*"] << " is better than " << match_quality << "\n";
+			if (_request->_accepted_types["*/*"] > match_quality) {
+				Logger::cerrlog(Logger::DEBUG, "*/* is the better match than " + best_match
+					+ "! Quality " + floatToString(_request->_accepted_types["*/*"]) + " is better than " + floatToString(match_quality));
 				best_match = indexes[i];
 				match_quality = _request->_accepted_types["*/*"];
 			}
 			else
-				std::cerr << "*/* is not more than " << match_quality << "\n";
+				Logger::cerrlog(Logger::DEBUG, "*/* is not more than " + floatToString(match_quality));
 		}
 		catch(const std::exception& e)
 		{
-			std::cerr << "*/* is not accepted: " << index_mime << "\n";
+			Logger::cerrlog(Logger::ERROR, "*/* is not accepted: " + index_mime);
 		}
 
 		i++;
@@ -442,19 +442,19 @@ STR	Response::selectIndexAll(LocationConfig* location, STR dir_path) {
 		throw std::runtime_error("No index match");
 	}
 	else
-		std::cerr << "Response::selectIndexAll: best_match is " << best_match << ", quality: " << match_quality << "\n";
+		Logger::cerrlog(Logger::DEBUG, "Response::selectIndexAll: best_match is " + best_match + ", quality: " + floatToString(match_quality));
 	return best_match;
 }
 
 FileType Response::checkFile(const STR& path) {
     if (path.empty()) {
-        std::cerr << "Error: Empty path provided." << std::endl;
+		Logger::cerrlog(Logger::ERROR, "Error: Empty path provided.");
         return NotFound;
     }
 
     struct stat path_stat;
     if (stat(path.c_str(), &path_stat) != 0) {
-        std::cerr << "Error checking file: " << path << " Reason: " << strerror(errno) << std::endl;
+		Logger::cerrlog(Logger::ERROR, "Error checking file: " + path + " Reason: " + strerror(errno));
         return NotFound;
     }
 
@@ -482,7 +482,7 @@ STR	Response::handleGET(STR full_path, bool isDIR) {
 }
 
 STR Response::handlePOST(STR full_path) {
-	std::cerr << "DEBUG Response::handlePOST start\n";
+	// std::cerr << "DEBUG Response::handlePOST start\n";
 
     // Check if directory exists to upload to
     STR dir_path = full_path.substr(0, full_path.find_last_of('/'));
@@ -552,6 +552,8 @@ LocationConfig *Response::buildDirPath(ServerConfig *matchServer, STR &full_path
 	LocationConfig *matchLocation = NULL;
 	STR path_to_match = _request->_file_path;
 
+	(void) isDIR;
+
 	// search exact match first
 	while (path_to_match != "" && !matchLocation) {
 		MAP<STR, LocationConfig *> loc_loc = matchServer->_locations;
@@ -584,7 +586,7 @@ LocationConfig *Response::buildDirPath(ServerConfig *matchServer, STR &full_path
 		}
 
 		if (!matchLocation) {
-			std::cerr << "Regressed path " << path_to_match << " -> " << regress_path(path_to_match) << std::endl;
+			Logger::cerrlog(Logger::DEBUG, "Regressed path " + path_to_match + " -> " + regress_path(path_to_match));
 			path_to_match = regress_path(path_to_match);
 		}
 	}
@@ -604,7 +606,7 @@ LocationConfig *Response::buildDirPath(ServerConfig *matchServer, STR &full_path
 
 	full_path.append(_request->_file_path);
 
-	std::cerr << "Response::buildDirPath: dir path is " << full_path << "\n";
+	Logger::cerrlog(Logger::DEBUG, "Response::buildDirPath: dir path is " + full_path);
 	return matchLocation;
 }
 
@@ -761,6 +763,13 @@ static STR intToString(int num) {
 	return oss.str();
 }
 
+static STR floatToString(float num) {
+	std::ostringstream oss;
+	oss << num;
+
+	return oss.str();
+}
+
 STR	Response::checkRedirect(LocationConfig *matchLocation) {
 	AConfigBase*	back_ref = matchLocation;
 	ServerConfig* tempServer;
@@ -826,6 +835,23 @@ STR	Response::createErrorResponse(int statusCode, const STR& contentType, const 
 	return createResponse(statusCode, contentType, body, "");
 }
 
+bool	Response::checkBodySize(LocationConfig *matchLocation) {
+	AConfigBase* local_ref = matchLocation;
+	while (local_ref) {
+		if (local_ref->_client_max_body_size > 0) {
+			// std::cerr << "Response::checkBodySize: client_max_body_size is " << local_ref->_client_max_body_size << "\n";
+			// std::cerr << "Response::checkBodySize: body size is " << _request->_body.length() << "\n";
+			if (_request->_body.length() > (size_t)local_ref->_client_max_body_size)
+				return false;
+			else
+				return true;
+		}
+
+		local_ref = local_ref->back_ref;
+	}
+	return true;
+}
+
 /*
 	paths with spaces are not found
 */
@@ -838,7 +864,7 @@ STR Response::getResponse() {
 	STR	file_path = "";
 
 	if (!_request || !_config) {
-		std::cerr << "Response::getResponse error, no config or request\n";
+		Logger::cerrlog(Logger::ERROR, "Response::getResponse error, no config or request");
 		return "";
 	}
 
@@ -869,6 +895,12 @@ STR Response::getResponse() {
 	matchLocation = buildDirPath(matchServer, dir_path, isDIR);
 	if (!matchLocation)
 		return createErrorResponse(404, "text/plain", "Not Found", matchServer);
+
+	// check body size
+	if (!checkBodySize(matchLocation)) {
+		Logger::cerrlog(Logger::ERROR, "Response::getResponse: body size is too big");
+		return createErrorResponse(413, "text/plain", "Payload Too Large", matchServer);
+	}
 
 	STR temp_str = checkRedirect(matchLocation);
 	if (temp_str != "")

@@ -1,5 +1,6 @@
 #include "Request.hpp"
 #include <sstream>
+#include "Logger.hpp"
 
 // static bool isToken(uint8_t ch) {
 // 	if (ch == '!' || ch == '#' || ch == '$' || ch == '%' || ch == '&' || ch == '\'' || ch == '*'
@@ -29,7 +30,7 @@ void remove_trailing_r(STR &str) {
 }
 
 void	process_path(STR &full_path, STR &file_name) {
-	std::cerr << "Full path before: " << full_path << "\n";
+	Logger::cerrlog(Logger::DEBUG, "Request::process_path: full path is " + full_path);
 
 	if (full_path.find('.') != STR::npos) {
 		file_name = full_path.substr(full_path.find_last_of('/') + 1, full_path.size());
@@ -180,25 +181,25 @@ bool Request::parseHeader() {
 bool Request::parseBody() {
 	int	body_beginning = -1;
 	if (_full_request == "") {
-		std::cerr << "Empty request\n";
+		Logger::cerrlog(Logger::ERROR, "Request::parseBody: Empty request");
 		return false;
 	}
 
 	body_beginning = _full_request.find("\r\n\r\n");
 	if (body_beginning == CHAR_NOT_FOUND) {
-		std::cerr << "No body beginning found\n";
+		Logger::cerrlog(Logger::ERROR, "Request::parseBody: No body beginning found");
 		return false;
 	}
 
 	if (_content_type.find("multipart/form-data") != STR::npos) {
 		_body = _full_request.substr(body_beginning + 4, _full_request.length() - (body_beginning + 4));
-		std::cerr << "multipart/form-data\n";
+		// std::cerr << "multipart/form-data\n";
 		return true;
 	}
 	if (_chunked_flag) {
 		const char *data = _full_request.c_str() + body_beginning + 4;  // skip \r\n\r\n (4 bytes)
 		size_t size = _full_request.length() - (body_beginning + 4);  // skip \r\n\r\n (4 bytes)
-		std::cerr << "_chunked_flag\n";
+		// std::cerr << "_chunked_flag\n";
 
 		return processTransferEncoding(data, size);
 	}
@@ -411,7 +412,7 @@ bool Request::setRequest(STR request) {
 	_body = "";
 
 	if (!parseHeader()) {
-		std::cerr << "Request::setRequest: Header Parsing error!\n";
+		Logger::cerrlog(Logger::ERROR, "Request::setRequest: Header Parsing error!");
 		return false;
 	}
 	return true;

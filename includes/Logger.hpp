@@ -12,10 +12,9 @@ class Logger {
 	public:
 		enum LogLevel { INFO, WARNING, ERROR, DEBUG };
 		static void log(LogLevel level, const std::string &message);
-		static void init();
+		static void cerrlog(LogLevel level, const std::string &message);
 
 	private:
-		static std::ofstream logFile;
 		static std::string getCurrentTime();
 		static std::string logLevelToString(LogLevel level);
 };

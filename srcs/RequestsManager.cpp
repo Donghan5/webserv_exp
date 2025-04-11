@@ -1,4 +1,5 @@
 #include "RequestsManager.hpp"
+#include "Logger.hpp"
 
 RequestsManager::RequestsManager(/* args */)
 {
@@ -46,6 +47,14 @@ void RequestsManager::setClientFd(int client_fd) {
 	_client_fd = client_fd;
 }
 
+static STR intToString(int num) {
+	std::ostringstream oss;
+
+	oss << num;
+
+	return oss.str();
+}
+
 int RequestsManager::HandleRead() {
 	Request				request;
 	Response			response;
@@ -73,13 +82,13 @@ int RequestsManager::HandleRead() {
 				body_read += nbytes;
 			}
 
-			if (body_read != -1 && _config->_client_max_body_size && (body_read > _config->_client_max_body_size)) {
-				std::cerr << "413 (Request Entity Too Large) error\n";
+			// if (body_read != -1 && _config->_client_max_body_size && (body_read > _config->_client_max_body_size)) {
+			// 	std::cerr << "413 (Request Entity Too Large) error\n";
 
-				_partial_responses[_client_fd] = response.createErrorResponse(413, "text/plain", "Request Entity Too Large", NULL);
-				body_read = -1;
-				return 2;
-			}
+			// 	_partial_responses[_client_fd] = response.createErrorResponse(413, "text/plain", "Request Entity Too Large", NULL);
+			// 	body_read = -1;
+			// 	return 2;
+			// }
 
 			_partial_requests[_client_fd].append(buffer, nbytes);
 
@@ -87,13 +96,13 @@ int RequestsManager::HandleRead() {
 			if (body_read == -1 && header_end != CHAR_NOT_FOUND) {
 				// std::cerr << "Requests HandleRead: End-of-file Full message:\n" << _partial_requests[_client_fd] << "\n";
 				if (!request.setRequest(_partial_requests[_client_fd])) {
-					std::cerr << "Requests HandleRead: Error parsing request\n";
+					Logger::cerrlog(Logger::ERROR, "Requests HandleRead: Error parsing request");
 					_partial_responses[_client_fd] = response.createErrorResponse(400, "text/plain", "Bad Request", NULL);
 					return 2;
 				}
 
 				if (request._body_size > 0) {
-					std::cerr << "RequestsManager::HandleRead Body needed of size " << request._body_size << "\n";
+					Logger::cerrlog(Logger::DEBUG, "RequestManager::HandleRead Body needed of size " + intToString(request._body_size));
 					body_read = _partial_requests[_client_fd].size() - header_end - 4;
 				} else {
 					// if (!request.parseBody()) {
@@ -111,17 +120,17 @@ int RequestsManager::HandleRead() {
 			}
 
 			if (body_read != -1 && body_read >= (long long)request._body_size) {
-				std::cerr << "RequestsManager::HandleRead Full body read! \n";
+				Logger::cerrlog(Logger::INFO, "RequestsManager::HandleRead Full body read!");
 				body_read = -1;
 
 				request.clear();
 				if (!request.setRequest(_partial_requests[_client_fd])) {
-					std::cerr << "Requests HandleRead: Error parsing request\n";
+					Logger::cerrlog(Logger::ERROR, "Request HandleRead: Error parsing request");
 					_partial_responses[_client_fd] = response.createErrorResponse(400, "text/plain", "Bad Request", NULL);
 					return 2;
 				}
 				if (!request.parseBody()) {
-					std::cerr << "Requests HandleRead: Error parsing body\n";
+					Logger::cerrlog(Logger::ERROR, "Request HandleRead: Error parsing body");
 					_partial_responses[_client_fd] = response.createErrorResponse(400, "text/plain", "Bad Request", NULL);
 					return 2;
 				}
@@ -135,7 +144,7 @@ int RequestsManager::HandleRead() {
 		}
     } catch (const std::exception& e) {
 		body_read = -1;
-        std::cerr << "Error in Requests HandleRead: " << e.what() << std::endl;
+		Logger::cerrlog(Logger::ERROR, "Request HandleRead: Error reading request: " + std::string(e.what()));
 		_partial_responses[_client_fd] = response.createErrorResponse(500, "text/plain", "Internal Server Error", NULL);
 		return 0;
     }
@@ -144,7 +153,7 @@ int RequestsManager::HandleRead() {
 }
 
 int RequestsManager::HandleWrite() {
-	std::cerr << "handling write" << "\n";
+	// std::cerr << "handling write" << "\n";
 
 	try
 	{
@@ -166,7 +175,7 @@ int RequestsManager::HandleWrite() {
 	}
 	catch(const std::exception& e)
 	{
-		std::cerr << "HANDLE WRITE error : " << e.what() << '\n';
+		Logger::cerrlog(Logger::ERROR, "HANDLE WRITE error: " + std::string(e.what()));
 		return 0;
 	}
 	return 0;
@@ -185,7 +194,7 @@ int RequestsManager::HandleClient(short int revents) {
 		HandleWrite();
 	}
 	if (revents & (POLLERR | POLLHUP | POLLNVAL)) {
-		std::cerr << "Requests else\n";
+		Logger::cerrlog(Logger::INFO, "Requests else");
 		CloseClient();
 		return 0;
 	}

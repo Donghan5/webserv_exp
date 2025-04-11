@@ -44,7 +44,7 @@ struct AConfigBase {
 	AConfigBase() :
         _add_header(""),
         _root(""),
-        _client_max_body_size(1048576),  // 1MB NGINX default
+        _client_max_body_size(-1),
         _index(),
         _error_pages(),
         back_ref(NULL)
