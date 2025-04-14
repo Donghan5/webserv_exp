@@ -10,6 +10,7 @@
 #include <fcntl.h>
 #include <map>
 #include <cstring>
+#include "Utils.hpp"
 
 #include <cerrno>
 

@@ -133,7 +133,7 @@ bool Request::parseHeader() {
 			delim_position = temp_line.find_first_of(':');
 			end_position = temp_line.find_last_not_of(' ');
 			_content_type = temp_line.substr(delim_position + 2, end_position - delim_position - 2);
-			std::cerr << "Request::parseHeader() Content-Type: " << _content_type << "\n";
+			Logger::log(Logger::DEBUG, "Request::parseHeader() Content-Type: " + _content_type);
 		} else if (temp_token == "Content-Length:" && _body_size == 0) {
 			int	delim_position;
 			int	end_position;

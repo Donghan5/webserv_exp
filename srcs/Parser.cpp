@@ -1,4 +1,5 @@
 #include "Parser.hpp"
+#include "Logger.hpp"
 
 Parser::Parser() {
 	_config = new HttpConfig();
@@ -320,7 +321,7 @@ bool FillDirective(AConfigBase* block, STR line, int position) {
 			int code = atoi(tokens[1].c_str());
 			httpConf->_error_pages[code] = tokens[2];  // Assumes "error_page 404 /404.html"
 		} else {
-			std::cerr << "DEBUG CHECKFillDirective HttpConfig extra type " << tokens[0] << "\n";
+			Logger::cerrlog(Logger::ERROR, "CHECKFillDirective HttpConfig extra type " + tokens[0]);
 			return false;
 		}
         return true;
@@ -334,18 +335,18 @@ bool FillDirective(AConfigBase* block, STR line, int position) {
 			if (position == STR::npos) {
 				serverConf->_listen_port = Parser::verifyPort(tokens[1]);
 				if (serverConf->_listen_port == -1) {
-					std::cerr << "Invalid port value" << std::endl;
+					Logger::cerrlog(Logger::ERROR, "Invalid port value");
 					return false;
 				}
 			} else {
 				serverConf->_listen_server = tokens[1].substr(0, position);
 				if (serverConf->_listen_server == "") {
-					std::cerr << "Invalid server address" << std::endl;
+					Logger::cerrlog(Logger::ERROR, "Invalid server address");
 					return false;
 				}
 				serverConf->_listen_port = Parser::verifyPort(tokens[1].substr(position + 1));
 				if (serverConf->_listen_port == -1) {
-					std::cerr << "Invalid port value" << std::endl;
+					Logger::cerrlog(Logger::ERROR, "Invalid port value");
 					return false;
 				}
 			}
@@ -366,18 +367,18 @@ bool FillDirective(AConfigBase* block, STR line, int position) {
 		} else if (tokens[0] == "client_max_body_size") {
 			serverConf->_client_max_body_size = Parser::verifyClientMaxBodySize(tokens[1]);
 			if (serverConf->_client_max_body_size == -1) {
-				std::cerr << "Invalid client_max_body_size value" << std::endl;
+				Logger::cerrlog(Logger::ERROR, "Invalid client_max_body_size value");
 				return false;
 			}
 		} else if (tokens[0] == "return") {  // indicate that it's a return directive
 			if (tokens.size() < 2) {
-				std::cerr << "Invalid return directive" << std::endl;
+				Logger::cerrlog(Logger::ERROR, "Invalid return directive");
 				return false;
 			}
 			else if (tokens.size() == 3) {
 				serverConf->_return_code = atoi(tokens[1].c_str());
 				if (serverConf->_return_code < 300 || serverConf->_return_code > 400) {
-					std::cerr << "Invalid return code" << std::endl;
+					Logger::cerrlog(Logger::ERROR, "Invalid return code");
 					return false;
 				}
 				serverConf->_return_url = tokens[2];
@@ -385,7 +386,7 @@ bool FillDirective(AConfigBase* block, STR line, int position) {
 			else // tokens.size() == 2
 				serverConf->_return_url = tokens[1];
 		} else {
-			std::cerr << "DEBUG CHECKFillDirective ServerConfig extra type " << tokens[0] << "\n";
+			Logger::cerrlog(Logger::ERROR, "CHECKFillDirective ServerConfig extra type " + tokens[0]);
 			return false;
 		}
         return true;
@@ -412,21 +413,21 @@ bool FillDirective(AConfigBase* block, STR line, int position) {
 				locConf->_proxy_pass_host = tokens[1].substr(host_start, host_end - host_start);
 				locConf->_proxy_pass_port = atoi(tokens[1].substr(delim_position + 1, delim_position + 1 - port_end).c_str());
 			}
-			std::cerr << "DEBUG CHECKFillDirective LocationConfig proxy_pass_host " << locConf->_proxy_pass_host << "\n";
-			std::cerr << "DEBUG CHECKFillDirective LocationConfig proxy_pass_port " << locConf->_proxy_pass_port << "\n";
+			// std::cerr << "DEBUG CHECKFillDirective LocationConfig proxy_pass_host " << locConf->_proxy_pass_host << "\n";
+			// std::cerr << "DEBUG CHECKFillDirective LocationConfig proxy_pass_port " << locConf->_proxy_pass_port << "\n";
 		} else if (tokens[0] == "path") {
 			locConf->_path = tokens[1];
 		} else if (tokens[0] == "add_header") {
 			locConf->_add_header = tokens[1];
 		} else if (tokens[0] == "return") {
 			if (tokens.size() < 2) {
-				std::cerr << "Invalid return directive" << std::endl;
+				Logger::cerrlog(Logger::ERROR, "Invalid return directive");
 				return false;
 			}
 			else if (tokens.size() == 3) {
 				locConf->_return_code = atoi(tokens[1].c_str());
 				if (locConf->_return_code < 300 || locConf->_return_code > 400) {
-					std::cerr << "Invalid return code" << std::endl;
+					Logger::cerrlog(Logger::ERROR, "Invalid return code");
 					return false;
 				}
 				locConf->_return_url = tokens[2];
@@ -460,12 +461,12 @@ bool FillDirective(AConfigBase* block, STR line, int position) {
         } else if (tokens[0] == "upload_store") {
 			locConf->_upload_store = tokens[1];
 		} else {
-			std::cerr << "DEBUG CHECKFillDirective LocationConfig extra type "  << tokens[0] << "\n";
+			Logger::cerrlog(Logger::ERROR, "CHECKFillDirective LocationConfig extra type " + tokens[0]);
 			return false;
 		}
         return true;
     }
-	std::cerr << "DEBUG CHECKFillDirective Unknown block type" << "\n";
+	Logger::cerrlog(Logger::ERROR, "CHECKFillDirective Unknown block type " + tokens[0]);
 
     return false;  // Unknown block type
 }
@@ -492,19 +493,19 @@ AConfigBase	*CreateBlock(STR line, int start) {
 	if (tokens[0] == "events" || tokens[0] == "http") {
 		HttpConfig *conf = new HttpConfig();
 		block = conf;
-		std::cerr << "DEBUG AConfigBase	*CreateBlock CREATED http\n";
+		Logger::log(Logger::DEBUG, "AConfigBase *CreateBlock CREATED http");
 
 	} else if (tokens[0] == "server") {
 		ServerConfig *conf = new ServerConfig();
 		block = conf;
-		std::cerr << "DEBUG AConfigBase	*CreateBlock CREATED server\n";
+		Logger::log(Logger::DEBUG, "AConfigBase *CreateBlock CREATED server");
 	} else if (tokens[0] == "location") {
 		LocationConfig *conf = new LocationConfig();
 		conf->_path = tokens[1];
 		block = conf;
-		std::cerr << "DEBUG AConfigBase	*CreateBlock CREATED location\n";
+		Logger::log(Logger::DEBUG, "AConfigBase *CreateBlock CREATED location");
 	}
-	std::cerr << "DEBUG AConfigBase	*CreateBlock2\n";
+	Logger::log(Logger::DEBUG, "AConfigBase *CreateBlock CREATED block2");
 
 	return block;
 }
@@ -517,13 +518,13 @@ bool	check_location_path_duplicate(STR new_path, MAP<STR, LocationConfig*> locs)
 	{
 		MAP<STR, LocationConfig*> loc_loc = locs;
 		while (loc_loc.size() > 0) {
-			std::cerr << "DEBUG AConfigBase	*check_location_path_duplicate loc_loc.size() " << loc_loc.size() << "\n";
-			std::cerr << "DEBUG AConfigBase	*check_location_path_duplicate loc_loc.begin()->first " << loc_loc.begin()->first << "\n";
+			// std::cerr << "DEBUG AConfigBase	*check_location_path_duplicate loc_loc.size() " << loc_loc.size() << "\n";
+			// std::cerr << "DEBUG AConfigBase	*check_location_path_duplicate loc_loc.begin()->first " << loc_loc.begin()->first << "\n";
 			MAP<STR, LocationConfig*>::iterator it = loc_loc.begin();
 			if (it->first == new_path)
 				return false;
 			if (it->second->_locations.size() > 0) {
-				std::cerr << "DEBUG AConfigBase	*check_location_path_duplicate loc_loc.begin()->second->_locations.size() " << it->second->_locations.size() << "\n";
+				// std::cerr << "DEBUG AConfigBase	*check_location_path_duplicate loc_loc.begin()->second->_locations.size() " << it->second->_locations.size() << "\n";
 				loc_loc.insert(it->second->_locations.begin(), it->second->_locations.end());
 			}
 			loc_loc.erase(it);
@@ -558,9 +559,9 @@ AConfigBase	*AddBlock(AConfigBase *prev_block, STR line, int start) {
 		if (!child || !httpConf || httpConf->_identify(child) != SERVER) {
 			if (child)
 				child->_self_destruct();
-			std::cerr << "DEBUG AConfigBase	*AddBlock HTTP\n";
-			std::cerr << "DEBUG AConfigBase	*AddBlock !httpConf " << !httpConf << "\n";
-			std::cerr << "DEBUG AConfigBase	*AddBlock !child " << !child << "\n";
+			// std::cerr << "DEBUG AConfigBase	*AddBlock HTTP\n";
+			// std::cerr << "DEBUG AConfigBase	*AddBlock !httpConf " << !httpConf << "\n";
+			// std::cerr << "DEBUG AConfigBase	*AddBlock !child " << !child << "\n";
 
 			// std::cerr << "DEBUG AConfigBase	*AddBlock != SERVER : " << (httpConf->_identify(child) != SERVER) << "\n";
 			return NULL;
@@ -577,10 +578,10 @@ AConfigBase	*AddBlock(AConfigBase *prev_block, STR line, int start) {
 		if (!child || !serverConf || serverConf->_identify(child) != LOCATION) {
 			if (child)
 				child->_self_destruct();
-			std::cerr << "DEBUG AConfigBase	*AddBlock SERVER\n";
-			std::cerr << "DEBUG AConfigBase	*AddBlock !serverConf" << !serverConf << "\n";
-			std::cerr << "DEBUG AConfigBase	*AddBlock !child" << !child << "\n";
-			std::cerr << "DEBUG AConfigBase	*AddBlock != LOCATION" << (serverConf->_identify(child) != LOCATION) << "\n";
+			// std::cerr << "DEBUG AConfigBase	*AddBlock SERVER\n";
+			// std::cerr << "DEBUG AConfigBase	*AddBlock !serverConf" << !serverConf << "\n";
+			// std::cerr << "DEBUG AConfigBase	*AddBlock !child" << !child << "\n";
+			// std::cerr << "DEBUG AConfigBase	*AddBlock != LOCATION" << (serverConf->_identify(child) != LOCATION) << "\n";
 
 			return NULL;
 		}
@@ -589,7 +590,7 @@ AConfigBase	*AddBlock(AConfigBase *prev_block, STR line, int start) {
 		if (!check_location_path_duplicate(location->_path, serverConf->_locations)) {
 			child->_self_destruct();
 
-			std::cerr << "DEBUG AConfigBase	*AddBlock LOCATION DUPLICATE " << location->_path << "\n";
+			Logger::cerrlog(Logger::ERROR, "AConfigBase *AddBlock LOCATION DUPLICATE " + location->_path);
 
 			return NULL;
 		}
@@ -608,8 +609,8 @@ AConfigBase	*AddBlock(AConfigBase *prev_block, STR line, int start) {
 		if (!child || !locParent || locParent->_identify(child) != LOCATION) {
 			if (child)
 				child->_self_destruct();
-			std::cerr << "DEBUG AConfigBase	*AddBlock LOCATION\n";
-			std::cerr << "DEBUG AConfigBase	*AddBlock !child" << !child << "\n";
+			// std::cerr << "DEBUG AConfigBase	*AddBlock LOCATION\n";
+			// std::cerr << "DEBUG AConfigBase	*AddBlock !child" << !child << "\n";
 			return NULL;
 		}
 		locChild = dynamic_cast<LocationConfig*>(child);
@@ -635,7 +636,7 @@ AConfigBase	*AddBlock(AConfigBase *prev_block, STR line, int start) {
 		if (!check_location_path_duplicate(locChild->_path, serverConf->_locations)) {
 			child->_self_destruct();
 
-			std::cerr << "DEBUG AConfigBase	*AddBlock LOCATION DUPLICATE " << locChild->_path << "\n";
+			Logger::cerrlog(Logger::ERROR, "AConfigBase *AddBlock LOCATION DUPLICATE " + locChild->_path);
 
 			return NULL;
 		}
@@ -644,17 +645,19 @@ AConfigBase	*AddBlock(AConfigBase *prev_block, STR line, int start) {
 		// locChild->back_ref = locParent;
 		child->back_ref = prev_block;
 	} else {
-		std::cerr << "DEBUG: AddBlockNULL TYpe" << parent_type << std::endl;
+		std::stringstream ss;
+		ss << "AddBlockNULL Type " << static_cast<int>(parent_type);
+		Logger::cerrlog(Logger::ERROR, ss.str());
 		return NULL;
 	}
-	std::cerr << "DEBUG AConfigBase	*AddBlock exit\n";
+	Logger::log(Logger::INFO, "AConfigBase *AddBlock exit");
 
 	return child;
 }
 
 bool	minimum_value_check(HttpConfig *conf) {
 	if (conf->_servers.empty()) {
-		std::cerr << "ERROR no servers found\n";
+		Logger::cerrlog(Logger::ERROR, "No servers found");
 		return false;
 	}
 
@@ -665,11 +668,11 @@ bool	minimum_value_check(HttpConfig *conf) {
 			conf->_servers[i]->_listen_port = 80;
 		}
 		if (conf->_servers[i]->_listen_port == -1) {
-	std::cerr << "ERROR server without port found\n";
+			Logger::cerrlog(Logger::ERROR, "Server without port found");
 			return false;
 		}
 		if (conf->_servers[i]->_locations.empty()) {
-	std::cerr << "ERROR server without location found\n";
+			Logger::cerrlog(Logger::ERROR, "Server without location found");
 			return false;
 		}
 	}
@@ -686,7 +689,7 @@ HttpConfig *Parser::Parse() {
 	else
 		_file.open(_filepath.c_str());
 	if (!_file.is_open()) {
-std::cerr << "DEBUG: Could not open file" << std::endl;
+		Logger::cerrlog(Logger::ERROR, "Could not open file " + _filepath);
 		return (NULL);
 	}
 
@@ -697,7 +700,7 @@ std::cerr << "DEBUG: Could not open file" << std::endl;
 	_file.close();
 
 	if (!ValidateConfig(full_config)) {
-		std::cerr << "Config is not correct!\n";
+		Logger::cerrlog(Logger::ERROR, "Config is not correct!");
 		return NULL;
 	}
 
@@ -717,11 +720,11 @@ std::cerr << "DEBUG: Could not open file" << std::endl;
 		{
 		case DIRECTIVE:
 			directives_per_block[depth]++;
-			std::cerr << "DIRECTIVE (" << (full_config.substr(i, 50)) <<  ")\n";
+			Logger::log(Logger::DEBUG, "DIRECTIVE (" + full_config.substr(i, 50) + ")");
 			if (!FillDirective(currentBlock, full_config, i)) {
 				base->_self_destruct();
 
-				std::cerr << "ERROR CHECKFillDirective\n";
+				Logger::cerrlog(Logger::ERROR, "CHECKFillDirective");
 				return NULL;
 			}
 			std::cerr << "--DIRECTIVE\n";
@@ -729,7 +732,7 @@ std::cerr << "DEBUG: Could not open file" << std::endl;
 		case BLOCK:
 			depth++;
 			directives_per_block[depth] = 0;
-			std::cerr << "BLOCK (" << (full_config.substr(i, 50)) <<  ")\n";
+			Logger::log(Logger::DEBUG, "BLOCK (" + full_config.substr(i, 50) + ")");
 			//if event/http, we already have default one
 			if (!strncmp(full_config.c_str() + i, "http", 4) || !strncmp(full_config.c_str() + i, "events", 6)) {
 				skipped_block1 = depth;
@@ -741,13 +744,13 @@ std::cerr << "DEBUG: Could not open file" << std::endl;
 			if (!currentBlock) {
 				base->_self_destruct();
 
-				std::cerr << "ERROR CHECKAddBlock\n";
+				Logger::log(Logger::ERROR, "CHECKAddBlock");
 				return NULL;
 			}
 			std::cerr << "--BLOCK\n";
 			break;
 		case BLOCK_END:
-			std::cerr << "BLOCK_END (" << (full_config.substr(i, 50)) <<  ")\n";
+			Logger::log(Logger::DEBUG, "BLOCK_END (" + full_config.substr(i, 50) + ")");
 			if (skipped_block1 == depth)
 				skipped_block1 = -1;
 			else if (skipped_block2 == depth)
@@ -758,7 +761,7 @@ std::cerr << "DEBUG: Could not open file" << std::endl;
 				//ERROR: block doesn't have it's own directives!
 				base->_self_destruct();
 
-				std::cerr << "ERROR: block doesn't have it's own directives!\n";
+				Logger::cerrlog(Logger::ERROR, "CHECKFillDirective block doesn't have it's own directives!");
 				return NULL;
 			}
 			depth--;

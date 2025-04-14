@@ -382,12 +382,12 @@ void	Response::selectIndexIndexes(VECTOR<STR> indexes, STR &best_match, float &m
 		try
 		{
 			if (_request->_accepted_types[index_mime] > match_quality) {
-				Logger::cerrlog(Logger::DEBUG, index_mime + " is better match that" + best_match + "! Quality " + floatToString(_request->_accepted_types[index_mime]) + " is better than " + floatToString(match_quality));
+				Logger::cerrlog(Logger::DEBUG, index_mime + " is better match that" + best_match + "! Quality " + Utils::floatToString(_request->_accepted_types[index_mime]) + " is better than " + Utils::floatToString(match_quality));
 				best_match = indexes[i];
 				match_quality = _request->_accepted_types[index_mime];
 			}
 			else
-				Logger::cerrlog(Logger::DEBUG, index_mime + " is not more than " + floatToString(match_quality));
+				Logger::cerrlog(Logger::DEBUG, index_mime + " is not more than " + Utils::floatToString(match_quality));
 		}
 		catch(const std::exception& e)
 		{
@@ -397,12 +397,12 @@ void	Response::selectIndexIndexes(VECTOR<STR> indexes, STR &best_match, float &m
 		{
 			if (_request->_accepted_types["*/*"] > match_quality) {
 				Logger::cerrlog(Logger::DEBUG, "*/* is the better match than " + best_match
-					+ "! Quality " + floatToString(_request->_accepted_types["*/*"]) + " is better than " + floatToString(match_quality));
+					+ "! Quality " + Utils::floatToString(_request->_accepted_types["*/*"]) + " is better than " + Utils::floatToString(match_quality));
 				best_match = indexes[i];
 				match_quality = _request->_accepted_types["*/*"];
 			}
 			else
-				Logger::cerrlog(Logger::DEBUG, "*/* is not more than " + floatToString(match_quality));
+				Logger::cerrlog(Logger::DEBUG, "*/* is not more than " + Utils::floatToString(match_quality));
 		}
 		catch(const std::exception& e)
 		{
@@ -442,7 +442,7 @@ STR	Response::selectIndexAll(LocationConfig* location, STR dir_path) {
 		throw std::runtime_error("No index match");
 	}
 	else
-		Logger::cerrlog(Logger::DEBUG, "Response::selectIndexAll: best_match is " + best_match + ", quality: " + floatToString(match_quality));
+		Logger::cerrlog(Logger::DEBUG, "Response::selectIndexAll: best_match is " + best_match + ", quality: " + Utils::floatToString(match_quality));
 	return best_match;
 }
 
@@ -509,7 +509,7 @@ STR Response::handlePOST(STR full_path) {
     // STR status_message =  "Created";
     // int status_code = 201;
 
-	std::cerr << "DEBUG Response::handlePOST end\n";
+	Logger::log(Logger::INFO, "Response::handlePOST end");
 
     return createResponse(status_code, "text/plain", status_message, "");
 }
@@ -702,7 +702,7 @@ int Response::buildIndexPath(LocationConfig *matchLocation, STR &best_file_path,
 	//if request is file
 	if (_request->_file_name != "") {
 		best_file_path.append(_request->_file_name);
-		std::cerr << "Response::buildBestPath: FILE full path is " << best_file_path << "\n";
+		Logger::log(Logger::INFO, "Response::buildBestPath: FILE full path is " + best_file_path);
 		return 1;
 	}
 
@@ -715,11 +715,11 @@ int Response::buildIndexPath(LocationConfig *matchLocation, STR &best_file_path,
 	{
 		// return createResponse(403, "text/plain", "NO SUCH FILE FOUND (change later)", "");
 
-		std::cerr << "selectIndexAll(matchLocation) error: " << e.what() << "\n";
+		Logger::cerrlog(Logger::ERROR, "Response::buildFilePath: no index file found");
 		return 0;
 	}
 
-	std::cerr << "Response::buildFilePath: full path is " << best_file_path << "\n";
+	Logger::log(Logger::INFO, "Response::buildFilePath: index file is " + best_file_path);
 	return 1;
 }
 
@@ -738,37 +738,24 @@ STR	Response::matchMethod(STR path, bool isDIR, LocationConfig *matchLocation) {
 	if (_request->_method == "GET") {
 		if (!check_method_allowed("GET", matchLocation))
 			return createErrorResponse(405, "text/plain", "Method Not Allowed", matchLocation);
-		std::cerr << "Response::matchMethod GET path" << path << " isDIR " << isDIR << std::endl;
+			Logger::log(Logger::INFO, "Response::matchMethod GET path" + path + " isDIR " + Utils::floatToString(isDIR));
 		return (handleGET(path, isDIR));
 	} else if (_request->_method == "POST") {
 		if (!check_method_allowed("POST", matchLocation))
 			return createErrorResponse(405, "text/plain", "Method Not Allowed", matchLocation);
-		std::cerr << "Response::matchMethod POST path" << path << " isDIR " << isDIR << std::endl;
+			Logger::log(Logger::INFO, "Response::matchMethod POST path" + path + " isDIR " + Utils::floatToString(isDIR));
 		return (handlePOST(path));
 	} else if (_request->_method == "DELETE") {
 		if (!check_method_allowed("DELETE", matchLocation))
 			return createErrorResponse(405, "text/plain", "Method Not Allowed", matchLocation);
-		std::cerr << "Response::matchMethod DELETE path" << path << " isDIR " << isDIR << std::endl;
+			Logger::log(Logger::INFO, "Response::matchMethod DELETE path" + path + " isDIR " + Utils::floatToString(isDIR));
 		return (handleDELETE(path));
 	} else {
-		std::cerr << "Response::matchMethod UNUSUAL METHOD ERROR: " << _request->_method << "\n";
+		Logger::cerrlog(Logger::ERROR, "Response::matchMethod: UNUSUAL METHOD ERROR: " + _request->_method);
 		return createErrorResponse(405, "text/plain", "Method Not Allowed", matchLocation);
 	}
 }
 
-static STR intToString(int num) {
-	std::ostringstream oss;
-	oss << num;
-
-	return oss.str();
-}
-
-static STR floatToString(float num) {
-	std::ostringstream oss;
-	oss << num;
-
-	return oss.str();
-}
 
 STR	Response::checkRedirect(LocationConfig *matchLocation) {
 	AConfigBase*	back_ref = matchLocation;
@@ -886,10 +873,10 @@ STR Response::getResponse() {
 	if (_request->_file_path.size() > 1 && _request->_file_path.at(_request->_file_path.size() - 1) == '/') {
 		isDIR = true;
 
-		std::cerr << "IS DIR : " << _request->_file_path;
+		// std::cerr << "IS DIR : " << _request->_file_path;
 		_request->_file_path = _request->_file_path.substr(0, _request->_file_path.size() - 1);
 		_request->_file_name += '\0';
-		std::cerr << ", new: " << _request->_file_path << "\n";
+		// std::cerr << ", new: " << _request->_file_path << "\n";
 	}
 
 	matchLocation = buildDirPath(matchServer, dir_path, isDIR);
@@ -906,32 +893,6 @@ STR Response::getResponse() {
 	if (temp_str != "")
 		return temp_str;
 
-
-	//if location is a proxy pass
-	if (matchLocation->_proxy_pass_host != "") {
-        std::map<STR, STR> env;
-
-        // Format the body as url-encoded form data if it's a POST request
-        STR formattedBody = _request->_body;
-
-        env["REQUEST_METHOD"] = _request->_method;
-        env["SCRIPT_NAME"] = _request->_file_path;
-        env["QUERY_STRING"] = _request->_query_string;  // Make sure query string is passed
-        env["CONTENT_TYPE"] = "application/x-www-form-urlencoded";
-        env["HTTP_HOST"] = matchLocation->_proxy_pass_host;
-        env["SERVER_PORT"] = intToString(matchLocation->_proxy_pass_port);
-        env["SERVER_PROTOCOL"] = _request->_http_version;
-        env["HTTP_COOKIE"] = _request->_cookies;
-
-        std::cerr << "DEBUG - Proxy request details:" << std::endl;
-        std::cerr << "Path: " << _request->_file_path << std::endl;
-        std::cerr << "Query: " << _request->_query_string << std::endl;
-        std::cerr << "Method: " << _request->_method << std::endl;
-
-        CgiHandler cgi("", env, formattedBody);
-        return cgi.executeProxy();
-    }
-
 	//if it's a script file - execute it
 	if (ends_with(dir_path, ".py") || ends_with(dir_path, ".php") || ends_with(dir_path, ".pl") || ends_with(dir_path, ".sh")) {
 		std::map<STR, STR> env;
@@ -941,7 +902,7 @@ STR Response::getResponse() {
 		env["QUERY_STRING"] = _request->_query_string.empty() ? "" : _request->_query_string;
 		env["CONTENT_TYPE"] = _request->_http_content_type.empty() ? "text/plain" : _request->_http_content_type;  // this is changed
 		env["HTTP_HOST"] = _request->_host;
-		env["SERVER_PORT"] = intToString(_request->_port);
+		env["SERVER_PORT"] = Utils::intToString(_request->_port);
 		env["SERVER_PROTOCOL"] = _request->_http_version;
 		env["HTTP_COOKIE"] = _request->_cookies;
 
@@ -950,7 +911,7 @@ STR Response::getResponse() {
 	}
 
 	if (_request->_method == "POST") {
-		std::cerr << "Response::getResponse POST path " << dir_path << " isDIR " << isDIR << std::endl;
+		Logger::log(Logger::INFO, "Response::getResponse POST path " + dir_path + " isDIR " + Utils::floatToString(isDIR));
 
 		try {
 			if (!matchLocation->_upload_store.empty()) {  // this part is to be tested, upload_store
@@ -959,11 +920,11 @@ STR Response::getResponse() {
 				} else {
 					dir_path = matchLocation->_upload_store + dir_path;
 				}
-				std::cerr << "DEBUG Response::handlePOST: new upload dir is " << dir_path << "\n";
+				Logger::log(Logger::INFO, "Response::getResponse POST path " + dir_path + " isDIR " + Utils::floatToString(isDIR));
 			}
 		}
 		catch (const std::exception& e) {
-			std::cerr << "DEBUG Response::handlePOST: upload_store error: " << e.what() << "\n";
+			Logger::cerrlog(Logger::ERROR, "Response::getResponse: upload_store error: " + STR(e.what()));
 		}
 		return (handlePOST(dir_path));
 	}

@@ -72,7 +72,8 @@ int RequestsManager::HandleRead() {
 					std::cerr << "nbytes == 0\n";
 					CloseClient();
 				}
-				throw std::runtime_error("read error");
+				Logger::cerrlog(Logger::ERROR, "RequestManager::HandleRead: Error reading request");
+				CloseClient();
 				return 0;
 			}
 
@@ -194,7 +195,7 @@ int RequestsManager::HandleClient(short int revents) {
 		HandleWrite();
 	}
 	if (revents & (POLLERR | POLLHUP | POLLNVAL)) {
-		Logger::cerrlog(Logger::INFO, "Requests else");
+		Logger::cerrlog(Logger::INFO, "Socket error or hangup");
 		CloseClient();
 		return 0;
 	}

@@ -3,6 +3,8 @@
 # include "Request.hpp"
 # include <iostream>
 # include "CgiHandler.hpp"
+# include "Logger.hpp"
+# include "Utils.hpp"
 
 #include <cerrno>
 #include <cstring> // For strerror

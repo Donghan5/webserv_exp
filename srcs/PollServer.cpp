@@ -67,19 +67,24 @@ void PollServer::setConfig(HttpConfig *config) {
 			throw std::runtime_error("Failed to create socket");
 		}
 
-		// struct timeval timeout;
-		// timeout.tv_sec = 5;  // 5 seconds
-		// timeout.tv_usec = 0; // 0 microseconds
+		struct timeval timeout;
+		timeout.tv_sec = 1;  // 5 seconds
+		timeout.tv_usec = 0; // 0 microseconds
 
-		// if (setsockopt(server_socket, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) < 0) {
-		// 	close(server_socket);
-		// 	throw std::runtime_error("Failed to set socket options");
-		// }
-
-		int empty = 1;
-		if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, (char *) &empty, sizeof(empty)) < 0) {
+		if (setsockopt(server_socket, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) < 0) {
 			close(server_socket);
 			throw std::runtime_error("Failed to set socket options");
+		}
+
+		if (setsockopt(server_socket, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout)) < 0) {
+			close(server_socket);
+			throw std::runtime_error("Failed to set socket send timeout");
+		}
+
+		int reuse = 1;
+		if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0) {
+			close(server_socket);
+			throw std::runtime_error("Failed to set reuse address option");
 		}
 
 		fcntl(server_socket, F_SETFL, O_NONBLOCK);
@@ -147,6 +152,7 @@ void PollServer::CloseClient(int client_fd) {
 	{
 		if (_pollfds[i].fd == client_fd)
 		{
+			Logger::cerrlog(Logger::DEBUG, "PollServer::CloseClient() - Closing client fd: " + intToString(client_fd));
 			_pollfds.erase(_pollfds.begin() + i);
 			break;
 		}
@@ -181,7 +187,7 @@ void PollServer::AcceptClient(int new_fd) {
 bool PollServer::WaitAndService(RequestsManager &manager, VECTOR<struct pollfd>	&temp_pollfds) {
 	temp_pollfds = _pollfds;
 
-	if (poll(&temp_pollfds[0], temp_pollfds.size(), -1) < 0) {
+	if (poll(&temp_pollfds[0], temp_pollfds.size(), 5000) < 0) {
         if (errno == EINTR)
             return true;
         throw std::runtime_error("Poll failed");
@@ -191,6 +197,30 @@ bool PollServer::WaitAndService(RequestsManager &manager, VECTOR<struct pollfd>	
 	{
 		if (temp_pollfds[i].revents == 0)
 			continue;
+
+        // Check for errors on all sockets (server and client)
+        if (temp_pollfds[i].revents & (POLLERR | POLLHUP | POLLNVAL)) {
+            Logger::cerrlog(Logger::INFO, "Socket error or hangup for fd: " + intToString(temp_pollfds[i].fd));
+
+            // Check if this is a server socket
+            bool is_server_socket = false;
+            for (std::map<int, int>::iterator it = _server_sockets.begin(); it != _server_sockets.end(); it++) {
+                if (temp_pollfds[i].fd == it->second) {
+                    is_server_socket = true;
+                    break;
+                }
+            }
+
+            if (is_server_socket) {
+                // This is a serious error on a server socket - might need special handling
+                Logger::cerrlog(Logger::ERROR, "Error on server socket: " + intToString(temp_pollfds[i].fd));
+                // Consider reopening the server socket or other recovery
+            } else {
+                // This is a client socket - just close it
+                CloseClient(temp_pollfds[i].fd);
+            }
+            continue;
+        }
 
 		bool is_server_socket = false;
 		for (std::map<int, int>::iterator it = _server_sockets.begin(); it != _server_sockets.end(); it++) {
