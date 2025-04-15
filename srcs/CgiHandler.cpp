@@ -7,14 +7,6 @@ CgiHandler::CgiHandler(const std::string &scriptPath, const std::map<std::string
 	_interpreters[".sh"] = "/bin/bash";
 }
 
-
-std::string intToString(int num) {
-	std::ostringstream oss;
-	oss << num;
-
-	return oss.str();
-}
-
 CgiHandler::~CgiHandler() {}
 
 /*
