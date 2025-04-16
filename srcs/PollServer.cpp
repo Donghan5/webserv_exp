@@ -30,7 +30,6 @@ static STR intToString(int num) {
 	return oss.str();
 }
 
-
 void PollServer::setConfig(HttpConfig *config) {
 	if (!config)
 		throw std::runtime_error("Config does not exist");
@@ -256,6 +255,90 @@ bool PollServer::WaitAndService(RequestsManager &manager, VECTOR<struct pollfd>	
 		}
 	}
 	return true;
+}
+
+// excute cgi process
+void PollServer::excuteCGI(int client_fd, const std::string &cgi_path, const std::map< std::string, std::string > &env, const std::string& body)std::string CgiHandler::executeCgi() {
+	int pipefd_in[2], pipefd_out[2];
+
+	if (pipe(pipefd_in) == -1 || pipe(pipefd_out) == -1) {
+		Logger::cerrlog(Logger::ERROR, "Pipe error");
+		return;
+	}
+
+
+	// change pipe to non-blocking mode
+	fcntl(pipefd_in[0], F_SETFL, O_NONBLOCK);
+	fcntl(pipefd_out[0], F_SETFL, O_NONBLOCK);
+	fcntl(pipefd_in[1], F_SETFL, O_NONBLOCK);
+	fcntl(pipefd_out[1], F_SETFL, O_NONBLOCK);
+
+	// fork the process
+	pid_t pid = fork();
+	if (pid < 0) {
+		Logger::cerrlog(Logger::ERROR, "Fork error");
+		return;
+	}
+
+	if (pid == 0) {  // child process
+		dup2(pipefd_out[1], STDOUT_FILENO);
+		close(pipefd_out[0]);
+		close(pipefd_out[1]);
+
+		dup2(pipefd_in[0], STDIN_FILENO);
+		close(pipefd_in[0]);
+		close(pipefd_in[1]);
+
+		char **envp = CGIHandler::convertEnvToCharArray();
+		std::string extension = _scriptPath.substr(_scriptPath.find_last_of("."));
+		std::map<std::string, std::string>::const_iterator it = _interpreters.find(extension);
+		if (it == _interpreters.end()) { // free the memory
+			for(size_t i = 0; envp[i] != NULL; i++) {
+				free(envp[i]);
+			}
+			delete[] envp;
+			exit(1);
+		}
+
+		char **args = convertArgsToCharArray(it->second);
+		execve(args[0], args, envp);
+
+		for (size_t i = 0; envp[i] != NULL; i++) {
+			free(envp[i]);
+		}
+		delete[] envp;
+
+		for (size_t i = 0; args[i] != NULL; i++) {
+			free(args[i]);
+		}
+		delete[] args;
+		exit(1);
+	} else {
+		close(pipefd_out[1]);
+		close(pipefd_in[0]);
+
+		if (!_body.empty()) {
+			write(pipefd_in[1], _body.c_str(), _body.size());
+		}
+		close(pipefd_in[1]);
+
+		char buffer[4096];
+		std::string output;
+		int byteRead;
+
+		while ((byteRead = read(pipefd_out[0], buffer, sizeof(buffer))) > 0) {
+			output.append(buffer, byteRead);
+		}
+		close(pipefd_out[0]);
+
+		int status;
+		waitpid(pid, &status, 0);
+		if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+			return "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n" + output;
+		} else {
+			return "500 Internal Server Error\r\n\r\nCGI Execution Failed";
+		}
+	}
 }
 
 void PollServer::start() {

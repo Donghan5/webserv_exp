@@ -3,6 +3,7 @@
 # include "HttpConfig.hpp"
 # include "RequestsManager.hpp"
 # include <iostream>
+# include "CgiHandler.hpp"
 
 //to clean
 #include <sys/socket.h>
@@ -32,6 +33,17 @@ class PollServer {
 		bool						WaitAndService(RequestsManager &requests, VECTOR<struct pollfd>	&temp_pollfds);
 		void						AcceptClient(int new_fd);
 		void 						CloseClient(int client_fd);
+		void						excuteCGI(int client_fd, const std::string &cgi_path, const std::map< std::string, std::string > &env, const std::string& body);
+
+		struct CGIProcess{
+			pid_t pid;
+			int pipefd_in[2];
+			int pipefd_out[2];
+			std::string partial_output;
+		};
+
+		std::map<int, CGIProcess>	_cgi_processes;
+		std::map<int, int> _client_to_cgi;
 
 	public:
 		PollServer();
@@ -43,6 +55,7 @@ class PollServer {
 
 		void start();
 		void stop();
+
 };
 
 #endif
