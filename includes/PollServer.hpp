@@ -33,7 +33,6 @@ class PollServer {
 		bool						WaitAndService(RequestsManager &requests, VECTOR<struct pollfd>	&temp_pollfds);
 		void						AcceptClient(int new_fd);
 		void 						CloseClient(int client_fd);
-		void						excuteCGI(int client_fd, const std::string &cgi_path, const std::map< std::string, std::string > &env, const std::string& body);
 
 		struct CGIProcess{
 			pid_t pid;
@@ -45,13 +44,14 @@ class PollServer {
 		std::map<int, CGIProcess>	_cgi_processes;
 		std::map<int, int> _client_to_cgi;
 
-	public:
+		public:
 		PollServer();
 		PollServer(const PollServer &obj);
 		PollServer(HttpConfig *config);
 		~PollServer();
 
 		void setConfig(HttpConfig *config);
+		void excuteCGI(int client_fd, const std::string &cgi_path, const std::map< std::string, std::string > &env, const std::string& body);
 
 		void start();
 		void stop();

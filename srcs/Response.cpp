@@ -893,22 +893,6 @@ STR Response::getResponse() {
 	if (temp_str != "")
 		return temp_str;
 
-	//if it's a script file - execute it
-	if (ends_with(dir_path, ".py") || ends_with(dir_path, ".php") || ends_with(dir_path, ".pl") || ends_with(dir_path, ".sh")) {
-		std::map<STR, STR> env;
-
-		env["REQUEST_METHOD"] = _request->_method;
-		env["SCRIPT_NAME"] = dir_path;
-		env["QUERY_STRING"] = _request->_query_string.empty() ? "" : _request->_query_string;
-		env["CONTENT_TYPE"] = _request->_http_content_type.empty() ? "text/plain" : _request->_http_content_type;  // this is changed
-		env["HTTP_HOST"] = _request->_host;
-		env["SERVER_PORT"] = Utils::intToString(_request->_port);
-		env["SERVER_PROTOCOL"] = _request->_http_version;
-		env["HTTP_COOKIE"] = _request->_cookies;
-
-		excuteCGI()
-	}
-
 	if (_request->_method == "POST") {
 		Logger::log(Logger::INFO, "Response::getResponse POST path " + dir_path + " isDIR " + Utils::floatToString(isDIR));
 

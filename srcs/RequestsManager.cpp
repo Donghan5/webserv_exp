@@ -1,6 +1,16 @@
 #include "RequestsManager.hpp"
 #include "Logger.hpp"
 
+// helper function ends_with
+static bool ends_with(const STR &str, const STR &suffix)
+{
+	if (str.length() < suffix.length())
+	{
+		return false;
+	}
+	return str.compare(str.length() - suffix.length(), suffix.length(), suffix) == 0;
+}
+
 RequestsManager::RequestsManager(/* args */)
 {
 	_config = NULL;
@@ -146,6 +156,23 @@ int RequestsManager::HandleRead() {
 				_partial_requests.erase(_client_fd);
 				return 2;
 			}
+		}
+		STR file_path = request._file_path;
+		if (ends_with(file_path, ".py") || ends_with(file_path, ".php") || ends_with(file_path, ".pl") || ends_with(file_path, ".sh")) {
+			std::map<STR, STR> env;
+
+			env["REQUEST_METHOD"] = request._method;
+			env["SCRIPT_NAME"] = file_path;
+			env["QUERY_STRING"] = request._query_string.empty() ? "" : request._query_string;
+			env["CONTENT_TYPE"] = request._http_content_type.empty() ? "text/plain" : request._http_content_type;  // this is changed
+			env["HTTP_HOST"] = request._host;
+			env["SERVER_PORT"] = Utils::intToString(request._port);
+			env["SERVER_PROTOCOL"] = request._http_version;
+			env["HTTP_COOKIE"] = request._cookies;
+
+			request.setServer(_server);
+			request.setClientFd(_client_fd);
+			_server->excuteCGI(_client_fd, file_path, env, request._body);
 		}
     } catch (const std::exception& e) {
 		body_read = -1;
