@@ -37,6 +37,10 @@ RequestsManager::~RequestsManager() {
 
 }
 
+void RequestsManager::setServer(PollServer *server) {
+	_server = server;
+}
+
 void RequestsManager::setConfig(HttpConfig *config) {
 	_config = config;
 	_partial_requests.erase(_client_fd);
@@ -199,6 +203,7 @@ int RequestsManager::HandleClient(short int revents) {
 		CloseClient();
 		return 0;
 	}
+
 	if (status == 2)
 		return 2;
 	return 1;

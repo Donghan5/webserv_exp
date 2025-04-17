@@ -23,8 +23,8 @@
 
 class CgiHandler {
 	public:
-		static char **convertEnvToCharArray(void);
-		static char **convertArgsToCharArray(const std::string &interpreter);
+		static char **convertEnvToCharArray(const std::map<std::string, std::string>& env);
+		static char **convertArgsToCharArray(const std::string &interpreter, const std::string &scriptPath);
 		static std::string createErrorResponse(const std::string& status, const std::string& message);
 
 };

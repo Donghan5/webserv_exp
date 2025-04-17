@@ -25,6 +25,9 @@ class RequestsManager {
 		void setClientFd(int client_fd);
 		int HandleClient(short int revents);
 		void CloseClient();
+
+		PollServer		*_server;
+		void setServer(PollServer *server);
 };
 
 #endif

@@ -1,13 +1,13 @@
 #include "../includes/CgiHandler.hpp"
 
 /*
-	Convert to envp using execve function
+ * Convert to envp using execve function
 */
-char **CgiHandler::convertEnvToCharArray(char **env) {
-	char **envp = new char*[_env.size() + 1];
+char **CgiHandler::convertEnvToCharArray(const std::map<std::string, std::string> &env) {
+	char **envp = new char*[env.size() + 1];
 	int i = 0;
-	std::map<std::string, std::string>::const_iterator it = _env.begin();
-	for (; it != _env.end(); it++) {
+	std::map<std::string, std::string>::const_iterator it = env.begin();
+	for (; it != env.end(); it++) {
 		std::string envEntry = it->first + "=" + it->second;
 		envp[i] = strdup(envEntry.c_str());
 		i++;
@@ -17,12 +17,12 @@ char **CgiHandler::convertEnvToCharArray(char **env) {
 }
 
 /*
- * args to launch cgi --> I need it? I'm not sure
+ * Convet to args using execve function
 */
-char **CgiHandler::convertArgsToCharArray(const std::string &interpreter) {
+char **CgiHandler::convertArgsToCharArray(const std::string &interpreter, const std::string &scriptPath) {
 	char **args = new char*[3];
 	args[0] = strdup(interpreter.c_str());
-	args[1] = strdup(_scriptPath.c_str());
+	args[1] = strdup(scriptPath.c_str());
 	args[2] = NULL;
 	return (args);
 }

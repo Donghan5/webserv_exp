@@ -906,8 +906,7 @@ STR Response::getResponse() {
 		env["SERVER_PROTOCOL"] = _request->_http_version;
 		env["HTTP_COOKIE"] = _request->_cookies;
 
-		CgiHandler cgi(dir_path, env, _request->_body);
-		return cgi.executeCgi();
+		excuteCGI()
 	}
 
 	if (_request->_method == "POST") {

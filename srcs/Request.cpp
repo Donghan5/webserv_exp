@@ -358,6 +358,15 @@ Request::Request() {
 	_body_size = 0;
 }
 
+// set server
+void Request::setServer(PollServer *server) {
+	_server = server;
+}
+
+void Request::setClientFd(int client_fd) {
+	_client_fd = client_fd;
+}
+
 Request::Request(STR request) {
 	_full_request = request;
 	_cookies = "";

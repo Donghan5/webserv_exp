@@ -215,7 +215,43 @@ bool PollServer::WaitAndService(RequestsManager &manager, VECTOR<struct pollfd>	
                 Logger::cerrlog(Logger::ERROR, "Error on server socket: " + intToString(temp_pollfds[i].fd));
                 // Consider reopening the server socket or other recovery
             } else {
-                // This is a client socket - just close it
+				// check if this is a cgi process
+				bool is_cgi_process = false;
+				for (std::map<int, CGIProcess>::iterator it = _cgi_processes.begin(); it != _cgi_processes.end(); it++) {
+					if (temp_pollfds[i].fd == it->second.pipefd_out[0]) {
+						is_cgi_process = true;
+
+						// close the cgi process
+						close(it->second.pipefd_out[0]);
+						close(it->second.pipefd_in[1]);
+
+						// search client
+						int cliend_fd = -1;
+						for (std::map<int, int>::iterator cit = _client_to_cgi.begin(); cit != _client_to_cgi.end(); cit++) {
+							if (cit->second == it->first) {
+								cliend_fd = cit->first;
+								break;
+							}
+						}
+
+						if (cliend_fd != -1) {
+							// send the output of the CGI process to the client
+							std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n" + it->second.partial_output;
+
+							// send the response to the client
+							send(cliend_fd, response.c_str(), response.length(), 0);
+							_client_to_cgi.erase(cliend_fd);
+
+							// close the client
+							CloseClient(cliend_fd);
+						}
+
+						_cgi_processes.erase(it->first); // clear CGI process
+						break;
+					}
+				}
+
+                // This is a client socket - just close it (normal client socket)
                 CloseClient(temp_pollfds[i].fd);
             }
             continue;
@@ -258,7 +294,7 @@ bool PollServer::WaitAndService(RequestsManager &manager, VECTOR<struct pollfd>	
 }
 
 // excute cgi process
-void PollServer::excuteCGI(int client_fd, const std::string &cgi_path, const std::map< std::string, std::string > &env, const std::string& body)std::string CgiHandler::executeCgi() {
+void PollServer::excuteCGI(int client_fd, const std::string &cgi_path, const std::map<std::string, std::string> &env, const std::string& body) {
 	int pipefd_in[2], pipefd_out[2];
 
 	if (pipe(pipefd_in) == -1 || pipe(pipefd_out) == -1) {
@@ -273,12 +309,29 @@ void PollServer::excuteCGI(int client_fd, const std::string &cgi_path, const std
 	fcntl(pipefd_in[1], F_SETFL, O_NONBLOCK);
 	fcntl(pipefd_out[1], F_SETFL, O_NONBLOCK);
 
+	// Initialize CGIProcess struct
+	CGIProcess process;
+	process.pipefd_in[0] = pipefd_in[0];
+	process.pipefd_in[1] = pipefd_in[1];
+	process.pipefd_out[0] = pipefd_out[0];
+	process.pipefd_out[1] = pipefd_out[1];
+	process.partial_output = "";
+
+
 	// fork the process
 	pid_t pid = fork();
 	if (pid < 0) {
 		Logger::cerrlog(Logger::ERROR, "Fork error");
+
+		// close all the pipes
+		close(pipefd_in[0]);
+		close(pipefd_in[1]);
+		close(pipefd_out[0]);
+		close(pipefd_out[1]);
 		return;
 	}
+
+	process.pid = pid;
 
 	if (pid == 0) {  // child process
 		dup2(pipefd_out[1], STDOUT_FILENO);
@@ -289,56 +342,67 @@ void PollServer::excuteCGI(int client_fd, const std::string &cgi_path, const std
 		close(pipefd_in[0]);
 		close(pipefd_in[1]);
 
-		char **envp = CGIHandler::convertEnvToCharArray();
-		std::string extension = _scriptPath.substr(_scriptPath.find_last_of("."));
-		std::map<std::string, std::string>::const_iterator it = _interpreters.find(extension);
-		if (it == _interpreters.end()) { // free the memory
-			for(size_t i = 0; envp[i] != NULL; i++) {
-				free(envp[i]);
-			}
-			delete[] envp;
+		char **envp = CgiHandler::convertEnvToCharArray(env);
+		std::string extension = cgi_path.substr(cgi_path.find_last_of(".") + 1);
+		char **args = NULL;
+
+		// set environment variables for CGI
+		if (extension == "php") {
+			args = CgiHandler::convertArgsToCharArray("/usr/bin/php-cgi", cgi_path);
+		}
+		else if (extension == "py") {
+			args = CgiHandler::convertArgsToCharArray("/usr/bin/python3", cgi_path);
+		}
+		else if (extension == "pl") {
+			args = CgiHandler::convertArgsToCharArray("/usr/bin/perl", cgi_path);
+		}
+		else if (extension == "sh") {
+			args = CgiHandler::convertArgsToCharArray("/bin/bash", cgi_path);
+		}
+		else {  // unsupported extension
+			Logger::cerrlog(Logger::ERROR, "Unsupported CGI extension");
 			exit(1);
 		}
 
-		char **args = convertArgsToCharArray(it->second);
+		// excute CGI
 		execve(args[0], args, envp);
 
-		for (size_t i = 0; envp[i] != NULL; i++) {
+		// if execve fails print logs
+		Logger::cerrlog(Logger::ERROR, "Execve error" + std::string(strerror(errno)));
+
+		// clean up memories
+		for (int i = 0; envp[i] != NULL; i++) {
 			free(envp[i]);
 		}
-		delete[] envp;
+		free(envp);
 
-		for (size_t i = 0; args[i] != NULL; i++) {
+		for (int i = 0; args[i] != NULL; i++) {
 			free(args[i]);
 		}
-		delete[] args;
+		free(args);
 		exit(1);
-	} else {
+	}
+	else {  // parent process
 		close(pipefd_out[1]);
-		close(pipefd_in[0]);
-
-		if (!_body.empty()) {
-			write(pipefd_in[1], _body.c_str(), _body.size());
-		}
-		close(pipefd_in[1]);
-
 		char buffer[4096];
-		std::string output;
 		int byteRead;
 
-		while ((byteRead = read(pipefd_out[0], buffer, sizeof(buffer))) > 0) {
-			output.append(buffer, byteRead);
+		// if body is not empty, write it to the pipe
+		if (!body.empty()) {
+			write(pipefd_in[1], body.c_str(), body.length());
 		}
-		close(pipefd_out[0]);
+		close(pipefd_in[0]);
 
-		int status;
-		waitpid(pid, &status, 0);
-		if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
-			return "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n" + output;
-		} else {
-			return "500 Internal Server Error\r\n\r\nCGI Execution Failed";
-		}
-	}
+		// set the process in the map to keep track and manage it
+		_cgi_processes[pid] = process;
+		_client_to_cgi[client_fd] = pid;
+
+		struct pollfd cgi_pollfd;
+		cgi_pollfd.fd = pipefd_out[0];
+		cgi_pollfd.events = POLLIN;
+		cgi_pollfd.revents = 0;
+		_pollfds.push_back(cgi_pollfd);
+		Logger::log(Logger::INFO, "CGI process created with PID: " + intToString(pid));}
 }
 
 void PollServer::start() {
