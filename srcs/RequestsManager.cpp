@@ -73,6 +73,7 @@ int RequestsManager::HandleRead() {
 	Request				request;
 	Response			response;
 	long long	body_read = -1;
+	bool		body_read_done = false;
 
     try {
         char 	buffer[4096];
@@ -130,6 +131,7 @@ int RequestsManager::HandleRead() {
 
 					_partial_responses[_client_fd] = response.getResponse();
 					_partial_requests.erase(_client_fd);
+					body_read_done = true;
 					return 2;
 				}
 			}
@@ -157,22 +159,24 @@ int RequestsManager::HandleRead() {
 				return 2;
 			}
 		}
-		STR file_path = request._file_path;
-		if (ends_with(file_path, ".py") || ends_with(file_path, ".php") || ends_with(file_path, ".pl") || ends_with(file_path, ".sh")) {
-			std::map<STR, STR> env;
+		if (body_read_done == false) {
+			STR file_path = request._file_path;
+			if (ends_with(file_path, ".py") || ends_with(file_path, ".php") || ends_with(file_path, ".pl") || ends_with(file_path, ".sh")) {
+				std::map<STR, STR> env;
 
-			env["REQUEST_METHOD"] = request._method;
-			env["SCRIPT_NAME"] = file_path;
-			env["QUERY_STRING"] = request._query_string.empty() ? "" : request._query_string;
-			env["CONTENT_TYPE"] = request._http_content_type.empty() ? "text/plain" : request._http_content_type;  // this is changed
-			env["HTTP_HOST"] = request._host;
-			env["SERVER_PORT"] = Utils::intToString(request._port);
-			env["SERVER_PROTOCOL"] = request._http_version;
-			env["HTTP_COOKIE"] = request._cookies;
+				env["REQUEST_METHOD"] = request._method;
+				env["SCRIPT_NAME"] = file_path;
+				env["QUERY_STRING"] = request._query_string.empty() ? "" : request._query_string;
+				env["CONTENT_TYPE"] = request._http_content_type.empty() ? "text/plain" : request._http_content_type;  // this is changed
+				env["HTTP_HOST"] = request._host;
+				env["SERVER_PORT"] = Utils::intToString(request._port);
+				env["SERVER_PROTOCOL"] = request._http_version;
+				env["HTTP_COOKIE"] = request._cookies;
 
-			request.setServer(_server);
-			request.setClientFd(_client_fd);
-			_server->excuteCGI(_client_fd, file_path, env, request._body);
+				request.setServer(_server);
+				request.setClientFd(_client_fd);
+				_server->excuteCGI(_client_fd, file_path, env, request._body);
+			}
 		}
     } catch (const std::exception& e) {
 		body_read = -1;

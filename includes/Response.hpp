@@ -9,6 +9,8 @@
 #include <cerrno>
 #include <cstring> // For strerror
 
+class Request;
+
 enum FileType {
     NotFound,
     NormalFile,

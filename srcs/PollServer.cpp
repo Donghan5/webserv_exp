@@ -215,42 +215,6 @@ bool PollServer::WaitAndService(RequestsManager &manager, VECTOR<struct pollfd>	
                 Logger::cerrlog(Logger::ERROR, "Error on server socket: " + intToString(temp_pollfds[i].fd));
                 // Consider reopening the server socket or other recovery
             } else {
-				// check if this is a cgi process
-				bool is_cgi_process = false;
-				for (std::map<int, CGIProcess>::iterator it = _cgi_processes.begin(); it != _cgi_processes.end(); it++) {
-					if (temp_pollfds[i].fd == it->second.pipefd_out[0]) {
-						is_cgi_process = true;
-
-						// close the cgi process
-						close(it->second.pipefd_out[0]);
-						close(it->second.pipefd_in[1]);
-
-						// search client
-						int cliend_fd = -1;
-						for (std::map<int, int>::iterator cit = _client_to_cgi.begin(); cit != _client_to_cgi.end(); cit++) {
-							if (cit->second == it->first) {
-								cliend_fd = cit->first;
-								break;
-							}
-						}
-
-						if (cliend_fd != -1) {
-							// send the output of the CGI process to the client
-							std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n" + it->second.partial_output;
-
-							// send the response to the client
-							send(cliend_fd, response.c_str(), response.length(), 0);
-							_client_to_cgi.erase(cliend_fd);
-
-							// close the client
-							CloseClient(cliend_fd);
-						}
-
-						_cgi_processes.erase(it->first); // clear CGI process
-						break;
-					}
-				}
-
                 // This is a client socket - just close it (normal client socket)
                 CloseClient(temp_pollfds[i].fd);
             }

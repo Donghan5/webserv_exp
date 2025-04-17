@@ -21,6 +21,8 @@
 #include <fcntl.h>
 #include <map>
 
+class RequestsManager;
+
 class PollServer {
 	private:
 		HttpConfig 					*config;

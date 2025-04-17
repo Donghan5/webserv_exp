@@ -21,6 +21,8 @@
 #include <fcntl.h>
 #include <map>
 
+class PollServer;
+
 enum ChunkedState {
 	CHUNK_SIZE,  // chunk size
 	CHUNK_EXT,  // chunk extension

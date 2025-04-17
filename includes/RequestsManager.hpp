@@ -2,6 +2,8 @@
 # define REQUESTSMANAGER_HPP
 # include "Response.hpp"
 
+class PollServer;
+
 class RequestsManager {
 	private:
 		HttpConfig 		*_config;
