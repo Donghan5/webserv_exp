@@ -3,7 +3,6 @@
 # include "HttpConfig.hpp"
 # include "LocationConfig.hpp"
 # include "ServerConfig.hpp"
-# include "PollServer.hpp"
 # include <iostream>
 
 #include <sys/socket.h>
@@ -20,8 +19,6 @@
 #include <poll.h>
 #include <fcntl.h>
 #include <map>
-
-class PollServer;
 
 enum ChunkedState {
 	CHUNK_SIZE,  // chunk size
@@ -62,17 +59,12 @@ class Request {
 		unsigned long long					_chunk_size;  // added for transfer-encoding
 		unsigned long long					_chunk_data_read; // added for transfer-encoding
 		STR									_chunk_buffer;  //	 added for transfer-encoding
-		PollServer							*_server;
-		int									_client_fd;
 
 		bool								setRequest(STR request);
 
 		bool								parseHeader();
 		bool								parseBody();
 		void 								clear();
-
-		void								setServer(PollServer *server);
-		void								setClientFd(int client_fd);
 		Request();
 		Request(STR request);
 		Request(const Request &obj);

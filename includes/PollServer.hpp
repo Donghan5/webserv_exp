@@ -3,7 +3,6 @@
 # include "HttpConfig.hpp"
 # include "RequestsManager.hpp"
 # include <iostream>
-# include "CgiHandler.hpp"
 
 //to clean
 #include <sys/socket.h>
@@ -17,47 +16,59 @@
 #include <sys/stat.h>
 #include <cstdlib>
 #include <cstring>
-#include <poll.h>
 #include <fcntl.h>
 #include <map>
+#include <sys/epoll.h>
 
-class RequestsManager;
+
+enum FdType {
+    SERVER_FD,
+    CLIENT_FD,
+    CGI_FD,
+    POST_FD  // 추가된 타입: POST 작업 파일 디스크립터
+};
+
+
 
 class PollServer {
 	private:
-		HttpConfig 					*config;
-		bool						running;
-		std::map<int, int>			_server_sockets;
-		VECTOR<struct pollfd>		_pollfds;
-		std::map<int, STR>			_partial_requests;
-		std::map<int, STR>			_partial_responses;
+	HttpConfig 					*config;
+	bool						running;
+	std::map<int, int>			_server_sockets;      // port -> socket_fd
+	std::map<int, STR>			_partial_requests;
+	std::map<int, STR>			_partial_responses;
+	std::map<int, FdType>       _fd_types;           // Track fd types
+	std::map<int, int>          _cgi_to_client;      // Map CGI fd to client fd
+	int							_epoll_fd;
+	VECTOR<struct epoll_event>	_events;
+	const int MAX_EVENTS = 64;
 
-		bool						WaitAndService(RequestsManager &requests, VECTOR<struct pollfd>	&temp_pollfds);
-		void						AcceptClient(int new_fd);
-		void 						CloseClient(int client_fd);
+	bool						WaitAndService(RequestsManager &requests);
+	void						AcceptClient(int new_fd);
+	void 						CloseClient(int client_fd);
+	void                        HandleCgiOutput(int cgi_fd, RequestsManager &requests);
+	bool AddFd(int fd, uint32_t events, FdType type);
+	bool ModifyFd(int fd, uint32_t events);
+	bool RemoveFd(int fd);
+	bool AddServerSocket(int port, int socket_fd);
+	bool AddCgiFd(int cgi_fd, int client_fd);
+	// PollServer 클래스에 추가할 맵:
+	std::map<int, int> _post_to_client;      // POST 파일 fd에서 클라이언트 fd로의 매핑
 
-		struct CGIProcess{
-			pid_t pid;
-			int pipefd_in[2];
-			int pipefd_out[2];
-			std::string partial_output;
-		};
+	// PollServer 클래스에 추가할 메소드:
+	bool AddPostFd(int post_fd, int client_fd);
+	void HandlePostWrite(int post_fd, RequestsManager &manager);
 
-		std::map<int, CGIProcess>	_cgi_processes;
-		std::map<int, int> _client_to_cgi;
-
-		public:
+	public:
 		PollServer();
 		PollServer(const PollServer &obj);
 		PollServer(HttpConfig *config);
 		~PollServer();
 
 		void setConfig(HttpConfig *config);
-		void excuteCGI(int client_fd, const std::string &cgi_path, const std::map< std::string, std::string > &env, const std::string& body);
 
 		void start();
 		void stop();
-
 };
 
 #endif

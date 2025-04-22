@@ -22,11 +22,39 @@
 #include <sstream>
 
 class CgiHandler {
-	public:
-		static char **convertEnvToCharArray(const std::map<std::string, std::string>& env);
-		static char **convertArgsToCharArray(const std::string &interpreter, const std::string &scriptPath);
-		static std::string createErrorResponse(const std::string& status, const std::string& message);
+	private:
+		std::string _scriptPath;
+		std::map<std::string, std::string> _env;
+		std::string _body;
+		std::map<std::string, std::string> _interpreters;
+        
+		// For non-blocking operation
+		pid_t _cgi_pid;
+		int _input_pipe[2];
+		int _output_pipe[2];
+		bool _process_running;
+		std::string _output_buffer;
 
+		char **convertEnvToCharArray(void);
+		char **convertArgsToCharArray(const std::string &interpreter);
+		std::string createErrorResponse(const std::string& status, const std::string& message);
+
+	public:
+		CgiHandler(const std::string &scriptPath, const std::map<std::string, std::string> &env, const std::string &body);
+		~CgiHandler();
+
+		// Traditional synchronous execution (for backward compatibility)
+		std::string executeCgi();
+		std::string executeProxy();
+        
+		// New asynchronous methods for use with epoll
+		bool startCgi(); // Returns true if successfully started
+		bool isCgiRunning() const { return _process_running; }
+		int getOutputFd() const { return _output_pipe[0]; }
+		bool writeToCgi(const char* data, size_t len); // Write data to CGI input
+		std::string readFromCgi(); // Read data from CGI output
+		void closeCgi(); // Clean up resources
+		bool checkCgiStatus(); // Check if CGI has completed, returns true if done
 };
 
 #endif

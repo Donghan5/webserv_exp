@@ -1,5 +1,0 @@
-This txt file is to check multiple server name test.
-
-You Can replace url to your's url which want to check
-
-curl --resolve test42.fr:809:127.0.0.1 http://test42.fr:809

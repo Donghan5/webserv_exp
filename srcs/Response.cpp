@@ -187,13 +187,6 @@ void	init_status_codes(std::map<int, STR>	&status_codes) {
 	status_codes[511] = "511 Network Authentication Required";
 }
 
-Response::Response(Request *request, HttpConfig *config) {
-	init_mimetypes(_all_mime_types);
-	init_status_codes(_all_status_codes);
-	_request = request;
-	_config = config;
-}
-
 STR Response::createResponse(int statusCode, const STR& contentType, const STR& body, const STR& extra) {
     std::stringstream response;
     response << "HTTP/1.1 " << _all_status_codes[statusCode] << "\r\n"
@@ -210,12 +203,22 @@ STR Response::createResponse(int statusCode, const STR& contentType, const STR& 
     return response.str();
 }
 
-Response::Response()
-{
+Response::Response() {
 	init_mimetypes(_all_mime_types);
 	init_status_codes(_all_status_codes);
 	_request = NULL;
 	_config = NULL;
+    _cgi_handler = NULL;
+    _state = READY;
+}
+
+Response::Response(Request *request, HttpConfig *config) {
+	init_mimetypes(_all_mime_types);
+	init_status_codes(_all_status_codes);
+	_request = request;
+	_config = config;
+    _cgi_handler = NULL;
+    _state = READY;
 }
 
 Response::Response(const Response &obj) {
@@ -223,11 +226,39 @@ Response::Response(const Response &obj) {
 	_all_status_codes = obj._all_status_codes;
 	_request = obj._request;
 	_config = obj._config;
+    _cgi_handler = NULL; // Don't copy the CGI handler
+    _state = READY;
 }
 
 Response::~Response() {
-
+    if (_cgi_handler) {
+        delete _cgi_handler;
+        _cgi_handler = NULL;
+    }
 }
+
+void Response::clear() {
+    _request = NULL;
+    _config = NULL;
+
+    if (_cgi_handler) {
+        delete _cgi_handler;
+        _cgi_handler = NULL;
+    }
+
+    // POST 작업 정리 추가
+    if (_post_file_fd >= 0) {
+        close(_post_file_fd);
+        _post_file_fd = -1;
+    }
+    _post_bytes_written = 0;
+    _post_full_path.clear();
+
+    _state = READY;
+    _response_buffer.clear();
+}
+
+
 
 void Response::setRequest(Request *request) {
 	_request = request;
@@ -447,7 +478,7 @@ STR	Response::selectIndexAll(LocationConfig* location, STR dir_path) {
 }
 
 FileType Response::checkFile(const STR& path) {
-    if (path.empty()) {
+	if (path.empty()) {
 		Logger::cerrlog(Logger::ERROR, "Error: Empty path provided.");
         return NotFound;
     }
@@ -482,36 +513,151 @@ STR	Response::handleGET(STR full_path, bool isDIR) {
 }
 
 STR Response::handlePOST(STR full_path) {
-	// std::cerr << "DEBUG Response::handlePOST start\n";
+    Logger::log(Logger::DEBUG, "Response::handlePOST: start for " + full_path);
 
-    // Check if directory exists to upload to
+    // 기존 POST 작업 정리
+    if (_post_file_fd >= 0) {
+        close(_post_file_fd);
+        _post_file_fd = -1;
+    }
+    _post_bytes_written = 0;
+
+    // 디렉토리 존재 확인 (초기 검사만 블로킹)
     STR dir_path = full_path.substr(0, full_path.find_last_of('/'));
+    Logger::log(Logger::DEBUG, "Response::handlePOST: dir_path is " + dir_path);
+
     if (access(dir_path.c_str(), W_OK) != 0) {
         return createErrorResponse(403, "text/plain", "HANDLEPOST ERROR (Forbidden - Cannot write to directory)", NULL);
     }
 
-    // Check if file already exists
-    bool file_exists = (access(full_path.c_str(), F_OK) == 0);
+    // 파일 존재 여부 확인
+    _post_file_exists = (access(full_path.c_str(), F_OK) == 0);
+    _post_full_path = full_path;
 
-    // Open file for writing
-    std::ofstream file(full_path.c_str(), std::ios::binary);
-    if (!file) {
+    // 파일 쓰기 모드로 열기 (논블로킹)
+    _post_file_fd = open(full_path.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_NONBLOCK, 0644);
+    if (_post_file_fd < 0) {
+        Logger::cerrlog(Logger::ERROR, "Failed to open file for POST: " + std::string(strerror(errno)));
         return createErrorResponse(500, "text/plain", "HANDLEPOST ERROR (Internal Server Error - Cannot create file)", NULL);
     }
 
-    file << _request->_body;
-    file.close();
+    // 상태 업데이트
+    _state = PROCESSING_POST;
+    _post_bytes_written = 0;
 
-    // Return appropriate status code (201 Created or 200 OK if updated)
-    STR status_message = file_exists ? "OK - File Updated" : "Created";
-    int status_code = file_exists ? 200 : 201;
+    Logger::log(Logger::INFO, "Response::handlePOST started processing POST operation");
+    return ""; // 빈 문자열 반환은 아직 응답이 준비되지 않았음을 의미
+}
 
-    // STR status_message =  "Created";
-    // int status_code = 201;
+bool Response::processPostWrite() {
+    if (_state != PROCESSING_POST || _post_file_fd < 0) {
+        return true; // 처리할 작업 없음
+    }
 
-	Logger::log(Logger::INFO, "Response::handlePOST end");
+    const char* data = _request->_body.c_str();
+    size_t total_size = _request->_body.size();
 
-    return createResponse(status_code, "text/plain", status_message, "");
+    // 더 이상 쓸 데이터가 없는지 확인
+    if (_post_bytes_written >= total_size) {
+        // 모든 데이터 작성 완료
+        close(_post_file_fd);
+        _post_file_fd = -1;
+        _state = COMPLETE;
+        Logger::log(Logger::INFO, "POST operation completed: all data written");
+        return true;
+    }
+
+    // 한 번에 쓸 데이터 크기 계산
+    size_t remaining = total_size - _post_bytes_written;
+    size_t to_write = (remaining > 4096) ? 4096 : remaining;
+
+    // 쓰기 시도
+    ssize_t written = write(_post_file_fd, data + _post_bytes_written, to_write);
+
+    if (written > 0) {
+        _post_bytes_written += written;
+        Logger::log(Logger::DEBUG, "Written " + Utils::intToString(written) +
+                    " bytes, total " + Utils::intToString(_post_bytes_written) +
+                    "/" + Utils::intToString(total_size));
+
+        // 모든 데이터를 썼는지 확인
+        if (_post_bytes_written >= total_size) {
+            close(_post_file_fd);
+            _post_file_fd = -1;
+            _state = COMPLETE;
+            Logger::log(Logger::INFO, "POST operation completed: all data written");
+            return true;
+        }
+    }
+    else if (written < 0) {
+        // 에러 발생 시, errno는 확인하지 않음
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            // 일시적으로 쓸 수 없음, 나중에 다시 시도
+            return false;
+        }
+        else {
+            // 심각한 오류, 작업 종료
+            Logger::cerrlog(Logger::ERROR, "Failed to write data in POST operation");
+            close(_post_file_fd);
+            _post_file_fd = -1;
+            _state = COMPLETE; // 오류 상태로 완료
+            _response_buffer = createErrorResponse(500, "text/plain", "HANDLEPOST ERROR (Failed during write operation)", NULL);
+            return true;
+        }
+    }
+
+    return false; // 아직 진행 중
+}
+
+STR Response::getPostResponse() {
+    if (_state != COMPLETE) {
+        return ""; // 아직 완료되지 않음
+    }
+
+    // POST 작업이 성공적으로 완료되었고 응답 버퍼가 비어 있으면 성공 응답 생성
+    if (_response_buffer.empty()) {
+        int status_code = _post_file_exists ? 200 : 201;
+        STR status_message = _post_file_exists ? "OK - File Updated" : "Created";
+        _response_buffer = createResponse(status_code, "text/plain", status_message, "");
+    }
+
+    // 응답 반환 및 상태 초기화
+    STR response = _response_buffer;
+    _response_buffer.clear();
+    _state = READY;
+
+    return response;
+}
+
+// getFinalResponse 메소드 업데이트
+STR Response::getFinalResponse() {
+    if (_state == PROCESSING_CGI || _state == PROCESSING_POST) {
+        return ""; // 아직 처리 중
+    }
+
+    if (_state == COMPLETE) {
+        if (_cgi_handler) {
+            // CGI 응답 처리
+            // 기존 CGI 처리 코드...
+            STR response = ""; // 기존 CGI 응답 로직에서 반환하는 값
+
+            _response_buffer.clear();
+            _state = READY;
+
+            if (_cgi_handler) {
+                delete _cgi_handler;
+                _cgi_handler = NULL;
+            }
+
+            return response;
+        }
+        else {
+            // POST 응답 처리
+            return getPostResponse();
+        }
+    }
+
+    return ""; // 기본적으로 빈 문자열 반환
 }
 
 STR Response::handleDELETE(STR full_path) {
@@ -872,11 +1018,8 @@ STR Response::getResponse() {
 
 	if (_request->_file_path.size() > 1 && _request->_file_path.at(_request->_file_path.size() - 1) == '/') {
 		isDIR = true;
-
-		// std::cerr << "IS DIR : " << _request->_file_path;
 		_request->_file_path = _request->_file_path.substr(0, _request->_file_path.size() - 1);
 		_request->_file_name += '\0';
-		// std::cerr << ", new: " << _request->_file_path << "\n";
 	}
 
 	matchLocation = buildDirPath(matchServer, dir_path, isDIR);
@@ -893,6 +1036,40 @@ STR Response::getResponse() {
 	if (temp_str != "")
 		return temp_str;
 
+	//if it's a script file - execute it
+	if (ends_with(dir_path, ".py") || ends_with(dir_path, ".php") || ends_with(dir_path, ".pl") || ends_with(dir_path, ".sh")) {
+		std::map<STR, STR> env;
+
+		env["REQUEST_METHOD"] = _request->_method;
+		env["SCRIPT_NAME"] = dir_path;
+		env["QUERY_STRING"] = _request->_query_string.empty() ? "" : _request->_query_string;
+		env["CONTENT_TYPE"] = _request->_http_content_type.empty() ? "text/plain" : _request->_http_content_type;
+		env["CONTENT_LENGTH"] = Utils::intToString(_request->_body.length());
+		env["HTTP_HOST"] = _request->_host;
+		env["SERVER_PORT"] = Utils::intToString(_request->_port);
+		env["SERVER_PROTOCOL"] = _request->_http_version;
+		env["HTTP_COOKIE"] = _request->_cookies;
+
+		std::cerr << "Body (limited) and length: " << _request->_body.substr(0, 250) << " " << _request->_body.length() << "\n";
+
+        // Create a new CGI handler and start it asynchronously
+        if (_cgi_handler) {
+            delete _cgi_handler;
+        }
+
+        _cgi_handler = new CgiHandler(dir_path, env, _request->_body);
+
+        if (_cgi_handler->startCgi()) {
+            // Successfully started CGI, switch state
+            _state = PROCESSING_CGI;
+            return ""; // Return empty string to indicate that processing is not complete
+        } else {
+            // Failed to start CGI
+            delete _cgi_handler;
+            _cgi_handler = NULL;
+            return createErrorResponse(500, "text/plain", "Failed to start CGI process", matchServer);
+        }
+	}
 	if (_request->_method == "POST") {
 		Logger::log(Logger::INFO, "Response::getResponse POST path " + dir_path + " isDIR " + Utils::floatToString(isDIR));
 
@@ -911,9 +1088,12 @@ STR Response::getResponse() {
 		}
 		return (handlePOST(dir_path));
 	}
-
 	file_path = dir_path;
 
+	std::cout << "DEBUG GETRESPONSE: file_path is " << file_path << "\n";
+	std::cout << "DEBUG GETRESPONSE: dir_path is " << dir_path << "\n";
+
+	std::cout << "Passing first checkFile\n";
 	//serve file if path is a file
 	if (checkFile(file_path) == NormalFile) {
 		return (matchMethod(file_path, false, matchLocation));
@@ -925,11 +1105,10 @@ STR Response::getResponse() {
 		return createErrorResponse(404, "text/plain", "Not Found", matchServer);
 	//--check dir
 
-	// REDIRECT TO 301 path with slash
-
-
 	//add index file name to file_path
 	buildIndexPath(matchLocation, file_path, dir_path);
+
+	std::cout << "After buildIndexPath: file_path is " << file_path << "\n";
 
 	//index file exists - serve it
 	if (checkFile(file_path) == NormalFile) {
@@ -946,5 +1125,68 @@ STR Response::getResponse() {
 	}
 
 	return createErrorResponse(403, "text/plain", "TERRIBLE ERROR (Impossible)", matchLocation);
-
 }
+
+int Response::getCgiOutputFd() const {
+    if (_state == PROCESSING_CGI && _cgi_handler) {
+        return _cgi_handler->getOutputFd();
+    }
+    return -1;
+}
+
+bool Response::processCgiOutput() {
+    if (_state != PROCESSING_CGI || !_cgi_handler) {
+        return true; // Nothing to process
+    }
+
+    // Read available data from CGI
+    STR output = _cgi_handler->readFromCgi();
+    if (!output.empty()) {
+        _response_buffer += output;
+    }
+
+    // Check if CGI has completed
+    if (_cgi_handler->checkCgiStatus()) {
+        _state = COMPLETE;
+        return true;
+    }
+
+    return false;
+}
+
+// STR Response::getFinalResponse() {
+//     if (_state != COMPLETE || !_cgi_handler) {
+//         return ""; // Not ready yet
+//     }
+
+//     // Format the response
+//     if (_response_buffer.find("HTTP/") == 0) {
+//         // The CGI script returned a complete HTTP response
+//         STR response = _response_buffer;
+//         _response_buffer.clear();
+//         _state = READY;
+
+//         if (_cgi_handler) {
+//             delete _cgi_handler;
+//             _cgi_handler = NULL;
+//         }
+
+//         return response;
+//     } else {
+//         // Need to wrap the CGI output in an HTTP response
+//         STR response = "HTTP/1.1 200 OK\r\n"
+//                        "Content-Type: text/html\r\n"
+//                        "Content-Length: " + Utils::intToString(_response_buffer.length()) + "\r\n"
+//                        "\r\n" + _response_buffer;
+
+//         _response_buffer.clear();
+//         _state = READY;
+
+//         if (_cgi_handler) {
+//             delete _cgi_handler;
+//             _cgi_handler = NULL;
+//         }
+
+//         return response;
+//     }
+// }

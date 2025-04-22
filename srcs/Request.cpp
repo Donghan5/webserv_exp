@@ -159,25 +159,6 @@ bool Request::parseHeader() {
 	return true;
 }
 
-// bool Request::parseBody() {
-// 	// if (_body_size == 0)
-// 	// 	return false;
-
-// 	int	body_beginning = -1;
-// 	if (_full_request == "")
-// 		return false;
-
-// 	body_beginning = _full_request.find("\r\n\r\n");
-// 	if (body_beginning == CHAR_NOT_FOUND)
-// 		return false;
-// 	_body = _full_request.substr(body_beginning + 4, _full_request.length() - (body_beginning + 4));
-
-// 	//if _full_request.length() - (body_beginning + 4) != _body_size 		potential error
-
-// 	// std::cerr << "DEBUG Requet::parseBody _body = |" << _body << "|\n";
-// 	return true;
-// }
-
 bool Request::parseBody() {
 	int	body_beginning = -1;
 	if (_full_request == "") {
@@ -358,15 +339,6 @@ Request::Request() {
 	_body_size = 0;
 }
 
-// set server
-void Request::setServer(PollServer *server) {
-	_server = server;
-}
-
-void Request::setClientFd(int client_fd) {
-	_client_fd = client_fd;
-}
-
 Request::Request(STR request) {
 	_full_request = request;
 	_cookies = "";
@@ -376,6 +348,7 @@ Request::Request(STR request) {
 	_host = "localhost";
 	_port = 80;
 	_content_type = "";
+	_http_content_type = "";  // added
 	_body = "";
 	_body_size = 0;
 	parseHeader();
@@ -394,6 +367,7 @@ Request::Request(const Request &obj) {
 	_host = obj._host;
 	_port = obj._port;
 	_content_type = obj._content_type;
+	_http_content_type = obj._http_content_type;
 	_accepted_types = obj._accepted_types;
 	_body = obj._body;
 	_body_size = obj._body_size;
