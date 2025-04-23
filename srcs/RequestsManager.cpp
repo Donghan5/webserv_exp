@@ -161,41 +161,30 @@ int RequestsManager::HandleRead() {
             response->setRequest(&request);
 
             // Process the request
-			STR response_text = response->getResponse();
-
-			// Check if we need to handle CGI or POST
-			if (response_text.empty() && !response->isResponseReady()) {
-				// async work (CGI or POST)
-				_active_responses[_client_fd] = response;
-
-				if (response->getPostFd() != -1) {
-					// POST work registered
-					return 5; // add POST fd to epoll
-				}
-				else if (response->getCgiOutputFd() != -1) {
-					// CGI work registered
-					return 4; // add CGI fd to epoll
-				}
-				else {
-					Logger::cerrlog(Logger::ERROR, "Invalid asynchronous operation");
-					delete response;
-					_active_responses.erase(_client_fd);
-					_partial_responses[_client_fd] = createErrorResponse(500, "text/plain", "Internal Server Error", NULL);
-					return 2;
-				}
-			}
-			else {
-				// Normal response
-				_partial_responses[_client_fd] = response_text;
-				delete response;
-				return 2;
-			}
-		} else if (body_read != -1) {
-			Logger::cerrlog(Logger::DEBUG, "Request HandleRead: Still waiting for body data");
-			return 2; // Keep monitoring for read events
-		} else {
-			Logger::cerrlog(Logger::DEBUG, "Request HandleRead: Waiting for header data");
-			return 2; // Keep monitoring for read events
+            STR response_text = response->getResponse();
+            
+            // Check if we need to handle CGI
+            if (response_text.empty() && !response->isResponseReady()) {
+                // This is a CGI request that's being processed asynchronously
+                _active_responses[_client_fd] = response;
+                
+                // Register the CGI output file descriptor with epoll
+                int cgi_fd = response->getCgiOutputFd();
+                if (cgi_fd != -1) {
+                    return RegisterCgiFd(cgi_fd, _client_fd);
+                } else {
+                    Logger::cerrlog(Logger::ERROR, "Invalid CGI file descriptor");
+                    delete response;
+                    _active_responses.erase(_client_fd);
+                    _partial_responses[_client_fd] = createErrorResponse(500, "text/plain", "Internal Server Error", NULL);
+                    return 2;
+                }
+            } else {
+                // Normal response
+                _partial_responses[_client_fd] = response_text;
+                delete response;
+                return 2;
+            }
         }
     } catch (const std::exception& e) {
         body_read = -1;
@@ -395,68 +384,4 @@ STR RequestsManager::createErrorResponse(int statusCode, const STR& contentType,
     Response tempResponse;
     tempResponse.setConfig(_config);
     return tempResponse.createErrorResponse(statusCode, contentType, body, base);
-}
-
-int RequestsManager::getCurrentPostFd() const {
-    MAP<int, Response*>::const_iterator it = _active_responses.find(_client_fd);
-    if (it != _active_responses.end() && it->second) {
-        return it->second->getPostFd();
-    }
-    return -1;
-}
-
-// POST 쓰기 작업 처리
-int RequestsManager::HandlePostWrite(int post_fd) {
-    // 이 POST 파일 디스크립터에 연결된 클라이언트 찾기
-    int client_fd = -1;
-    Response* response = NULL;
-
-    // 어떤 클라이언트가 이 POST 작업을 소유하는지 찾기
-    for (MAP<int, Response*>::iterator it = _active_responses.begin(); it != _active_responses.end(); ++it) {
-        if (it->second && it->second->getPostFd() == post_fd) {
-            client_fd = it->first;
-            response = it->second;
-            break;
-        }
-    }
-
-    if (client_fd == -1 || !response) {
-        Logger::cerrlog(Logger::ERROR, "POST fd without known client");
-        return 0;
-    }
-
-    try {
-        // POST 쓰기 작업 진행
-        bool completed = response->processPostWrite();
-
-        if (completed) {
-            // POST 작업 완료
-            Logger::cerrlog(Logger::INFO, "POST operation completed for client " + Utils::intToString(client_fd));
-
-            // 최종 응답 획득
-            _partial_responses[client_fd] = response->getPostResponse();
-
-            // 리소스 정리
-            delete response;
-            _active_responses.erase(client_fd);
-
-            // 클라이언트 디스크립터 반환 (쓰기 모드로 전환하기 위해)
-            return client_fd;
-        }
-    }
-    catch (const std::exception& e) {
-        Logger::cerrlog(Logger::ERROR, "Error processing POST write: " + std::string(e.what()));
-
-        // 오류 응답 생성
-        _partial_responses[client_fd] = createErrorResponse(500, "text/plain", "Internal Server Error", NULL);
-
-        // 리소스 정리
-        delete response;
-        _active_responses.erase(client_fd);
-
-        return client_fd;
-    }
-
-    // POST 작업 아직 진행 중, 계속 모니터링
-    return -1;
 }

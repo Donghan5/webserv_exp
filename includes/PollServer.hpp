@@ -20,15 +20,12 @@
 #include <map>
 #include <sys/epoll.h>
 
-
 enum FdType {
     SERVER_FD,
     CLIENT_FD,
     CGI_FD,
-    POST_FD
+    POST_FD  // 추가된 타입: POST 작업 파일 디스크립터
 };
-
-
 
 class PollServer {
 	private:
@@ -52,12 +49,6 @@ class PollServer {
 	bool RemoveFd(int fd);
 	bool AddServerSocket(int port, int socket_fd);
 	bool AddCgiFd(int cgi_fd, int client_fd);
-	// PollServer 클래스에 추가할 맵:
-	std::map<int, int> _post_to_client;      // POST 파일 fd에서 클라이언트 fd로의 매핑
-
-	// PollServer 클래스에 추가할 메소드:
-	bool AddPostFd(int post_fd, int client_fd);
-	void HandlePostWrite(int post_fd, RequestsManager &manager);
 
 	public:
 		PollServer();

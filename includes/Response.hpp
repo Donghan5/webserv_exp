@@ -48,12 +48,6 @@ class Response {
         ResponseState               _state;
         STR                         _response_buffer;
 
-        // POST 작업 관련 필드 추가
-        int                         _post_file_fd;       // POST 작업용 파일 디스크립터
-        size_t                      _post_bytes_written; // 현재까지 쓴 바이트 수
-        STR                         _post_full_path;     // POST 대상 파일 경로
-        bool                        _post_file_exists;   // 파일이 이미 존재했는지 여부
-
     public:
         Response();
         Response(Request *request, HttpConfig *config);
@@ -76,9 +70,6 @@ class Response {
         // POST 처리 메소드 추가
         STR     handlePOST(STR full_path); // POST 처리 시작
         STR     handleDELETE(STR full_path); // DELETE 처리
-        int     getPostFd() const { return _post_file_fd; } // POST 파일 디스크립터 획득
-        bool    processPostWrite(); // POST 쓰기 작업 진행, 완료되면 true 반환
-        STR     getPostResponse(); // POST 완료 후 응답 획득
 };
 
 #endif

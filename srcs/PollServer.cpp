@@ -352,10 +352,7 @@ bool PollServer::WaitAndService(RequestsManager &manager) {
             } else if (fd_type == CLIENT_FD) {
                 // This is a client socket - just close it
                 CloseClient(fd);
-            } else if (fd_type == POST_FD && (_events[i].events & EPOLLOUT)) {
-				// POST Fd done
-				HandlePostWrite(fd, manager);
-			} else if (fd_type == CGI_FD) {
+            } else if (fd_type == CGI_FD) {
                 // CGI error or completion
                 std::map<int, int>::iterator it = _cgi_to_client.find(fd);
                 if (it != _cgi_to_client.end()) {
@@ -391,7 +388,9 @@ bool PollServer::WaitAndService(RequestsManager &manager) {
         }
 
         // Handle events based on fd type
-        if (fd_type == SERVER_FD && (_events[i].events & (EPOLLIN | EPOLLOUT))) {
+        // if (fd_type == SERVER_FD && (_events[i].events & (EPOLLIN | EPOLLOUT))) {
+
+        if (fd_type == SERVER_FD && (_events[i].events & (EPOLLIN ))) {
             // Server socket has incoming connection
             AcceptClient(fd);
         } else if (fd_type == CLIENT_FD) {
@@ -420,27 +419,11 @@ bool PollServer::WaitAndService(RequestsManager &manager) {
                     ModifyFd(fd, EPOLLOUT | EPOLLET);
                     manager.setClientFd(fd);
                 }
-            } else if (status == 5) {
-				// POST 작업 등록
-				int post_fd = manager.getCurrentPostFd();
-				if (post_fd > 0) {
-					AddPostFd(post_fd, fd);
-				}
-				else {
-					Logger::cerrlog(Logger::ERROR, "Invalid POST file descriptor returned from manager");
-					// swithch back to client handling in error state
-					ModifyFd(fd, EPOLLOUT | EPOLLET);
-				}
-			}
+            }
         } else if (fd_type == CGI_FD && (_events[i].events & EPOLLIN)) {
             // CGI output ready
             HandleCgiOutput(fd, manager);
-        } else if (fd_type == POST_FD && (_events[i].events & EPOLLOUT)) {
-			// POST output ready
-			HandlePostWrite(fd, manager);
-		} else {  // Unknown event
-			Logger::cerrlog(Logger::WARNING, "Unknown event for fd: " + Utils::intToString(fd));
-		}
+        }
     }
     return true;
 }
@@ -463,64 +446,6 @@ void PollServer::CloseClient(int client_fd) {
 	_partial_responses.erase(client_fd);
 
     Logger::cerrlog(Logger::INFO, "Client connection closed: " + Utils::intToString(client_fd));
-}
-
-bool PollServer::AddPostFd(int post_fd, int client_fd) {
-    if (AddFd(post_fd, EPOLLOUT, POST_FD)) {
-        _post_to_client[post_fd] = client_fd;
-        return true;
-    }
-    return false;
-}
-
-// POST write method
-void PollServer::HandlePostWrite(int post_fd, RequestsManager &manager) {
-    // search connected client
-    std::map<int, int>::iterator it = _post_to_client.find(post_fd);
-    if (it == _post_to_client.end()) {
-        Logger::cerrlog(Logger::ERROR, "POST fd without associated client: " + Utils::intToString(post_fd));
-        RemoveFd(post_fd);
-        close(post_fd);
-        return;
-    }
-
-    int client_fd = it->second;
-    Logger::cerrlog(Logger::INFO, "Processing POST write for client: " + Utils::intToString(client_fd));
-
-    try {
-        // POST write operation
-        manager.setClientFd(client_fd);
-        int result = manager.HandlePostWrite(post_fd);
-
-        if (result > 0) {
-            // POST done, switch client to write mode
-            if (!ModifyFd(client_fd, EPOLLOUT | EPOLLET)) {
-                Logger::cerrlog(Logger::ERROR, "Failed to modify client fd for writing after POST");
-                CloseClient(client_fd);
-            }
-
-			// Remove the POST fd from epoll and tracking
-            RemoveFd(post_fd);
-            _post_to_client.erase(it);
-        }
-        else if (result == 0) {
-            RemoveFd(post_fd);
-            _post_to_client.erase(it);
-            close(post_fd);
-
-            CloseClient(client_fd);
-        }
-        // result < 0 means POST still running, keep monitoring
-    }
-    catch (const std::exception& e) {
-        Logger::cerrlog(Logger::ERROR, "Error handling POST write: " + std::string(e.what()));
-
-        RemoveFd(post_fd);
-        _post_to_client.erase(it);
-        close(post_fd);
-
-        CloseClient(client_fd);
-    }
 }
 
 void PollServer::start() {

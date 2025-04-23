@@ -16,8 +16,6 @@ class RequestsManager {
         STR             createErrorResponse(int statusCode, const STR& contentType, const STR& body, AConfigBase *base);
 
 		public:
-		int HandlePostWrite(int post_fd);  // POST 쓰기 작업 처리
-		int getCurrentPostFd() const;      // 현재 POST 파일 디스크립터 획득
 		RequestsManager();
 		RequestsManager(int client_fd);
 		RequestsManager(HttpConfig *config);
