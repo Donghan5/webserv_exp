@@ -352,7 +352,10 @@ bool PollServer::WaitAndService(RequestsManager &manager) {
             } else if (fd_type == CLIENT_FD) {
                 // This is a client socket - just close it
                 CloseClient(fd);
-            } else if (fd_type == CGI_FD) {
+            } else if (fd_type == POST_FD && (_events[i].events & EPOLLOUT)) {
+				// POST Fd done
+				HandlePostWrite(fd, manager);
+			} else if (fd_type == CGI_FD) {
                 // CGI error or completion
                 std::map<int, int>::iterator it = _cgi_to_client.find(fd);
                 if (it != _cgi_to_client.end()) {
@@ -378,10 +381,7 @@ bool PollServer::WaitAndService(RequestsManager &manager) {
                                "CGI Error";
                         ModifyFd(client_fd, EPOLLOUT | EPOLLET);
                     }
-                } else if (fd_type == POST_FD && (_events[i].events & EPOLLOUT)) {
-					// POST 쓰기 준비된 파일 디스크립터
-					HandlePostWrite(fd, manager);
-				} else {
+                } else {
                     // Orphaned CGI fd - just remove it
                     RemoveFd(fd);
                     close(fd);
@@ -428,14 +428,19 @@ bool PollServer::WaitAndService(RequestsManager &manager) {
 				}
 				else {
 					Logger::cerrlog(Logger::ERROR, "Invalid POST file descriptor returned from manager");
-					// 오류 상태로 클라이언트 전환
+					// swithch back to client handling in error state
 					ModifyFd(fd, EPOLLOUT | EPOLLET);
 				}
 			}
         } else if (fd_type == CGI_FD && (_events[i].events & EPOLLIN)) {
             // CGI output ready
             HandleCgiOutput(fd, manager);
-        }
+        } else if (fd_type == POST_FD && (_events[i].events & EPOLLOUT)) {
+			// POST output ready
+			HandlePostWrite(fd, manager);
+		} else {  // Unknown event
+			Logger::cerrlog(Logger::WARNING, "Unknown event for fd: " + Utils::intToString(fd));
+		}
     }
     return true;
 }
@@ -468,9 +473,9 @@ bool PollServer::AddPostFd(int post_fd, int client_fd) {
     return false;
 }
 
-// POST 쓰기 작업 처리 메소드
+// POST write method
 void PollServer::HandlePostWrite(int post_fd, RequestsManager &manager) {
-    // 연결된 클라이언트 찾기
+    // search connected client
     std::map<int, int>::iterator it = _post_to_client.find(post_fd);
     if (it == _post_to_client.end()) {
         Logger::cerrlog(Logger::ERROR, "POST fd without associated client: " + Utils::intToString(post_fd));
@@ -483,41 +488,37 @@ void PollServer::HandlePostWrite(int post_fd, RequestsManager &manager) {
     Logger::cerrlog(Logger::INFO, "Processing POST write for client: " + Utils::intToString(client_fd));
 
     try {
-        // POST 쓰기 작업 처리
+        // POST write operation
         manager.setClientFd(client_fd);
         int result = manager.HandlePostWrite(post_fd);
 
         if (result > 0) {
-            // POST 완료, 클라이언트를 쓰기 모드로 전환
+            // POST done, switch client to write mode
             if (!ModifyFd(client_fd, EPOLLOUT | EPOLLET)) {
                 Logger::cerrlog(Logger::ERROR, "Failed to modify client fd for writing after POST");
                 CloseClient(client_fd);
             }
 
-            // POST fd 제거
+			// Remove the POST fd from epoll and tracking
             RemoveFd(post_fd);
             _post_to_client.erase(it);
         }
         else if (result == 0) {
-            // 오류 발생, 리소스 정리
             RemoveFd(post_fd);
             _post_to_client.erase(it);
             close(post_fd);
 
-            // 클라이언트도 종료
             CloseClient(client_fd);
         }
-        // result < 0는 POST가 아직 진행 중이므로 계속 모니터링
+        // result < 0 means POST still running, keep monitoring
     }
     catch (const std::exception& e) {
         Logger::cerrlog(Logger::ERROR, "Error handling POST write: " + std::string(e.what()));
 
-        // 리소스 정리
         RemoveFd(post_fd);
         _post_to_client.erase(it);
         close(post_fd);
 
-        // 클라이언트도 종료
         CloseClient(client_fd);
     }
 }

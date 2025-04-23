@@ -165,16 +165,16 @@ int RequestsManager::HandleRead() {
 
 			// Check if we need to handle CGI or POST
 			if (response_text.empty() && !response->isResponseReady()) {
-				// 비동기 작업 시작됨 (CGI 또는 POST)
+				// async work (CGI or POST)
 				_active_responses[_client_fd] = response;
 
 				if (response->getPostFd() != -1) {
-					// POST 작업 등록
-					return 5; // 특별 코드: "POST fd를 epoll에 추가"
+					// POST work registered
+					return 5; // add POST fd to epoll
 				}
 				else if (response->getCgiOutputFd() != -1) {
-					// CGI 작업 등록
-					return 4; // 특별 코드: "CGI fd를 epoll에 추가"
+					// CGI work registered
+					return 4; // add CGI fd to epoll
 				}
 				else {
 					Logger::cerrlog(Logger::ERROR, "Invalid asynchronous operation");
@@ -185,7 +185,7 @@ int RequestsManager::HandleRead() {
 				}
 			}
 			else {
-				// 일반 응답
+				// Normal response
 				_partial_responses[_client_fd] = response_text;
 				delete response;
 				return 2;
