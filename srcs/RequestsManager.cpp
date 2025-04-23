@@ -107,7 +107,7 @@ int RequestsManager::HandleRead() {
                 // Create a response object for this request
                 Response* response = new Response();
                 response->setConfig(_config);
-                response->setRequest(&request);
+                response->setRequest(request);
 
                 // Process the request
                 STR response_text = response->getResponse();
@@ -158,16 +158,16 @@ int RequestsManager::HandleRead() {
             // Create a response object for this request
             Response* response = new Response();
             response->setConfig(_config);
-            response->setRequest(&request);
+            response->setRequest(request);
 
             // Process the request
             STR response_text = response->getResponse();
-            
+
             // Check if we need to handle CGI
             if (response_text.empty() && !response->isResponseReady()) {
                 // This is a CGI request that's being processed asynchronously
                 _active_responses[_client_fd] = response;
-                
+
                 // Register the CGI output file descriptor with epoll
                 int cgi_fd = response->getCgiOutputFd();
                 if (cgi_fd != -1) {

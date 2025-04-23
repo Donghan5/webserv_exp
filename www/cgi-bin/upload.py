@@ -251,7 +251,10 @@ html_end = """
 """
 
 try:
-    upload_dir = './www/cgi-bin/uploads'
+    upload_store = os.environ.get('UPLOAD_STORE', '')
+
+    # upload_dir = './www/cgi-bin/'
+    upload_dir = os.path.join(upload_store)
     if not os.path.exists(upload_dir):
         os.makedirs(upload_dir)
         log_progress(f"Created upload directory: {upload_dir}")

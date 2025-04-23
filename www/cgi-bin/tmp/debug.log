@@ -1,0 +1,22 @@
+
+--- CGI env ---
+CONTENT_LENGTH: 441
+CONTENT_TYPE: multipart/form-data; boundary=----WebKitFormBoundaryr8ONoUroDCuffqEB
+HTTP_COOKIE: 
+HTTP_HOST: localhost
+QUERY_STRING: 
+REQUEST_METHOD: POST
+SCRIPT_NAME: ./www/cgi-bin/upload.py
+SERVER_PORT: 8088
+SERVER_PROTOCOL: HTTP/1.1
+UPLOAD_STORE: ./www/cgi-bin/uploads
+LC_CTYPE: C.UTF-8
+
+--- DIRECT FORM PROCESSING ---
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryr8ONoUroDCuffqEB
+Content-Length: 441
+Detected boundary: ------WebKitFormBoundaryr8ONoUroDCuffqEB
+Raw data size: 441 bytes
+Split into 3 parts
+File field: filename, Filename: Utils.hpp, Content-Type: text/x-c++hdr, Size: 251
+File content first 100 bytes (hex): 2369666e646566205554494c535f4850500a23646566696e65205554494c535f4850500a0a23707261676d61206f6e63650a0a23696e636c756465203c696f73747265616d3e0a23696e636c756465203c737472696e673e0a23696e636c756465203c76

@@ -24,7 +24,7 @@ enum ResponseState {
 
 class Response {
     private:
-        Request     *_request;
+        Request     _request;
         STR         _body;
         HttpConfig  *_config;
         std::map<STR, STR>          _all_mime_types; // _all_mime_types["extention"] = "name", _all_mime_types[".html"] = "text/html"
@@ -50,11 +50,11 @@ class Response {
 
     public:
         Response();
-        Response(Request *request, HttpConfig *config);
+        Response(Request request, HttpConfig *config);
         Response(const Response &obj);
         ~Response();
 
-        void    setRequest(Request *request);
+        void    setRequest(Request request);
         void    setConfig(HttpConfig *config);
         STR     createResponse(int statusCode, const STR& contentType, const STR& body, const STR& extra);
         STR     createErrorResponse(int statusCode, const STR& contentType, const STR& body, AConfigBase *base);

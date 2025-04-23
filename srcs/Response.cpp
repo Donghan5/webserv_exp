@@ -206,15 +206,16 @@ STR Response::createResponse(int statusCode, const STR& contentType, const STR& 
 Response::Response() {
 	init_mimetypes(_all_mime_types);
 	init_status_codes(_all_status_codes);
-	_request = NULL;
+	_request.clear();
 	_config = NULL;
     _cgi_handler = NULL;
     _state = READY;
 }
 
-Response::Response(Request *request, HttpConfig *config) {
+Response::Response(Request request, HttpConfig *config) {
 	init_mimetypes(_all_mime_types);
 	init_status_codes(_all_status_codes);
+	_request.clear();
 	_request = request;
 	_config = config;
     _cgi_handler = NULL;
@@ -224,6 +225,7 @@ Response::Response(Request *request, HttpConfig *config) {
 Response::Response(const Response &obj) {
 	_all_mime_types = obj._all_mime_types;
 	_all_status_codes = obj._all_status_codes;
+	_request.clear();
 	_request = obj._request;
 	_config = obj._config;
     _cgi_handler = NULL; // Don't copy the CGI handler
@@ -238,21 +240,22 @@ Response::~Response() {
 }
 
 void Response::clear() {
-    _request = NULL;
+    _request.clear();
     _config = NULL;
 
     if (_cgi_handler) {
         delete _cgi_handler;
         _cgi_handler = NULL;
     }
-    
+
     _state = READY;
     _response_buffer.clear();
 }
 
 
 
-void Response::setRequest(Request *request) {
+void Response::setRequest(Request request) {
+	_request.clear();
 	_request = request;
 }
 
@@ -348,8 +351,8 @@ STR Response::handleDIR(STR path) {
     }
 
     std::stringstream html;
-    html << "<html><head><title>Index of " << _request->_file_path << "</title></head><body>\n";
-    html << "<h1>Index of " << _request->_file_path << "</h1><hr><pre>\n";
+    html << "<html><head><title>Index of " << _request._file_path << "</title></head><body>\n";
+    html << "<h1>Index of " << _request._file_path << "</h1><hr><pre>\n";
 
 	struct dirent* entry;
 	while ((entry = readdir(dir)) != NULL) {
@@ -361,7 +364,7 @@ STR Response::handleDIR(STR path) {
 			if (S_ISDIR(st.st_mode)){
 				name += "/";
 			}
-			STR fullpath = _request->_file_path + "/" + name;
+			STR fullpath = _request._file_path + "/" + name;
 
             char timeStr[100];
             strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", localtime(&st.st_mtime));	//REDO, bad funcs!
@@ -404,10 +407,10 @@ void	Response::selectIndexIndexes(VECTOR<STR> indexes, STR &best_match, float &m
 
 		try
 		{
-			if (_request->_accepted_types[index_mime] > match_quality) {
-				Logger::cerrlog(Logger::DEBUG, index_mime + " is better match that" + best_match + "! Quality " + Utils::floatToString(_request->_accepted_types[index_mime]) + " is better than " + Utils::floatToString(match_quality));
+			if (_request._accepted_types[index_mime] > match_quality) {
+				Logger::cerrlog(Logger::DEBUG, index_mime + " is better match that" + best_match + "! Quality " + Utils::floatToString(_request._accepted_types[index_mime]) + " is better than " + Utils::floatToString(match_quality));
 				best_match = indexes[i];
-				match_quality = _request->_accepted_types[index_mime];
+				match_quality = _request._accepted_types[index_mime];
 			}
 			else
 				Logger::cerrlog(Logger::DEBUG, index_mime + " is not more than " + Utils::floatToString(match_quality));
@@ -418,11 +421,11 @@ void	Response::selectIndexIndexes(VECTOR<STR> indexes, STR &best_match, float &m
 		}
 		try
 		{
-			if (_request->_accepted_types["*/*"] > match_quality) {
+			if (_request._accepted_types["*/*"] > match_quality) {
 				Logger::cerrlog(Logger::DEBUG, "*/* is the better match than " + best_match
-					+ "! Quality " + Utils::floatToString(_request->_accepted_types["*/*"]) + " is better than " + Utils::floatToString(match_quality));
+					+ "! Quality " + Utils::floatToString(_request._accepted_types["*/*"]) + " is better than " + Utils::floatToString(match_quality));
 				best_match = indexes[i];
-				match_quality = _request->_accepted_types["*/*"];
+				match_quality = _request._accepted_types["*/*"];
 			}
 			else
 				Logger::cerrlog(Logger::DEBUG, "*/* is not more than " + Utils::floatToString(match_quality));
@@ -524,7 +527,7 @@ STR Response::handlePOST(STR full_path) {
         return createErrorResponse(500, "text/plain", "HANDLEPOST ERROR (Internal Server Error - Cannot create file)", NULL);
     }
 
-    file << _request->_body;
+    file << _request._body;
     file.close();
 
     // Return appropriate status code (201 Created or 200 OK if updated)
@@ -575,7 +578,7 @@ STR	regress_path(STR path) {
 // test buildDirPath function
 LocationConfig *Response::buildDirPath(ServerConfig *matchServer, STR &full_path, bool &isDIR) {
 	LocationConfig *matchLocation = NULL;
-	STR path_to_match = _request->_file_path;
+	STR path_to_match = _request._file_path;
 
 	(void) isDIR;
 
@@ -629,7 +632,7 @@ LocationConfig *Response::buildDirPath(ServerConfig *matchServer, STR &full_path
 		local_ref = local_ref->back_ref;
 	}
 
-	full_path.append(_request->_file_path);
+	full_path.append(_request._file_path);
 
 	Logger::cerrlog(Logger::DEBUG, "Response::buildDirPath: dir path is " + full_path);
 	return matchLocation;
@@ -638,7 +641,7 @@ LocationConfig *Response::buildDirPath(ServerConfig *matchServer, STR &full_path
 // Original buildDirPath function
 // LocationConfig	*Response::buildDirPath(ServerConfig *matchServer, STR &full_path, bool &isDIR) {
 // 	LocationConfig* matchLocation = NULL;
-// 	STR	path_to_match = _request->_file_path;
+// 	STR	path_to_match = _request._file_path;
 // 	(void) isDIR;
 // 	while (path_to_match != "" && !matchLocation)
 // 	{
@@ -714,7 +717,7 @@ LocationConfig *Response::buildDirPath(ServerConfig *matchServer, STR &full_path
 // 		local_ref = local_ref->back_ref;
 // 	}
 
-// 	full_path.append(_request->_file_path);
+// 	full_path.append(_request._file_path);
 
 // 	std::cerr << "Response::buildDirPath: dir path is " << full_path << "\n";
 // 	return matchLocation;
@@ -725,8 +728,8 @@ int Response::buildIndexPath(LocationConfig *matchLocation, STR &best_file_path,
 		best_file_path.append("/");
 
 	//if request is file
-	if (_request->_file_name != "") {
-		best_file_path.append(_request->_file_name);
+	if (_request._file_name != "") {
+		best_file_path.append(_request._file_name);
 		Logger::log(Logger::INFO, "Response::buildBestPath: FILE full path is " + best_file_path);
 		return 1;
 	}
@@ -760,23 +763,23 @@ bool	check_method_allowed(STR method, LocationConfig *matchLocation) {
 }
 
 STR	Response::matchMethod(STR path, bool isDIR, LocationConfig *matchLocation) {
-	if (_request->_method == "GET") {
+	if (_request._method == "GET") {
 		if (!check_method_allowed("GET", matchLocation))
 			return createErrorResponse(405, "text/plain", "Method Not Allowed", matchLocation);
 			Logger::log(Logger::INFO, "Response::matchMethod GET path" + path + " isDIR " + Utils::floatToString(isDIR));
 		return (handleGET(path, isDIR));
-	} else if (_request->_method == "POST") {
+	} else if (_request._method == "POST") {
 		if (!check_method_allowed("POST", matchLocation))
 			return createErrorResponse(405, "text/plain", "Method Not Allowed", matchLocation);
 			Logger::log(Logger::INFO, "Response::matchMethod POST path" + path + " isDIR " + Utils::floatToString(isDIR));
 		return (handlePOST(path));
-	} else if (_request->_method == "DELETE") {
+	} else if (_request._method == "DELETE") {
 		if (!check_method_allowed("DELETE", matchLocation))
 			return createErrorResponse(405, "text/plain", "Method Not Allowed", matchLocation);
 			Logger::log(Logger::INFO, "Response::matchMethod DELETE path" + path + " isDIR " + Utils::floatToString(isDIR));
 		return (handleDELETE(path));
 	} else {
-		Logger::cerrlog(Logger::ERROR, "Response::matchMethod: UNUSUAL METHOD ERROR: " + _request->_method);
+		Logger::cerrlog(Logger::ERROR, "Response::matchMethod: UNUSUAL METHOD ERROR: " + _request._method);
 		return createErrorResponse(405, "text/plain", "Method Not Allowed", matchLocation);
 	}
 }
@@ -852,8 +855,8 @@ bool	Response::checkBodySize(LocationConfig *matchLocation) {
 	while (local_ref) {
 		if (local_ref->_client_max_body_size > 0) {
 			// std::cerr << "Response::checkBodySize: client_max_body_size is " << local_ref->_client_max_body_size << "\n";
-			// std::cerr << "Response::checkBodySize: body size is " << _request->_body.length() << "\n";
-			if (_request->_body.length() > (size_t)local_ref->_client_max_body_size)
+			// std::cerr << "Response::checkBodySize: body size is " << _request._body.length() << "\n";
+			if (_request._body.length() > (size_t)local_ref->_client_max_body_size)
 				return false;
 			else
 				return true;
@@ -875,16 +878,16 @@ STR Response::getResponse() {
 	STR dir_path = "";
 	STR	file_path = "";
 
-	if (!_request || !_config) {
+	if (_request._full_request == "" || !_config) {
 		Logger::cerrlog(Logger::ERROR, "Response::getResponse error, no config or request");
 		return "";
 	}
 
 	for (size_t i = 0; i < _config->_servers.size(); i++) {
-		if (_config->_servers[i]->_listen_port != _request->_port)
+		if (_config->_servers[i]->_listen_port != _request._port)
 			continue;
 		for (size_t k = 0; k < _config->_servers[i]->_server_name.size(); k++) {
-			if (_config->_servers[i]->_server_name[k] == _request->_host) {
+			if (_config->_servers[i]->_server_name[k] == _request._host) {
 				matchServer = _config->_servers[i];
 				break;
 			}
@@ -895,10 +898,10 @@ STR Response::getResponse() {
 	if (!matchServer)
 		matchServer = _config->_servers[0];
 
-	if (_request->_file_path.size() > 1 && _request->_file_path.at(_request->_file_path.size() - 1) == '/') {
+	if (_request._file_path.size() > 1 && _request._file_path.at(_request._file_path.size() - 1) == '/') {
 		isDIR = true;
-		_request->_file_path = _request->_file_path.substr(0, _request->_file_path.size() - 1);
-		_request->_file_name += '\0';
+		_request._file_path = _request._file_path.substr(0, _request._file_path.size() - 1);
+		_request._file_name += '\0';
 	}
 
 	matchLocation = buildDirPath(matchServer, dir_path, isDIR);
@@ -919,24 +922,32 @@ STR Response::getResponse() {
 	if (ends_with(dir_path, ".py") || ends_with(dir_path, ".php") || ends_with(dir_path, ".pl") || ends_with(dir_path, ".sh")) {
 		std::map<STR, STR> env;
 
-		env["REQUEST_METHOD"] = _request->_method;
+		env["REQUEST_METHOD"] = _request._method;
 		env["SCRIPT_NAME"] = dir_path;
-		env["QUERY_STRING"] = _request->_query_string.empty() ? "" : _request->_query_string;
-		env["CONTENT_TYPE"] = _request->_http_content_type.empty() ? "text/plain" : _request->_http_content_type;
-		env["CONTENT_LENGTH"] = Utils::intToString(_request->_body.length());
-		env["HTTP_HOST"] = _request->_host;
-		env["SERVER_PORT"] = Utils::intToString(_request->_port);
-		env["SERVER_PROTOCOL"] = _request->_http_version;
-		env["HTTP_COOKIE"] = _request->_cookies;
+		env["QUERY_STRING"] = _request._query_string.empty() ? "" : _request._query_string;
+		env["CONTENT_TYPE"] = _request._http_content_type.empty() ? "text/plain" : _request._http_content_type;
+		env["CONTENT_LENGTH"] = Utils::intToString(_request._body.length());
+		env["HTTP_HOST"] = _request._host;
+		env["SERVER_PORT"] = Utils::intToString(_request._port);
+		env["SERVER_PROTOCOL"] = _request._http_version;
+		env["HTTP_COOKIE"] = _request._cookies;
 
-		std::cerr << "Body (limited) and length: " << _request->_body.substr(0, 250) << " " << _request->_body.length() << "\n";
+		if (!matchLocation->_upload_store.empty()) {
+			env["UPLOAD_STORE"] = matchLocation->_upload_store;
+			std::cerr << "UPLOAD_STORE: " << matchLocation->_upload_store << "\n";
+		} else {
+			env["UPLOAD_STORE"] = "";
+			std::cerr << "UPLOAD_STORE: empty\n";
+		}
+
+		std::cerr << "Body (limited) and length: " << _request._body.substr(0, 250) << " " << _request._body.length() << "\n";
 
         // Create a new CGI handler and start it asynchronously
         if (_cgi_handler) {
             delete _cgi_handler;
         }
 
-        _cgi_handler = new CgiHandler(dir_path, env, _request->_body);
+        _cgi_handler = new CgiHandler(dir_path, env, _request._body);
 
         if (_cgi_handler->startCgi()) {
             // Successfully started CGI, switch state
@@ -949,7 +960,7 @@ STR Response::getResponse() {
             return createErrorResponse(500, "text/plain", "Failed to start CGI process", matchServer);
         }
 	}
-	if (_request->_method == "POST") {
+	if (_request._method == "POST") {
 		Logger::log(Logger::INFO, "Response::getResponse POST path " + dir_path + " isDIR " + Utils::floatToString(isDIR));
 
 		try {
@@ -1037,19 +1048,19 @@ STR Response::getFinalResponse() {
     if (_state != COMPLETE || !_cgi_handler) {
         return ""; // Not ready yet
     }
-    
+
     // Format the response
     if (_response_buffer.find("HTTP/") == 0) {
         // The CGI script returned a complete HTTP response
         STR response = _response_buffer;
         _response_buffer.clear();
         _state = READY;
-        
+
         if (_cgi_handler) {
             delete _cgi_handler;
             _cgi_handler = NULL;
         }
-        
+
         return response;
     } else {
         // Need to wrap the CGI output in an HTTP response
@@ -1057,15 +1068,15 @@ STR Response::getFinalResponse() {
                        "Content-Type: text/html\r\n"
                        "Content-Length: " + Utils::intToString(_response_buffer.length()) + "\r\n"
                        "\r\n" + _response_buffer;
-        
+
         _response_buffer.clear();
         _state = READY;
-        
+
         if (_cgi_handler) {
             delete _cgi_handler;
             _cgi_handler = NULL;
         }
-        
+
         return response;
     }
 }
