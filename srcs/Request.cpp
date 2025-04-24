@@ -11,13 +11,13 @@
 // 	return false;
 // }
 
-static void trimSpace(std::string &str) {
+static void trimSpace(STR &str) {
 	static const char *whitespace = " \r";
 	str.erase(0, str.find_first_not_of(whitespace));
 	str.erase(str.find_last_not_of(whitespace) + 1);
 }
 
-static void toLower(std::string &str) {
+static void toLower(STR &str) {
 	for (size_t i = 0; i < str.length(); i++) {
 		str[i] = tolower(str[i]);
 	}
@@ -144,7 +144,7 @@ bool Request::parseHeader() {
 			_chunked_flag = false;  // if content-length is present, chunked transfer encoding is not used
 		} else if (temp_token == "Transfer-Encoding:") {
 
-			std::string encoding_value = temp_line.substr(temp_line.find_first_of(':') + 2);
+			STR encoding_value = temp_line.substr(temp_line.find_first_of(':') + 2);
 			parseTransferEncoding(encoding_value);
 
 			if (_chunked_flag) {  // if chunked transfer encoding ignore content-length
@@ -213,19 +213,19 @@ void Request::parseQueryString(void) {
 	}
 }
 
-void Request::parseTransferEncoding(const std::string &header) {
-	std::vector<std::string> encodings;
+void Request::parseTransferEncoding(const STR &header) {
+	VECTOR<STR> encodings;
 	size_t start = 0, end;
 
-	while ((end = header.find(',', start)) != std::string::npos) {
-		std::string encoding = header.substr(start, end - start);
+	while ((end = header.find(',', start)) != STR::npos) {
+		STR encoding = header.substr(start, end - start);
 		trimSpace(encoding);
 		toLower(encoding);
 		encodings.push_back(encoding);
 		start = end + 1;
 	}
 
-	std::string last_encoding = header.substr(start);
+	STR last_encoding = header.substr(start);
 	trimSpace(last_encoding);
 	toLower(last_encoding);
 	encodings.push_back(last_encoding);

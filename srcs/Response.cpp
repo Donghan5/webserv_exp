@@ -1,7 +1,7 @@
 #include "Response.hpp"
 #include "Logger.hpp"
 
-void	init_mimetypes(std::map<STR, STR>	&mime_types) {
+void	init_mimetypes(MAP<STR, STR>	&mime_types) {
 	mime_types[".html"] = "text/html";
 	mime_types[".htm"] = "text/html";
 	mime_types[".shtml"] = "text/html";
@@ -113,7 +113,7 @@ void	init_mimetypes(std::map<STR, STR>	&mime_types) {
 	mime_types[".avi"] = "video/x-msvideo";
 }
 
-void	init_status_codes(std::map<int, STR>	&status_codes) {
+void	init_status_codes(MAP<int, STR>	&status_codes) {
 	// Informational responses (100-199)
 	status_codes[100] = "100 Continue";
 	status_codes[101] = "101 Switching Protocols";
@@ -343,10 +343,10 @@ STR urlDecode(const STR& input) {
     return result;
 }
 
-//rewrite, recheck
 STR Response::handleDIR(STR path) {
     DIR* dir = opendir(path.c_str());
     if (!dir) {
+		Logger::cerrlog(Logger::ERROR, "Failed to open directory: " + path + " Reason: " + strerror(errno));
         return createErrorResponse(500, "text/plain", "Failed to read directory", NULL);
     }
 
@@ -371,16 +371,23 @@ STR Response::handleDIR(STR path) {
 
             STR displayName = urlDecode(name);
 
-			if (displayName.length() >= 45)
-				displayName = displayName.substr(0, 42) + "...";
+			// if (displayName.length() >= 45)
+			// 	displayName = displayName.substr(0, 42) + "...";
 
 			// std::cerr << "DEBUG Response::handleDIR: displayName is " << displayName << "\n";
 
+			// html << "<a href=\"" << fullpath << "\">"
+			// << displayName << "</a>"
+			// << STR(50 - displayName.length(), ' ')
+			// << timeStr
+			// << STR(20, ' ')
+			// << st.st_size << "\n";
+
 			html << "<a href=\"" << fullpath << "\">"
 			<< displayName << "</a>"
-			<< STR(50 - displayName.length(), ' ')
+			<< ' '
 			<< timeStr
-			<< STR(20, ' ')
+			<< ' '
 			<< st.st_size << "\n";
         }
     }
@@ -456,17 +463,9 @@ STR	Response::selectIndexAll(LocationConfig* location, STR dir_path) {
 		}
 		local_ref = local_ref->back_ref;
 	}
-	// if (!location->_index.empty()) {
-	// 	selectIndexIndexes(location->_index, best_match, match_quality);
-	// } else if (!location->back_ref->_index.empty())
-	// 	selectIndexIndexes(location->back_ref->_index, best_match, match_quality);
-	// else
-	// 	selectIndexIndexes(location->back_ref->back_ref->_index, best_match, match_quality);
 
 	if (best_match == "")
-	{
 		throw std::runtime_error("No index match");
-	}
 	else
 		Logger::cerrlog(Logger::DEBUG, "Response::selectIndexAll: best_match is " + best_match + ", quality: " + Utils::floatToString(match_quality));
 	return best_match;
@@ -474,13 +473,13 @@ STR	Response::selectIndexAll(LocationConfig* location, STR dir_path) {
 
 FileType Response::checkFile(const STR& path) {
 	if (path.empty()) {
-		Logger::cerrlog(Logger::ERROR, "Error: Empty path provided.");
+		Logger::cerrlog(Logger::INFO, "File " + path + " not found: Empty path provided.");
         return NotFound;
     }
 
     struct stat path_stat;
     if (stat(path.c_str(), &path_stat) != 0) {
-		Logger::cerrlog(Logger::ERROR, "Error checking file: " + path + " Reason: " + strerror(errno));
+		Logger::cerrlog(Logger::INFO, "File " + path + " not found. Reason: " + strerror(errno));
         return NotFound;
     }
 
@@ -563,7 +562,7 @@ STR Response::handleDELETE(STR full_path) {
 }
 
 STR	regress_path(STR path) {
-	if (path.find_last_of("/") == std::string::npos)
+	if (path.find_last_of("/") == STR::npos)
 		return path;
 	if (path == "/")
 		return "";
@@ -575,7 +574,6 @@ STR	regress_path(STR path) {
 	return path;
 }
 
-// test buildDirPath function
 LocationConfig *Response::buildDirPath(ServerConfig *matchServer, STR &full_path, bool &isDIR) {
 	LocationConfig *matchLocation = NULL;
 	STR path_to_match = _request._file_path;
@@ -622,113 +620,46 @@ LocationConfig *Response::buildDirPath(ServerConfig *matchServer, STR &full_path
 	if (!matchLocation)
 		return NULL;
 
+	
+	STR relative_path = "";
+
 	// add root path
 	AConfigBase* local_ref = matchLocation;
 	while (local_ref) {
 		if (local_ref->_root != "") {
-			full_path.append(local_ref->_root);
+			relative_path.append(local_ref->_root);
 			break;
 		}
 		local_ref = local_ref->back_ref;
 	}
 
-	full_path.append(_request._file_path);
+	relative_path.append(_request._file_path);
+
+	STR absolute_path = _request._file_path;
+
+	// check which path exists - relative or absolute
+	if (checkFile(relative_path) != NotFound) {
+		std::cerr << "Response::buildDirPath: relative path is " << relative_path << std::endl;
+		full_path = relative_path;
+	} else if (checkFile(absolute_path) != NotFound) {
+		std::cerr << "Response::buildDirPath: absolute path is " << absolute_path << std::endl;
+		full_path = absolute_path;
+	} else {
+		Logger::cerrlog(Logger::INFO, "Response::buildDirPath: no such file or directory \"" + full_path + "\" for " + _request._file_path + "!");
+		return NULL;
+	}
 
 	Logger::cerrlog(Logger::DEBUG, "Response::buildDirPath: dir path is " + full_path);
 	return matchLocation;
 }
 
-// Original buildDirPath function
-// LocationConfig	*Response::buildDirPath(ServerConfig *matchServer, STR &full_path, bool &isDIR) {
-// 	LocationConfig* matchLocation = NULL;
-// 	STR	path_to_match = _request._file_path;
-// 	(void) isDIR;
-// 	while (path_to_match != "" && !matchLocation)
-// 	{
-// 		MAP<STR, LocationConfig*> loc_loc = matchServer->_locations;
-// 		while (loc_loc.size() > 0) {
-// 			MAP<STR, LocationConfig*>::iterator it = loc_loc.begin();
-// 			if (it->first == path_to_match) {
-// 				matchLocation = it->second;
-// 				break;
-// 			}
-// 			if (it->second->_locations.size() > 0) {
-// 				loc_loc.insert(it->second->_locations.begin(), it->second->_locations.end());
-// 			}
-// 			loc_loc.erase(it);
-// 		}
-
-// 		// if (matchLocation && (matchLocation->_proxy_pass_host == "" && !isDIR)) {
-// 		// 	matchLocation = NULL;
-// 		// }
-
-// 		if (!matchLocation)
-// 			std::cerr << "Regressed path " << path_to_match << " -> " << regress_path(path_to_match) << std::endl;
-// 		path_to_match = regress_path(path_to_match);
-// 	}
-
-// 	path_to_match += "/";
-
-// 	while (path_to_match != "" && !matchLocation)
-// 	{
-// 		MAP<STR, LocationConfig*> loc_loc = matchServer->_locations;
-// 		while (loc_loc.size() > 0) {
-// 			MAP<STR, LocationConfig*>::iterator it = loc_loc.begin();
-// 			if (it->first == path_to_match) {
-// 				matchLocation = it->second;
-// 				break;
-// 			}
-// 			if (it->second->_locations.size() > 0) {
-// 				loc_loc.insert(it->second->_locations.begin(), it->second->_locations.end());
-// 			}
-// 			loc_loc.erase(it);
-// 		}
-
-// 		// if (matchLocation && (matchLocation->_proxy_pass_host == "" && !isDIR)) {
-// 		// 	matchLocation = NULL;
-// 		// }
-
-// 		if (!matchLocation)
-// 			std::cerr << "Regressed path " << path_to_match << " -> " << regress_path(path_to_match) << std::endl;
-// 		path_to_match = regress_path(path_to_match);
-// 	}
-
-// 	// std::cerr << "TEST TEST buildDirPath is matchLocation " << (matchLocation != NULL) << std::endl;
-// 	if (!matchLocation)
-// 		return NULL;
-
-// 	//add root to final path first
-// 	// if ((matchLocation)->_root != "") {
-// 	// 	full_path.append((matchLocation)->_root);
-// 	// }
-// 	// else if ((matchLocation)->back_ref->_root != "") {
-// 	// 	full_path.append((matchLocation)->back_ref->_root);
-// 	// }
-// 	// else {
-// 	// 	full_path.append((matchLocation)->back_ref->back_ref->_root);
-// 	// }
-
-// 	AConfigBase* local_ref = matchLocation;
-// 	while (local_ref) {
-// 		if (local_ref->_root != "") {
-// 			full_path.append(local_ref->_root);
-// 			break;
-// 		}
-// 		local_ref = local_ref->back_ref;
-// 	}
-
-// 	full_path.append(_request._file_path);
-
-// 	std::cerr << "Response::buildDirPath: dir path is " << full_path << "\n";
-// 	return matchLocation;
-// }
-
 int Response::buildIndexPath(LocationConfig *matchLocation, STR &best_file_path, STR dir_path) {
 	if (best_file_path != "/" && best_file_path[best_file_path.length() - 1] != '/')
 		best_file_path.append("/");
 
-	//if request is file
+	//if request is file IMPOSSIBLE AS POST IS MOVED UP
 	if (_request._file_name != "") {
+		Logger::cerrlog(Logger::ERROR, "Response::buildBestPath: IMPOSSIBLE AS POST IS MOVED UP _request._file_name " + _request._file_name + ".");
 		best_file_path.append(_request._file_name);
 		Logger::log(Logger::INFO, "Response::buildBestPath: FILE full path is " + best_file_path);
 		return 1;
@@ -738,6 +669,7 @@ int Response::buildIndexPath(LocationConfig *matchLocation, STR &best_file_path,
 	try
 	{
 		best_file_path.append(selectIndexAll(matchLocation, dir_path));
+		std::cerr << "Response::buildFilePath: AFT best_file_path is " << best_file_path << std::endl;
 	}
 	catch(const std::exception& e)
 	{
@@ -899,6 +831,7 @@ STR Response::getResponse() {
 		matchServer = _config->_servers[0];
 
 	if (_request._file_path.size() > 1 && _request._file_path.at(_request._file_path.size() - 1) == '/') {
+		std::cerr << "IS A DIRECTORY " << _request._file_path << "\n";
 		isDIR = true;
 		_request._file_path = _request._file_path.substr(0, _request._file_path.size() - 1);
 		_request._file_name += '\0';
@@ -920,7 +853,7 @@ STR Response::getResponse() {
 
 	//if it's a script file - execute it
 	if (ends_with(dir_path, ".py") || ends_with(dir_path, ".php") || ends_with(dir_path, ".pl") || ends_with(dir_path, ".sh")) {
-		std::map<STR, STR> env;
+		MAP<STR, STR> env;
 
 		env["REQUEST_METHOD"] = _request._method;
 		env["SCRIPT_NAME"] = dir_path;
@@ -965,7 +898,7 @@ STR Response::getResponse() {
 
 		try {
 			if (!matchLocation->_upload_store.empty()) {  // this part is to be tested, upload_store
-				if (dir_path.find_last_of('/') != std::string::npos) {
+				if (dir_path.find_last_of('/') != STR::npos) {
 					dir_path = matchLocation->_upload_store + "/" + dir_path.substr(dir_path.find_last_of('/') + 1);
 				} else {
 					dir_path = matchLocation->_upload_store + dir_path;
@@ -1006,11 +939,13 @@ STR Response::getResponse() {
 	}
 
 	//index file doesn't exist - create directory if autoindex is on
-	if (matchLocation->_autoindex) {
+	if (matchLocation->_autoindex || isDIR) {
 		//return directory listing
+		std::cerr << "CREATING DIR LISTING\n";
 		return matchMethod(dir_path, true, matchLocation);
 	} else {
 		//autoindex is off
+		std::cerr << "AUTOINDEX IS OFF\n";
 		return createErrorResponse(403, "text/plain", "Forbidden", matchLocation);
 	}
 
@@ -1048,35 +983,139 @@ STR Response::getFinalResponse() {
     if (_state != COMPLETE || !_cgi_handler) {
         return ""; // Not ready yet
     }
-
-    // Format the response
+    
+    // Check if the response begins with an HTTP header
     if (_response_buffer.find("HTTP/") == 0) {
         // The CGI script returned a complete HTTP response
         STR response = _response_buffer;
         _response_buffer.clear();
         _state = READY;
-
+        
         if (_cgi_handler) {
             delete _cgi_handler;
             _cgi_handler = NULL;
         }
-
-        return response;
-    } else {
-        // Need to wrap the CGI output in an HTTP response
-        STR response = "HTTP/1.1 200 OK\r\n"
-                       "Content-Type: text/html\r\n"
-                       "Content-Length: " + Utils::intToString(_response_buffer.length()) + "\r\n"
-                       "\r\n" + _response_buffer;
-
-        _response_buffer.clear();
-        _state = READY;
-
-        if (_cgi_handler) {
-            delete _cgi_handler;
-            _cgi_handler = NULL;
-        }
-
+        
         return response;
     }
+    
+    // Parse CGI output into headers and body
+    size_t header_end = _response_buffer.find("\r\n\r\n");
+    if (header_end != STR::npos) {
+        STR headers_section = _response_buffer.substr(0, header_end);
+        STR body = _response_buffer.substr(header_end + 4); // +4 to skip "\r\n\r\n"
+        
+        // Use a vector to store headers since multiple headers can have the same name
+        VECTOR<std::pair<STR, STR> > headersList;
+        std::istringstream headerStream(headers_section);
+        STR headerLine;
+        int statusCode = 200; // Default status code
+        
+        // Parse all headers
+        while (std::getline(headerStream, headerLine)) {
+            // Remove any trailing \r
+            if (!headerLine.empty() && headerLine[headerLine.length() - 1] == '\r') {
+                headerLine = headerLine.substr(0, headerLine.length() - 1);
+            }
+            
+            // Skip empty lines
+            if (headerLine.empty()) {
+                continue;
+            }
+            
+            // Check for special Status header
+            if (headerLine.find("Status:") == 0) {
+                STR status = headerLine.substr(7); // Skip "Status:"
+                status.erase(0, status.find_first_not_of(" \t"));
+                statusCode = atoi(status.c_str());
+                continue;
+            }
+            
+            size_t colonPos = headerLine.find(':');
+            if (colonPos != STR::npos) {
+                STR name = headerLine.substr(0, colonPos);
+                STR value = headerLine.substr(colonPos + 1);
+                // Trim leading whitespace from value
+                value.erase(0, value.find_first_not_of(" \t"));
+                
+                // Add to headers list (preserving multiple headers with same name)
+                headersList.push_back(std::make_pair(name, value));
+                
+                // Debug logging for Set-Cookie headers
+                if (name == "Set-Cookie") {
+                    Logger::cerrlog(Logger::DEBUG, "Found Set-Cookie header: " + value);
+                }
+            }
+        }
+        
+        // If we have valid headers, construct the full HTTP response
+        if (!headersList.empty()) {
+            std::stringstream response;
+            response << "HTTP/1.1 " << statusCode << " ";
+            
+            // Add status text based on code
+            if (_all_status_codes.find(statusCode) != _all_status_codes.end()) {
+                response << _all_status_codes[statusCode].substr(4); // Skip the code part
+            } else {
+                response << "OK"; // Default
+            }
+            response << "\r\n";
+            
+            // Track if we've seen certain common headers
+            bool hasContentType = false;
+            bool hasContentLength = false;
+            
+            // Add all headers, preserving multiple headers with the same name
+            for (size_t i = 0; i < headersList.size(); i++) {
+                const std::pair<STR, STR>& header = headersList[i];
+                response << header.first << ": " << header.second << "\r\n";
+                
+                // Track presence of common headers
+                if (header.first == "Content-Type") hasContentType = true;
+                if (header.first == "Content-Length") hasContentLength = true;
+            }
+            
+            // Add Content-Length if not present
+            if (!hasContentLength) {
+                response << "Content-Length: " << body.length() << "\r\n";
+            }
+            
+            // Add Content-Type if not present
+            if (!hasContentType) {
+                response << "Content-Type: text/html\r\n";
+            }
+            
+            response << "\r\n" << body;
+            
+            _response_buffer.clear();
+            _state = READY;
+            
+            if (_cgi_handler) {
+                delete _cgi_handler;
+                _cgi_handler = NULL;
+            }
+            
+            Logger::cerrlog(Logger::DEBUG, "Response::getFinalResponse: Parsed CGI headers");
+            return response.str();
+        }
+    }
+    
+    // No valid headers found, wrap the output with HTTP headers
+    std::stringstream response;
+    response << "HTTP/1.1 200 OK\r\n"
+             << "Content-Type: text/html\r\n"
+             << "Content-Length: " << _response_buffer.length() << "\r\n"
+             << "\r\n" 
+             << _response_buffer;
+    
+    _response_buffer.clear();
+    _state = READY;
+    
+    if (_cgi_handler) {
+        delete _cgi_handler;
+        _cgi_handler = NULL;
+    }
+    
+    Logger::cerrlog(Logger::DEBUG, "Response::getFinalResponse: Added default headers to CGI output");
+    return response.str();
 }

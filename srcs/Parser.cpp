@@ -25,7 +25,7 @@ Parser::~Parser() {
 	// 	delete _config;
 }
 
-int Parser::verifyPort(std::string port_str) {
+int Parser::verifyPort(STR port_str) {
 	std::stringstream ss(port_str);
 	int port;
 
@@ -35,7 +35,7 @@ int Parser::verifyPort(std::string port_str) {
 	return port;
 }
 
-bool Parser::verifyAutoIndex(std::string autoindex_str) {
+bool Parser::verifyAutoIndex(STR autoindex_str) {
 	bool autoindex = false;
 	if (autoindex_str == "on") {
 		autoindex = true;
@@ -55,10 +55,10 @@ bool Parser::verifyAutoIndex(std::string autoindex_str) {
  *
  * default is 1M
 */
-long long Parser::verifyClientMaxBodySize(std::string client_max_body_size_str) {
+long long Parser::verifyClientMaxBodySize(STR client_max_body_size_str) {
 	std::stringstream ss(client_max_body_size_str);
 	long long value;
-	std::string unit;
+	STR unit;
 
 	if (!(ss >> value)) {
 		return -1;
@@ -96,7 +96,7 @@ VECTOR<STR>	split(STR string, char delim, bool use_whitespaces_delim) {
 
 	// Split by any whitespace (>> skips at the beginning and then stops at any whitespace by default)
 	if (use_whitespaces_delim) {
-        std::string token;
+        STR token;
 
         while (string_stream >> token) {
             result.push_back(token);

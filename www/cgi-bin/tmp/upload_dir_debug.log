@@ -1,5 +1,0 @@
-directory: ./www/cgi-bin/uploads
-exists: True
-is_writable: True
-parent_exists: True
-parent_is_writable: True
