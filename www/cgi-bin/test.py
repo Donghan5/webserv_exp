@@ -1,8 +1,18 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
+
+import sys
+# 디버깅용 출력 추가:
+print("DEBUG: Python script started!", file=sys.stderr)
+sys.stderr.flush()
+
 import cgi
 from datetime import datetime
 
 print("Content-Type: text/html\r\n\r\n")
+print()
+print()
+print("DEBUG: Content-Type header sent!", file=sys.stderr)
+sys.stderr.flush()
 print(f"""<!DOCTYPE html>
 <html>
 <head>
@@ -61,3 +71,5 @@ print(f"""<!DOCTYPE html>
 </body>
 </html>
 """)
+print("DEBUG: HTML content sent!", file=sys.stderr)
+sys.stderr.flush()

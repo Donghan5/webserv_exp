@@ -1,0 +1,54 @@
+[2025-04-24 19:40:38] ========== NEW UPLOAD REQUEST ==========
+[2025-04-24 19:40:38] Reading raw POST data from stdin
+[2025-04-24 19:40:38] Read 87966 bytes from stdin
+[2025-04-24 19:40:38] Found file part in multipart data
+[2025-04-24 19:40:38] Extracted filename: Screenshot from 2025-04-22 19-13-57.png
+[2025-04-24 19:40:38] Form field name: filename
+[2025-04-24 19:40:38] File content type: image/png
+[2025-04-24 19:40:38] Extracted file content: 87750 bytes
+[2025-04-24 19:40:38] ERROR: FileNotFoundError: [Errno 2] No such file or directory: ''
+[2025-04-24 19:41:31] ========== NEW UPLOAD REQUEST ==========
+[2025-04-24 19:41:31] Reading raw POST data from stdin
+[2025-04-24 19:41:31] Read 309394 bytes from stdin
+[2025-04-24 19:41:31] Found file part in multipart data
+[2025-04-24 19:41:31] Extracted filename: Screenshot from 2025-04-24 18-39-34.png
+[2025-04-24 19:41:31] Form field name: filename
+[2025-04-24 19:41:31] File content type: image/png
+[2025-04-24 19:41:31] Extracted file content: 309178 bytes
+[2025-04-24 19:41:31] ERROR: FileNotFoundError: [Errno 2] No such file or directory: ''
+[2025-04-24 19:54:01] ========== NEW UPLOAD REQUEST ==========
+[2025-04-24 19:54:01] Reading raw POST data from stdin
+[2025-04-24 19:54:01] Read 309394 bytes from stdin
+[2025-04-24 19:54:01] Found file part in multipart data
+[2025-04-24 19:54:01] Extracted filename: Screenshot from 2025-04-24 18-39-34.png
+[2025-04-24 19:54:01] Form field name: filename
+[2025-04-24 19:54:01] File content type: image/png
+[2025-04-24 19:54:01] Extracted file content: 309178 bytes
+[2025-04-24 19:54:01] ERROR: FileNotFoundError: [Errno 2] No such file or directory: ''
+[2025-04-24 19:56:40] ========== NEW UPLOAD REQUEST ==========
+[2025-04-24 19:56:40] Reading raw POST data from stdin
+[2025-04-24 19:56:40] Read 309394 bytes from stdin
+[2025-04-24 19:56:40] Found file part in multipart data
+[2025-04-24 19:56:40] Extracted filename: Screenshot from 2025-04-24 18-39-34.png
+[2025-04-24 19:56:40] Form field name: filename
+[2025-04-24 19:56:40] File content type: image/png
+[2025-04-24 19:56:40] Extracted file content: 309178 bytes
+[2025-04-24 19:56:40] ERROR: FileNotFoundError: [Errno 2] No such file or directory: ''
+[2025-04-24 19:58:31] ========== NEW UPLOAD REQUEST ==========
+[2025-04-24 19:58:31] Reading raw POST data from stdin
+[2025-04-24 19:58:31] Read 309394 bytes from stdin
+[2025-04-24 19:58:31] Found file part in multipart data
+[2025-04-24 19:58:31] Extracted filename: Screenshot from 2025-04-24 18-39-34.png
+[2025-04-24 19:58:31] Form field name: filename
+[2025-04-24 19:58:31] File content type: image/png
+[2025-04-24 19:58:31] Extracted file content: 309178 bytes
+[2025-04-24 19:58:31] ERROR: FileNotFoundError: [Errno 2] No such file or directory: ''
+[2025-04-24 19:59:01] ========== NEW UPLOAD REQUEST ==========
+[2025-04-24 19:59:01] Reading raw POST data from stdin
+[2025-04-24 19:59:01] Read 309394 bytes from stdin
+[2025-04-24 19:59:01] Found file part in multipart data
+[2025-04-24 19:59:01] Extracted filename: Screenshot from 2025-04-24 18-39-34.png
+[2025-04-24 19:59:01] Form field name: filename
+[2025-04-24 19:59:01] File content type: image/png
+[2025-04-24 19:59:01] Extracted file content: 309178 bytes
+[2025-04-24 19:59:01] ERROR: FileNotFoundError: [Errno 2] No such file or directory: ''

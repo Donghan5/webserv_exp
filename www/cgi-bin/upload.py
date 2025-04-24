@@ -252,7 +252,8 @@ html_end = """
 
 try:
     upload_store = os.environ.get('UPLOAD_STORE', '')
-
+    if not upload_store:
+        upload_dir = 'www/cgi-bin/uploads'
     # upload_dir = './www/cgi-bin/'
     upload_dir = os.path.join(upload_store)
     if not os.path.exists(upload_dir):

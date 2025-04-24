@@ -148,7 +148,7 @@ int RequestsManager::HandleRead() {
 
             //HANDLE BODY IN if (body_read < (long long)request._body_size) else CASE, DON'T GO TO POLLOUT, body needed
             //           it's the same function - unify
-            
+
             if (request._body_size > 0) {
                 Logger::cerrlog(Logger::DEBUG, "RequestManager::HandleRead Body needed of size " + intToString(request._body_size));
                 body_read = _partial_requests[_client_fd].size() - header_end - 4;
@@ -366,6 +366,8 @@ int RequestsManager::HandleWrite() {
 // Handle CGI output when data is available
 int RequestsManager::HandleCgiOutput(int cgi_fd) {
     // Find the client fd associated with this CGI fd
+	Logger::cerrlog(Logger::DEBUG, "RequestsManager::HandleCgiOutput: called with cgi_fd " + Utils::intToString(cgi_fd));
+	
     int client_fd = -1;
     Response* response = NULL;
 
