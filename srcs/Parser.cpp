@@ -460,6 +460,8 @@ bool FillDirective(AConfigBase* block, STR line, int position) {
 			}
         } else if (tokens[0] == "upload_store") {
 			locConf->_upload_store = tokens[1];
+		} else if (tokens[0] == "alias") {
+			locConf->_alias = tokens[1];
 		} else {
 			Logger::cerrlog(Logger::ERROR, "CHECKFillDirective LocationConfig extra type " + tokens[0]);
 			return false;
