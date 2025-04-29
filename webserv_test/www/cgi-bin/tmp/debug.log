@@ -1,22 +1,20 @@
 
 --- CGI env ---
-CONTENT_LENGTH: 124819
-CONTENT_TYPE: multipart/form-data; boundary=---------------------------287950397310806670822315661573
+CONTENT_LENGTH: 0
+CONTENT_TYPE: multipart/form-data; boundary=----WebKitFormBoundaryRMjBHMBU2QFJzg5f
 HTTP_COOKIE: 
 HTTP_HOST: localhost
 QUERY_STRING: 
-REQUEST_METHOD: POST
+REQUEST_METHOD: GET
 SCRIPT_NAME: ./webserv_test/cgi-bin/upload.py
 SERVER_PORT: 8080
 SERVER_PROTOCOL: HTTP/1.1
-UPLOAD_STORE: /home/pzinurov/sgoinfre/ups/
+UPLOAD_STORE: 
 LC_CTYPE: C.UTF-8
 
 --- DIRECT FORM PROCESSING ---
-Content-Type: multipart/form-data; boundary=---------------------------287950397310806670822315661573
-Content-Length: 124819
-Detected boundary: -----------------------------287950397310806670822315661573
-Raw data size: 124819 bytes
-Split into 4 parts
-File field: filename, Filename: 146d24d6-236b-475e-91d1-9563850f6b8a.sketchpad(3)(1).png, Content-Type: image/png, Size: 124402
-File content first 100 bytes (hex): 89504e470d0a1a0a0000000d494844520000045c00000349080600000031c5286f0000000970485973000008db000008db01cdacf9430000200049444154785eec9d05981467b3852b40b000c15d83bbbb133448700f9e00c1dddddd830608eeee90e0ee
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryRMjBHMBU2QFJzg5f
+Content-Length: 0
+Detected boundary: ------WebKitFormBoundaryRMjBHMBU2QFJzg5f
+Raw data size: 0 bytes
+No data received from stdin

@@ -862,3 +862,156 @@
 [2025-04-24 20:02:37] Starting to write file to: /home/pzinurov/sgoinfre/ups/146d24d6-236b-475e-91d1-9563850f6b8a.sketchpad(3)(1).png
 [2025-04-24 20:02:37] Writing progress: 100% (124402/124402 bytes)
 [2025-04-24 20:02:37] File successfully written to disk: /home/pzinurov/sgoinfre/ups/146d24d6-236b-475e-91d1-9563850f6b8a.sketchpad(3)(1).png
+[2025-04-29 19:44:25] ========== NEW UPLOAD REQUEST ==========
+[2025-04-29 19:44:25] Project root: /home/donghank/webserv_exp/webserv_test
+[2025-04-29 19:44:25] Reading raw POST data from stdin
+[2025-04-29 19:44:25] Read 309501 bytes from stdin
+[2025-04-29 19:44:25] Found file part in multipart data
+[2025-04-29 19:44:25] Extracted filename: Screenshot from 2025-04-24 18-39-34.png
+[2025-04-29 19:44:25] Form field name: filename
+[2025-04-29 19:44:25] File content type: image/png
+[2025-04-29 19:44:25] Extracted file content: 309178 bytes
+[2025-04-29 19:44:25] Using upload directory: /home/donghank/webserv_exp/webserv_test/www/uploads
+[2025-04-29 19:44:25] Created upload directory: /home/donghank/webserv_exp/webserv_test/www/uploads
+[2025-04-29 19:44:25] Successfully extracted file: Screenshot from 2025-04-24 18-39-34.png
+[2025-04-29 19:44:25] Using basename: Screenshot from 2025-04-24 18-39-34.png
+[2025-04-29 19:44:25] File content size: 309178 bytes
+[2025-04-29 19:44:25] File type detected: image/png
+[2025-04-29 19:44:25] Starting to write file to: /home/donghank/webserv_exp/webserv_test/www/uploads/Screenshot from 2025-04-24 18-39-34.png
+[2025-04-29 19:44:25] Writing progress: 10% (32768/309178 bytes)
+[2025-04-29 19:44:25] Writing progress: 30% (94208/309178 bytes)
+[2025-04-29 19:44:25] Writing progress: 50% (155648/309178 bytes)
+[2025-04-29 19:44:25] Writing progress: 60% (188416/309178 bytes)
+[2025-04-29 19:44:25] Writing progress: 70% (217088/309178 bytes)
+[2025-04-29 19:44:25] Writing progress: 80% (249856/309178 bytes)
+[2025-04-29 19:44:25] Writing progress: 90% (278528/309178 bytes)
+[2025-04-29 19:44:25] Writing progress: 100% (309178/309178 bytes)
+[2025-04-29 19:44:25] File successfully written to disk: /home/donghank/webserv_exp/webserv_test/www/uploads/Screenshot from 2025-04-24 18-39-34.png
+[2025-04-29 19:45:24] ========== NEW UPLOAD REQUEST ==========
+[2025-04-29 19:45:24] Project root: /home/donghank/webserv_exp/webserv_test
+[2025-04-29 19:45:24] Reading raw POST data from stdin
+[2025-04-29 19:45:24] Read 88073 bytes from stdin
+[2025-04-29 19:45:24] Found file part in multipart data
+[2025-04-29 19:45:24] Extracted filename: Screenshot from 2025-04-22 19-13-57.png
+[2025-04-29 19:45:24] Form field name: filename
+[2025-04-29 19:45:24] File content type: image/png
+[2025-04-29 19:45:24] Extracted file content: 87750 bytes
+[2025-04-29 19:45:24] Using upload directory: /home/donghank/webserv_exp/webserv_test/www/uploads
+[2025-04-29 19:45:24] Upload directory exists: /home/donghank/webserv_exp/webserv_test/www/uploads
+[2025-04-29 19:45:24] Successfully extracted file: Screenshot from 2025-04-22 19-13-57.png
+[2025-04-29 19:45:24] Using basename: Screenshot from 2025-04-22 19-13-57.png
+[2025-04-29 19:45:24] File content size: 87750 bytes
+[2025-04-29 19:45:24] File type detected: image/png
+[2025-04-29 19:45:24] Starting to write file to: /home/donghank/webserv_exp/webserv_test/www/uploads/Screenshot from 2025-04-22 19-13-57.png
+[2025-04-29 19:45:24] Writing progress: 60% (53248/87750 bytes)
+[2025-04-29 19:45:24] Writing progress: 70% (61440/87750 bytes)
+[2025-04-29 19:45:24] Writing progress: 100% (87750/87750 bytes)
+[2025-04-29 19:45:24] File successfully written to disk: /home/donghank/webserv_exp/webserv_test/www/uploads/Screenshot from 2025-04-22 19-13-57.png
+[2025-04-29 20:24:03] ========== NEW UPLOAD REQUEST ==========
+[2025-04-29 20:24:03] Project root: /home/donghank/webserv_exp/webserv_test
+[2025-04-29 20:24:03] Reading raw POST data from stdin
+[2025-04-29 20:24:03] Read 1412904 bytes from stdin
+[2025-04-29 20:24:03] Found file part in multipart data
+[2025-04-29 20:24:03] Extracted filename: 6ac18ac1-e191-41e9-b365-2748cc283205.png
+[2025-04-29 20:24:03] Form field name: filename
+[2025-04-29 20:24:03] File content type: image/png
+[2025-04-29 20:24:03] Extracted file content: 1412580 bytes
+[2025-04-29 20:24:03] Using upload directory: /home/donghank/webserv_exp/webserv_test/www/uploads
+[2025-04-29 20:24:03] Upload directory exists: /home/donghank/webserv_exp/webserv_test/www/uploads
+[2025-04-29 20:24:03] Successfully extracted file: 6ac18ac1-e191-41e9-b365-2748cc283205.png
+[2025-04-29 20:24:03] Using basename: 6ac18ac1-e191-41e9-b365-2748cc283205.png
+[2025-04-29 20:24:03] File content size: 1412580 bytes
+[2025-04-29 20:24:03] File type detected: image/png
+[2025-04-29 20:24:03] Starting to write file to: /home/donghank/webserv_exp/webserv_test/www/uploads/6ac18ac1-e191-41e9-b365-2748cc283205.png
+[2025-04-29 20:24:03] Writing progress: 10% (143360/1412580 bytes)
+[2025-04-29 20:24:03] Writing progress: 20% (282624/1412580 bytes)
+[2025-04-29 20:24:03] Writing progress: 30% (425984/1412580 bytes)
+[2025-04-29 20:24:03] Writing progress: 40% (565248/1412580 bytes)
+[2025-04-29 20:24:03] Writing progress: 50% (708608/1412580 bytes)
+[2025-04-29 20:24:03] Writing progress: 60% (847872/1412580 bytes)
+[2025-04-29 20:24:03] Writing progress: 70% (991232/1412580 bytes)
+[2025-04-29 20:24:03] Writing progress: 80% (1130496/1412580 bytes)
+[2025-04-29 20:24:03] Writing progress: 90% (1273856/1412580 bytes)
+[2025-04-29 20:24:03] Writing progress: 100% (1412580/1412580 bytes)
+[2025-04-29 20:24:03] File successfully written to disk: /home/donghank/webserv_exp/webserv_test/www/uploads/6ac18ac1-e191-41e9-b365-2748cc283205.png
+[2025-04-29 20:26:12] ========== NEW UPLOAD REQUEST ==========
+[2025-04-29 20:26:12] Project root: /home/donghank/webserv_exp/webserv_test
+[2025-04-29 20:26:12] Reading raw POST data from stdin
+[2025-04-29 20:26:12] Read 312577 bytes from stdin
+[2025-04-29 20:26:12] Found file part in multipart data
+[2025-04-29 20:26:12] Extracted filename: Screenshot from 2025-04-15 19-56-24.png
+[2025-04-29 20:26:12] Form field name: filename
+[2025-04-29 20:26:12] File content type: image/png
+[2025-04-29 20:26:12] Extracted file content: 312254 bytes
+[2025-04-29 20:26:12] Using upload directory: /home/donghank/webserv_exp/webserv_test/www/uploads
+[2025-04-29 20:26:12] Upload directory exists: /home/donghank/webserv_exp/webserv_test/www/uploads
+[2025-04-29 20:26:12] Successfully extracted file: Screenshot from 2025-04-15 19-56-24.png
+[2025-04-29 20:26:12] Using basename: Screenshot from 2025-04-15 19-56-24.png
+[2025-04-29 20:26:12] File content size: 312254 bytes
+[2025-04-29 20:26:12] File type detected: image/png
+[2025-04-29 20:26:12] Starting to write file to: /home/donghank/webserv_exp/webserv_test/www/uploads/Screenshot from 2025-04-15 19-56-24.png
+[2025-04-29 20:26:12] Writing progress: 10% (32768/312254 bytes)
+[2025-04-29 20:26:12] Writing progress: 20% (65536/312254 bytes)
+[2025-04-29 20:26:12] Writing progress: 30% (94208/312254 bytes)
+[2025-04-29 20:26:12] Writing progress: 40% (126976/312254 bytes)
+[2025-04-29 20:26:12] Writing progress: 60% (188416/312254 bytes)
+[2025-04-29 20:26:12] Writing progress: 70% (221184/312254 bytes)
+[2025-04-29 20:26:12] Writing progress: 80% (249856/312254 bytes)
+[2025-04-29 20:26:12] Writing progress: 90% (282624/312254 bytes)
+[2025-04-29 20:26:12] Writing progress: 100% (312254/312254 bytes)
+[2025-04-29 20:26:12] File successfully written to disk: /home/donghank/webserv_exp/webserv_test/www/uploads/Screenshot from 2025-04-15 19-56-24.png
+[2025-04-29 20:46:19] ========== NEW UPLOAD REQUEST ==========
+[2025-04-29 20:46:19] Project root: /home/donghank/webserv_exp/webserv_test
+[2025-04-29 20:46:19] Reading raw POST data from stdin
+[2025-04-29 20:46:19] Read 88073 bytes from stdin
+[2025-04-29 20:46:19] Found file part in multipart data
+[2025-04-29 20:46:19] Extracted filename: Screenshot from 2025-04-22 19-13-57.png
+[2025-04-29 20:46:19] Form field name: filename
+[2025-04-29 20:46:19] File content type: image/png
+[2025-04-29 20:46:19] Extracted file content: 87750 bytes
+[2025-04-29 20:46:19] Using upload directory: /home/donghank/webserv_exp/webserv_test/www/uploads
+[2025-04-29 20:46:19] Upload directory exists: /home/donghank/webserv_exp/webserv_test/www/uploads
+[2025-04-29 20:46:19] Successfully extracted file: Screenshot from 2025-04-22 19-13-57.png
+[2025-04-29 20:46:19] Using basename: Screenshot from 2025-04-22 19-13-57.png
+[2025-04-29 20:46:19] File content size: 87750 bytes
+[2025-04-29 20:46:19] File type detected: image/png
+[2025-04-29 20:46:19] Starting to write file to: /home/donghank/webserv_exp/webserv_test/www/uploads/Screenshot from 2025-04-22 19-13-57.png
+[2025-04-29 20:46:19] Writing progress: 60% (53248/87750 bytes)
+[2025-04-29 20:46:19] Writing progress: 70% (61440/87750 bytes)
+[2025-04-29 20:46:19] Writing progress: 100% (87750/87750 bytes)
+[2025-04-29 20:46:19] File successfully written to disk: /home/donghank/webserv_exp/webserv_test/www/uploads/Screenshot from 2025-04-22 19-13-57.png
+[2025-04-29 20:47:02] ========== NEW UPLOAD REQUEST ==========
+[2025-04-29 20:47:02] Project root: /home/donghank/webserv_exp/webserv_test
+[2025-04-29 20:47:02] Reading raw POST data from stdin
+[2025-04-29 20:47:02] Read 0 bytes from stdin
+[2025-04-29 20:47:02] Using upload directory: /home/donghank/webserv_exp/webserv_test/www/uploads
+[2025-04-29 20:47:02] Upload directory exists: /home/donghank/webserv_exp/webserv_test/www/uploads
+[2025-04-29 20:47:02] Error: No file was provided in the form
+[2025-04-29 20:47:09] ========== NEW UPLOAD REQUEST ==========
+[2025-04-29 20:47:09] Project root: /home/donghank/webserv_exp/webserv_test
+[2025-04-29 20:47:09] Reading raw POST data from stdin
+[2025-04-29 20:47:09] Read 0 bytes from stdin
+[2025-04-29 20:47:09] Using upload directory: /home/donghank/webserv_exp/webserv_test/www/uploads
+[2025-04-29 20:47:09] Upload directory exists: /home/donghank/webserv_exp/webserv_test/www/uploads
+[2025-04-29 20:47:09] Error: No file was provided in the form
+[2025-04-29 20:47:20] ========== NEW UPLOAD REQUEST ==========
+[2025-04-29 20:47:20] Project root: /home/donghank/webserv_exp/webserv_test
+[2025-04-29 20:47:20] Reading raw POST data from stdin
+[2025-04-29 20:47:20] Read 0 bytes from stdin
+[2025-04-29 20:47:20] Using upload directory: /home/donghank/webserv_exp/webserv_test/www/uploads
+[2025-04-29 20:47:20] Upload directory exists: /home/donghank/webserv_exp/webserv_test/www/uploads
+[2025-04-29 20:47:20] Error: No file was provided in the form
+[2025-04-29 20:47:34] ========== NEW UPLOAD REQUEST ==========
+[2025-04-29 20:47:34] Project root: /home/donghank/webserv_exp/webserv_test
+[2025-04-29 20:47:34] Reading raw POST data from stdin
+[2025-04-29 20:47:34] Read 0 bytes from stdin
+[2025-04-29 20:47:34] Using upload directory: /home/donghank/webserv_exp/webserv_test/www/uploads
+[2025-04-29 20:47:34] Upload directory exists: /home/donghank/webserv_exp/webserv_test/www/uploads
+[2025-04-29 20:47:34] Error: No file was provided in the form
+[2025-04-29 20:47:47] ========== NEW UPLOAD REQUEST ==========
+[2025-04-29 20:47:47] Project root: /home/donghank/webserv_exp/webserv_test
+[2025-04-29 20:47:47] Reading raw POST data from stdin
+[2025-04-29 20:47:47] Read 0 bytes from stdin
+[2025-04-29 20:47:47] Using upload directory: /home/donghank/webserv_exp/webserv_test/www/uploads
+[2025-04-29 20:47:47] Upload directory exists: /home/donghank/webserv_exp/webserv_test/www/uploads
+[2025-04-29 20:47:47] Error: No file was provided in the form

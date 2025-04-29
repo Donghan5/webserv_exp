@@ -591,6 +591,7 @@ std::string joinPaths(const std::string& p1, const std::string& p2) {
 }
 
 // to test alias
+/*
 LocationConfig* Response::buildDirPath(ServerConfig *matchServer, STR &full_path, bool &isDIR) {
     LocationConfig *matchLocation = NULL;
     STR request_uri = _request._file_path;
@@ -709,91 +710,92 @@ LocationConfig* Response::buildDirPath(ServerConfig *matchServer, STR &full_path
     }
 
     full_path = determined_path;
-    isDIR = (type == Directory);
+    // isDIR = (type == Directory);
 
     Logger::cerrlog(Logger::DEBUG, "Response::buildDirPath: final path is " + full_path + " (isDIR: " + (isDIR ? "true" : "false") + ")");
     return matchLocation;
 }
+*/
 
 
-// LocationConfig *Response::buildDirPath(ServerConfig *matchServer, STR &full_path, bool &isDIR) {
-// 	LocationConfig *matchLocation = NULL;
-// 	STR path_to_match = _request._file_path;
+LocationConfig *Response::buildDirPath(ServerConfig *matchServer, STR &full_path, bool &isDIR) {
+	LocationConfig *matchLocation = NULL;
+	STR path_to_match = _request._file_path;
 
-// 	(void) isDIR;
+	(void) isDIR;
 
-// 	// search exact match first
-// 	while (path_to_match != "" && !matchLocation) {
-// 		MAP<STR, LocationConfig *> loc_loc = matchServer->_locations;
-// 		while (loc_loc.size() > 0) {
-// 			MAP<STR, LocationConfig *>::iterator it = loc_loc.begin();
-// 			if (it->first == path_to_match) {
-// 				matchLocation = it->second;
-// 				break;
-// 			}
-// 			if (it->second->_locations.size() > 0) {
-// 				loc_loc.insert(it->second->_locations.begin(), it->second->_locations.end());
-// 			}
-// 			loc_loc.erase(it);
-// 		}
+	// search exact match first
+	while (path_to_match != "" && !matchLocation) {
+		MAP<STR, LocationConfig *> loc_loc = matchServer->_locations;
+		while (loc_loc.size() > 0) {
+			MAP<STR, LocationConfig *>::iterator it = loc_loc.begin();
+			if (it->first == path_to_match) {
+				matchLocation = it->second;
+				break;
+			}
+			if (it->second->_locations.size() > 0) {
+				loc_loc.insert(it->second->_locations.begin(), it->second->_locations.end());
+			}
+			loc_loc.erase(it);
+		}
 
-// 		if (!matchLocation && path_to_match != "" && path_to_match[path_to_match.length() - 1] != '/') {
-// 			STR path_with_slash = path_to_match + "/";
-// 			loc_loc = matchServer->_locations;
-// 			while (loc_loc.size() > 0) {
-// 				MAP<STR, LocationConfig *>::iterator it = loc_loc.begin();
-// 				if (it->first == path_with_slash) {
-// 					matchLocation = it->second;
-// 					break;
-// 				}
-// 				if (it->second->_locations.size() > 0) {
-// 					loc_loc.insert(it->second->_locations.begin(), it->second->_locations.end());
-// 				}
-// 				loc_loc.erase(it);
-// 			}
-// 		}
+		if (!matchLocation && path_to_match != "" && path_to_match[path_to_match.length() - 1] != '/') {
+			STR path_with_slash = path_to_match + "/";
+			loc_loc = matchServer->_locations;
+			while (loc_loc.size() > 0) {
+				MAP<STR, LocationConfig *>::iterator it = loc_loc.begin();
+				if (it->first == path_with_slash) {
+					matchLocation = it->second;
+					break;
+				}
+				if (it->second->_locations.size() > 0) {
+					loc_loc.insert(it->second->_locations.begin(), it->second->_locations.end());
+				}
+				loc_loc.erase(it);
+			}
+		}
 
-// 		if (!matchLocation) {
-// 			Logger::cerrlog(Logger::DEBUG, "Regressed path " + path_to_match + " -> " + regress_path(path_to_match));
-// 			path_to_match = regress_path(path_to_match);
-// 		}
-// 	}
+		if (!matchLocation) {
+			Logger::cerrlog(Logger::DEBUG, "Regressed path " + path_to_match + " -> " + regress_path(path_to_match));
+			path_to_match = regress_path(path_to_match);
+		}
+	}
 
-// 	if (!matchLocation)
-// 		return NULL;
+	if (!matchLocation)
+		return NULL;
 
 
-// 	STR relative_path = "";
+	STR relative_path = "";
 
-// 	// add root path
-// 	AConfigBase* local_ref = matchLocation;
-// 	while (local_ref) {
-// 		if (local_ref->_root != "") {
-// 			relative_path.append(local_ref->_root);
-// 			break;
-// 		}
-// 		local_ref = local_ref->back_ref;
-// 	}
+	// add root path
+	AConfigBase* local_ref = matchLocation;
+	while (local_ref) {
+		if (local_ref->_root != "") {
+			relative_path.append(local_ref->_root);
+			break;
+		}
+		local_ref = local_ref->back_ref;
+	}
 
-// 	relative_path.append(_request._file_path);
+	relative_path.append(_request._file_path);
 
-// 	STR absolute_path = _request._file_path;
+	STR absolute_path = _request._file_path;
 
-// 	// check which path exists - relative or absolute
-// 	if (checkFile(relative_path) != NotFound) {
-// 		std::cerr << "Response::buildDirPath: relative path is " << relative_path << std::endl;
-// 		full_path = relative_path;
-// 	} else if (checkFile(absolute_path) != NotFound) {
-// 		std::cerr << "Response::buildDirPath: absolute path is " << absolute_path << std::endl;
-// 		full_path = absolute_path;
-// 	} else {
-// 		Logger::cerrlog(Logger::INFO, "Response::buildDirPath: no such file or directory \"" + full_path + "\" for " + _request._file_path + "!");
-// 		return NULL;
-// 	}
+	// check which path exists - relative or absolute
+	if (checkFile(relative_path) != NotFound) {
+		std::cerr << "Response::buildDirPath: relative path is " << relative_path << std::endl;
+		full_path = relative_path;
+	} else if (checkFile(absolute_path) != NotFound) {
+		std::cerr << "Response::buildDirPath: absolute path is " << absolute_path << std::endl;
+		full_path = absolute_path;
+	} else {
+		Logger::cerrlog(Logger::INFO, "Response::buildDirPath: no such file or directory \"" + full_path + "\" for " + _request._file_path + "!");
+	}
 
-// 	Logger::cerrlog(Logger::DEBUG, "Response::buildDirPath: dir path is " + full_path);
-// 	return matchLocation;
-// }
+	Logger::cerrlog(Logger::DEBUG, "Response::buildDirPath: dir path is " + full_path);
+	return matchLocation;
+}
+
 
 int Response::buildIndexPath(LocationConfig *matchLocation, STR &best_file_path, STR dir_path) {
 	if (best_file_path != "/" && best_file_path[best_file_path.length() - 1] != '/')
@@ -904,10 +906,11 @@ STR	Response::createErrorResponse(int statusCode, const STR& contentType, const 
 		try
 		{
 			if (strncmp(base->_error_pages[statusCode].c_str(), "default_errors/", 15) || base->_identify(base) == HTTP) {
-
+				Logger::log(Logger::DEBUG, "Response::createErrorResponse: default error page for " + Utils::intToString(statusCode) + " is " + base->_error_pages[statusCode]);
 				if (access(base->_error_pages[statusCode].c_str(), R_OK) == 0) {
 					std::ifstream file(base->_error_pages[statusCode].c_str(), std::ios::binary);
 					if (file) {
+						std::cerr << "Response::createErrorResponse: file is " << base->_error_pages[statusCode] << "\n";
 						std::stringstream content;
 						content << file.rdbuf();
 						return createResponse(statusCode, getMimeType(base->_error_pages[statusCode]), content.str(), "");
@@ -917,6 +920,7 @@ STR	Response::createErrorResponse(int statusCode, const STR& contentType, const 
 		}
 		catch(const std::exception& e)
 		{
+			Logger::cerrlog(Logger::ERROR, "Response::createErrorResponse: error page not found");
 		}
 		base = base->back_ref;
 	}
@@ -957,6 +961,8 @@ STR Response::getResponse() {
 		return "";
 	}
 
+	_request._file_path = urlDecode(_request._file_path);
+
 	for (size_t i = 0; i < _config->_servers.size(); i++) {
 		if (_config->_servers[i]->_listen_port != _request._port)
 			continue;
@@ -980,8 +986,10 @@ STR Response::getResponse() {
 	}
 
 	matchLocation = buildDirPath(matchServer, dir_path, isDIR);
-	if (!matchLocation)
-		return createErrorResponse(404, "text/plain", "Not Found", matchServer);
+	// if (!matchLocation){
+	// 	Logger::cerrlog(Logger::ERROR, "Response::getResponse: no match location found for " + _request._file_path);
+	// 	return createErrorResponse(404, "text/plain", "Not Found", matchServer);
+	// }
 
 	// check body size
 	if (!checkBodySize(matchLocation)) {
@@ -1066,8 +1074,10 @@ STR Response::getResponse() {
 	//--server file
 
 	//if it's not a directory return error
-	if (checkFile(dir_path) != Directory)
+	if (checkFile(dir_path) != Directory && !isDIR)
 		return createErrorResponse(404, "text/plain", "Not Found", matchServer);
+	else if (checkFile(dir_path) != Directory && isDIR)
+		return createErrorResponse(403, "text/plain", "Forbidden", matchLocation);
 	//--check dir
 
 	//add index file name to file_path

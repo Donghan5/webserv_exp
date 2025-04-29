@@ -1,4 +1,4 @@
-directory: /home/pzinurov/sgoinfre/ups/
+directory: /home/donghank/webserv_exp/webserv_test/www/uploads
 exists: True
 is_writable: True
 parent_exists: True

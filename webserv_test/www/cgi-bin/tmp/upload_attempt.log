@@ -403,3 +403,48 @@ file_size: 124402
 file_type: image/png
 upload_dir_exists: True
 upload_dir_writable: True
+
+--- New Upload Attempt ---
+time: 2025-04-29 19:44:25
+filename: Screenshot from 2025-04-24 18-39-34.png
+filepath: /home/donghank/webserv_exp/webserv_test/www/uploads/Screenshot from 2025-04-24 18-39-34.png
+file_size: 309178
+file_type: image/png
+upload_dir_exists: True
+upload_dir_writable: True
+
+--- New Upload Attempt ---
+time: 2025-04-29 19:45:24
+filename: Screenshot from 2025-04-22 19-13-57.png
+filepath: /home/donghank/webserv_exp/webserv_test/www/uploads/Screenshot from 2025-04-22 19-13-57.png
+file_size: 87750
+file_type: image/png
+upload_dir_exists: True
+upload_dir_writable: True
+
+--- New Upload Attempt ---
+time: 2025-04-29 20:24:03
+filename: 6ac18ac1-e191-41e9-b365-2748cc283205.png
+filepath: /home/donghank/webserv_exp/webserv_test/www/uploads/6ac18ac1-e191-41e9-b365-2748cc283205.png
+file_size: 1412580
+file_type: image/png
+upload_dir_exists: True
+upload_dir_writable: True
+
+--- New Upload Attempt ---
+time: 2025-04-29 20:26:12
+filename: Screenshot from 2025-04-15 19-56-24.png
+filepath: /home/donghank/webserv_exp/webserv_test/www/uploads/Screenshot from 2025-04-15 19-56-24.png
+file_size: 312254
+file_type: image/png
+upload_dir_exists: True
+upload_dir_writable: True
+
+--- New Upload Attempt ---
+time: 2025-04-29 20:46:19
+filename: Screenshot from 2025-04-22 19-13-57.png
+filepath: /home/donghank/webserv_exp/webserv_test/www/uploads/Screenshot from 2025-04-22 19-13-57.png
+file_size: 87750
+file_type: image/png
+upload_dir_exists: True
+upload_dir_writable: True

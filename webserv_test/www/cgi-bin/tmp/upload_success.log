@@ -313,3 +313,38 @@ file_saved: True
 actual_size: 124402
 expected_size: 124402
 size_match: True
+
+--- Upload Status ---
+time: 2025-04-29 19:44:25
+file_saved: True
+actual_size: 309178
+expected_size: 309178
+size_match: True
+
+--- Upload Status ---
+time: 2025-04-29 19:45:24
+file_saved: True
+actual_size: 87750
+expected_size: 87750
+size_match: True
+
+--- Upload Status ---
+time: 2025-04-29 20:24:03
+file_saved: True
+actual_size: 1412580
+expected_size: 1412580
+size_match: True
+
+--- Upload Status ---
+time: 2025-04-29 20:26:12
+file_saved: True
+actual_size: 312254
+expected_size: 312254
+size_match: True
+
+--- Upload Status ---
+time: 2025-04-29 20:46:19
+file_saved: True
+actual_size: 87750
+expected_size: 87750
+size_match: True
