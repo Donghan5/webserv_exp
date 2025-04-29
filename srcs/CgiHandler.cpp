@@ -4,7 +4,7 @@
 
 CgiHandler::CgiHandler(const STR &scriptPath, const MAP<STR, STR> &env, const STR &body):
     _scriptPath(scriptPath), _env(env), _body(body), _cgi_pid(-1), _process_running(false) {
-	_interpreters[".py"] = "/usr/bin/python";
+	_interpreters[".py"] = "/usr/bin/python3";
 	_interpreters[".php"] = "/usr/bin/php";
 	_interpreters[".pl"] = "/usr/bin/perl";
 	_interpreters[".sh"] = "/bin/bash";

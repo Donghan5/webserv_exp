@@ -574,84 +574,226 @@ STR	regress_path(STR path) {
 	return path;
 }
 
-LocationConfig *Response::buildDirPath(ServerConfig *matchServer, STR &full_path, bool &isDIR) {
-	LocationConfig *matchLocation = NULL;
-	STR path_to_match = _request._file_path;
+// --- helper function to join two paths ---
+std::string joinPaths(const std::string& p1, const std::string& p2) {
+    if (p1.empty()) return p2;
+    if (p2.empty()) return p1;
 
-	(void) isDIR;
+    char lastChar = p1[p1.length() - 1];
+    char firstChar = p2[0];
 
-	// search exact match first
-	while (path_to_match != "" && !matchLocation) {
-		MAP<STR, LocationConfig *> loc_loc = matchServer->_locations;
-		while (loc_loc.size() > 0) {
-			MAP<STR, LocationConfig *>::iterator it = loc_loc.begin();
-			if (it->first == path_to_match) {
-				matchLocation = it->second;
-				break;
-			}
-			if (it->second->_locations.size() > 0) {
-				loc_loc.insert(it->second->_locations.begin(), it->second->_locations.end());
-			}
-			loc_loc.erase(it);
-		}
+    if (lastChar == '/' && firstChar == '/')
+        return p1 + p2.substr(1);
+    else if (lastChar != '/' && firstChar != '/')
+        return p1 + '/' + p2;
+    else
+        return p1 + p2;
+}
 
-		if (!matchLocation && path_to_match != "" && path_to_match[path_to_match.length() - 1] != '/') {
-			STR path_with_slash = path_to_match + "/";
-			loc_loc = matchServer->_locations;
-			while (loc_loc.size() > 0) {
-				MAP<STR, LocationConfig *>::iterator it = loc_loc.begin();
-				if (it->first == path_with_slash) {
-					matchLocation = it->second;
-					break;
+// to test alias
+LocationConfig* Response::buildDirPath(ServerConfig *matchServer, STR &full_path, bool &isDIR) {
+    LocationConfig *matchLocation = NULL;
+    STR request_uri = _request._file_path;
+    STR location_uri_part = "";
+
+    STR current_best_path = "";
+    LocationConfig* current_best_match = NULL;
+    std::vector<const LocationConfig*> queue;  // to store locations to check
+
+    for (MAP<STR, LocationConfig*>::const_iterator it = matchServer->_locations.begin(); it != matchServer->_locations.end(); ++it) {
+        if (it->second != NULL) {
+             queue.push_back(it->second);
+        }
+    }
+
+    unsigned int head = 0;
+    while(head < queue.size()){
+        const LocationConfig* current_loc = queue[head++];
+        STR loc_path = current_loc->_path;
+
+        if (request_uri.rfind(loc_path, 0) == 0) {
+			// boundary check
+			bool isBoundary = false;
+			if (loc_path == "/") isBoundary = true;  // root location
+			else if (request_uri.length() == loc_path.length()) isBoundary = true;  // check if loc_path is the same as request_uri
+			else if (request_uri[loc_path.length() - 1] == '/') isBoundary = true;
+			else if (request_uri[loc_path.length()] == '/') isBoundary = true;
+
+			if (isBoundary) {
+                 if (loc_path.length() > current_best_path.length()) {
+                    current_best_path = loc_path;
+                    current_best_match = const_cast<LocationConfig*>(current_loc);
+					Logger::log(Logger::DEBUG, "Response::buildDirPath: current best match is " + current_best_path);
 				}
-				if (it->second->_locations.size() > 0) {
-					loc_loc.insert(it->second->_locations.begin(), it->second->_locations.end());
-				}
-				loc_loc.erase(it);
 			}
-		}
+        }
 
-		if (!matchLocation) {
-			Logger::cerrlog(Logger::DEBUG, "Regressed path " + path_to_match + " -> " + regress_path(path_to_match));
-			path_to_match = regress_path(path_to_match);
-		}
-	}
+		// -- nested_it is to check nested locations --
+        for (MAP<STR, LocationConfig*>::const_iterator nested_it = current_loc->_locations.begin(); nested_it != current_loc->_locations.end(); ++nested_it) {
+             if (nested_it->second != NULL) {
+                queue.push_back(nested_it->second);
+            }
+        }
+    }
 
-	if (!matchLocation)
-		return NULL;
+    matchLocation = current_best_match;
+    location_uri_part = current_best_path;
 
+    // --- 2. If no matchLocation value, using server. ---
+    if (matchLocation == NULL) {
+        Logger::cerrlog(Logger::INFO, "No specific location found for: " + request_uri + ". Trying server root.");
+        if (!matchServer->_root.empty()) {
+            full_path = joinPaths(matchServer->_root, request_uri);
+			Logger::log(Logger::DEBUG, "Response::buildDirPath: full path is " + full_path);
+            FileType type = checkFile(full_path);
+            if (type != NotFound) {
+                isDIR = (type == Directory);
+                Logger::cerrlog(Logger::DEBUG, "Using server root. Path: " + full_path);
+                return NULL;
+            }
+        }
+        Logger::cerrlog(Logger::ERROR, "No matching location or server root found for: " + request_uri);
+        return NULL; // Not found
+    }
 
-	STR relative_path = "";
+    // --- 3. Determine alias or root ---
+    STR determined_path = "";
+    STR alias_value = "";
+    STR root_value = "";
+    bool alias_found = false;
 
-	// add root path
-	AConfigBase* local_ref = matchLocation;
-	while (local_ref) {
-		if (local_ref->_root != "") {
-			relative_path.append(local_ref->_root);
+    AConfigBase* current_config = matchLocation;
+    while (current_config != NULL) {
+        LocationConfig* loc = dynamic_cast<LocationConfig*>(current_config);
+        if (loc != NULL && !alias_found && !loc->_alias.empty()) {
+            alias_value = loc->_alias;
+            alias_found = true;
+            break; // found alias, no need to check further
+        }
+
+        // check for root (alias not founded)
+        if (root_value.empty() && !current_config->_root.empty()) {
+			root_value = current_config->_root;
+			Logger::log(Logger::DEBUG, "Response::buildDirPath: root value is " + root_value);
 			break;
 		}
-		local_ref = local_ref->back_ref;
-	}
+        current_config = current_config->back_ref;
+    }
 
-	relative_path.append(_request._file_path);
+    // --- 4. full_path calculate ---
+    if (alias_found) {
+        // Alias logic: alias path + (requested URI - matched location URI part)
+        STR remaining_path = "";
+        if (request_uri.rfind(location_uri_part, 0) == 0) {
+            remaining_path = request_uri.substr(location_uri_part.length());
+        } else {
+             Logger::cerrlog(Logger::WARNING, "Request URI does not start with matched location URI part? Req: " + request_uri + ", Loc: " + location_uri_part);
+             remaining_path = request_uri;
+        }
+        determined_path = joinPaths(alias_value, remaining_path);
+        Logger::cerrlog(Logger::DEBUG, "Path constructed using ALIAS: " + determined_path);
+    } else if (!root_value.empty()) {
+        // root logic : root path + request_uri
+        determined_path = joinPaths(root_value, request_uri);
+        Logger::cerrlog(Logger::DEBUG, "Path constructed using ROOT: " + determined_path);
+    } else {
+        Logger::cerrlog(Logger::ERROR, "Neither alias nor root directive found!");
+        return NULL; // error
+    }
 
-	STR absolute_path = _request._file_path;
+    // --- 5. verify path computed ---
+    FileType type = checkFile(determined_path);
+    if (type == NotFound) {
+        Logger::cerrlog(Logger::INFO, "Response::buildDirPath: Resulting path not found: \"" + determined_path + "\"");
+        return NULL;
+    }
 
-	// check which path exists - relative or absolute
-	if (checkFile(relative_path) != NotFound) {
-		std::cerr << "Response::buildDirPath: relative path is " << relative_path << std::endl;
-		full_path = relative_path;
-	} else if (checkFile(absolute_path) != NotFound) {
-		std::cerr << "Response::buildDirPath: absolute path is " << absolute_path << std::endl;
-		full_path = absolute_path;
-	} else {
-		Logger::cerrlog(Logger::INFO, "Response::buildDirPath: no such file or directory \"" + full_path + "\" for " + _request._file_path + "!");
-		return NULL;
-	}
+    full_path = determined_path;
+    isDIR = (type == Directory);
 
-	Logger::cerrlog(Logger::DEBUG, "Response::buildDirPath: dir path is " + full_path);
-	return matchLocation;
+    Logger::cerrlog(Logger::DEBUG, "Response::buildDirPath: final path is " + full_path + " (isDIR: " + (isDIR ? "true" : "false") + ")");
+    return matchLocation;
 }
+
+
+// LocationConfig *Response::buildDirPath(ServerConfig *matchServer, STR &full_path, bool &isDIR) {
+// 	LocationConfig *matchLocation = NULL;
+// 	STR path_to_match = _request._file_path;
+
+// 	(void) isDIR;
+
+// 	// search exact match first
+// 	while (path_to_match != "" && !matchLocation) {
+// 		MAP<STR, LocationConfig *> loc_loc = matchServer->_locations;
+// 		while (loc_loc.size() > 0) {
+// 			MAP<STR, LocationConfig *>::iterator it = loc_loc.begin();
+// 			if (it->first == path_to_match) {
+// 				matchLocation = it->second;
+// 				break;
+// 			}
+// 			if (it->second->_locations.size() > 0) {
+// 				loc_loc.insert(it->second->_locations.begin(), it->second->_locations.end());
+// 			}
+// 			loc_loc.erase(it);
+// 		}
+
+// 		if (!matchLocation && path_to_match != "" && path_to_match[path_to_match.length() - 1] != '/') {
+// 			STR path_with_slash = path_to_match + "/";
+// 			loc_loc = matchServer->_locations;
+// 			while (loc_loc.size() > 0) {
+// 				MAP<STR, LocationConfig *>::iterator it = loc_loc.begin();
+// 				if (it->first == path_with_slash) {
+// 					matchLocation = it->second;
+// 					break;
+// 				}
+// 				if (it->second->_locations.size() > 0) {
+// 					loc_loc.insert(it->second->_locations.begin(), it->second->_locations.end());
+// 				}
+// 				loc_loc.erase(it);
+// 			}
+// 		}
+
+// 		if (!matchLocation) {
+// 			Logger::cerrlog(Logger::DEBUG, "Regressed path " + path_to_match + " -> " + regress_path(path_to_match));
+// 			path_to_match = regress_path(path_to_match);
+// 		}
+// 	}
+
+// 	if (!matchLocation)
+// 		return NULL;
+
+
+// 	STR relative_path = "";
+
+// 	// add root path
+// 	AConfigBase* local_ref = matchLocation;
+// 	while (local_ref) {
+// 		if (local_ref->_root != "") {
+// 			relative_path.append(local_ref->_root);
+// 			break;
+// 		}
+// 		local_ref = local_ref->back_ref;
+// 	}
+
+// 	relative_path.append(_request._file_path);
+
+// 	STR absolute_path = _request._file_path;
+
+// 	// check which path exists - relative or absolute
+// 	if (checkFile(relative_path) != NotFound) {
+// 		std::cerr << "Response::buildDirPath: relative path is " << relative_path << std::endl;
+// 		full_path = relative_path;
+// 	} else if (checkFile(absolute_path) != NotFound) {
+// 		std::cerr << "Response::buildDirPath: absolute path is " << absolute_path << std::endl;
+// 		full_path = absolute_path;
+// 	} else {
+// 		Logger::cerrlog(Logger::INFO, "Response::buildDirPath: no such file or directory \"" + full_path + "\" for " + _request._file_path + "!");
+// 		return NULL;
+// 	}
+
+// 	Logger::cerrlog(Logger::DEBUG, "Response::buildDirPath: dir path is " + full_path);
+// 	return matchLocation;
+// }
 
 int Response::buildIndexPath(LocationConfig *matchLocation, STR &best_file_path, STR dir_path) {
 	if (best_file_path != "/" && best_file_path[best_file_path.length() - 1] != '/')
