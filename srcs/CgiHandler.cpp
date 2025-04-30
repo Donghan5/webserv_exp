@@ -372,16 +372,11 @@ STR CgiHandler::readFromCgi() {
         output.append(buffer, bytesRead);
     }
 
-	if (bytesRead == 0) {
-		// End of file reached, close the pipe
-		Logger::log(Logger::DEBUG, "End of file reached on CGI output pipe (EOF detected)");
-	}
     if (bytesRead < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
         Logger::cerrlog(Logger::ERROR, "Failed to read from CGI: " + STR(strerror(errno)));
     }
 
     _output_buffer += output;
-	Logger::log(Logger::DEBUG, "Output from CGI: " + _output_buffer);
     return output;
 }
 
@@ -401,7 +396,6 @@ bool CgiHandler::checkCgiStatus() {
         _process_running = false;
 
         if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
-			Logger::log(Logger::DEBUG, "CGI process exited successfully");
             // Successful exit
             return true;
         } else {

@@ -38,7 +38,7 @@ class PollServer {
 	std::map<int, int>          _cgi_to_client;      // Map CGI fd to client fd
 	int							_epoll_fd;
 	VECTOR<struct epoll_event>	_events;
-	const int MAX_EVENTS = 64;
+	const int 					MAX_EVENTS;
 
 	bool						WaitAndService(RequestsManager &requests);
 	void						AcceptClient(int new_fd);

@@ -533,9 +533,6 @@ STR Response::handlePOST(STR full_path) {
     STR status_message = file_exists ? "OK - File Updated" : "Created";
     int status_code = file_exists ? 200 : 201;
 
-    // STR status_message =  "Created";
-    // int status_code = 201;
-
 	Logger::log(Logger::INFO, "Response::handlePOST end");
 
     return createResponse(status_code, "text/plain", status_message, "");
@@ -722,8 +719,6 @@ LocationConfig *Response::buildDirPath(ServerConfig *matchServer, STR &full_path
 	LocationConfig *matchLocation = NULL;
 	STR path_to_match = _request._file_path;
 
-	(void) isDIR;
-
 	// search exact match first
 	while (path_to_match != "" && !matchLocation) {
 		MAP<STR, LocationConfig *> loc_loc = matchServer->_locations;
@@ -764,7 +759,6 @@ LocationConfig *Response::buildDirPath(ServerConfig *matchServer, STR &full_path
 	if (!matchLocation)
 		return NULL;
 
-
 	STR relative_path = "";
 
 	// add root path
@@ -781,6 +775,39 @@ LocationConfig *Response::buildDirPath(ServerConfig *matchServer, STR &full_path
 
 	STR absolute_path = _request._file_path;
 
+	// check alias
+	if (matchLocation->_alias != "") {
+		if (matchLocation->_alias[0] != '/')
+			matchLocation->_alias = "/" + matchLocation->_alias;
+		// Simple string replacement of the matched location path with the alias
+		size_t pos = relative_path.find(path_to_match);
+		size_t pos_abs = absolute_path.find(path_to_match);
+
+		if (pos != STR::npos) {
+			STR new_path = relative_path;
+			new_path.replace(pos, relative_path.length(), matchLocation->_alias);
+
+			relative_path = new_path;
+
+			Logger::log(Logger::DEBUG, "Applied alias: replaced '" + path_to_match +
+						"' with '" + matchLocation->_alias + "' => '" + relative_path + "'");
+		} else {
+			Logger::log(Logger::WARNING, "Could not apply alias: location path not found in request path");
+		}
+
+		if (pos_abs != STR::npos) {
+			STR new_path = absolute_path;
+			new_path.replace(pos_abs, absolute_path.length(), matchLocation->_alias);
+
+			absolute_path = new_path;
+
+			Logger::log(Logger::DEBUG, "Applied alias: replaced '" + path_to_match +
+						"' with '" + matchLocation->_alias + "' => '" + absolute_path + "'");
+		} else {
+			Logger::log(Logger::WARNING, "Could not apply alias: location path not found in request path");
+		}
+	}
+
 	// check which path exists - relative or absolute
 	if (checkFile(relative_path) != NotFound) {
 		std::cerr << "Response::buildDirPath: relative path is " << relative_path << std::endl;
@@ -788,6 +815,12 @@ LocationConfig *Response::buildDirPath(ServerConfig *matchServer, STR &full_path
 	} else if (checkFile(absolute_path) != NotFound) {
 		std::cerr << "Response::buildDirPath: absolute path is " << absolute_path << std::endl;
 		full_path = absolute_path;
+	} else if (!isDIR && checkFile(regress_path(relative_path)) != NotFound) {
+		std::cerr << "Response::buildDirPath: relative path is " << relative_path << std::endl;
+		full_path = relative_path;
+	} else if (!isDIR && checkFile(regress_path(absolute_path)) != NotFound) {
+		std::cerr << "Response::buildDirPath: relative path is " << relative_path << std::endl;
+		full_path = relative_path;
 	} else {
 		Logger::cerrlog(Logger::INFO, "Response::buildDirPath: no such file or directory \"" + full_path + "\" for " + _request._file_path + "!");
 	}
@@ -800,14 +833,6 @@ LocationConfig *Response::buildDirPath(ServerConfig *matchServer, STR &full_path
 int Response::buildIndexPath(LocationConfig *matchLocation, STR &best_file_path, STR dir_path) {
 	if (best_file_path != "/" && best_file_path[best_file_path.length() - 1] != '/')
 		best_file_path.append("/");
-
-	//if request is file IMPOSSIBLE AS POST IS MOVED UP
-	if (_request._file_name != "") {
-		Logger::cerrlog(Logger::ERROR, "Response::buildBestPath: IMPOSSIBLE AS POST IS MOVED UP _request._file_name " + _request._file_name + ".");
-		best_file_path.append(_request._file_name);
-		Logger::log(Logger::INFO, "Response::buildBestPath: FILE full path is " + best_file_path);
-		return 1;
-	}
 
 	//if request doesn't have file name - searching for index
 	try
@@ -906,21 +931,31 @@ STR	Response::createErrorResponse(int statusCode, const STR& contentType, const 
 		try
 		{
 			if (strncmp(base->_error_pages[statusCode].c_str(), "default_errors/", 15) || base->_identify(base) == HTTP) {
-				Logger::log(Logger::DEBUG, "Response::createErrorResponse: default error page for " + Utils::intToString(statusCode) + " is " + base->_error_pages[statusCode]);
 				if (access(base->_error_pages[statusCode].c_str(), R_OK) == 0) {
 					std::ifstream file(base->_error_pages[statusCode].c_str(), std::ios::binary);
 					if (file) {
-						std::cerr << "Response::createErrorResponse: file is " << base->_error_pages[statusCode] << "\n";
 						std::stringstream content;
 						content << file.rdbuf();
 						return createResponse(statusCode, getMimeType(base->_error_pages[statusCode]), content.str(), "");
+					}
+				}
+				STR full_path = base->_error_pages[statusCode];
+				if (full_path[0] != '/')
+					full_path = base->_root + "/" + full_path;
+				else
+					full_path = base->_root + full_path;
+				if (access(full_path.c_str(), R_OK) == 0) {
+					std::ifstream file(full_path.c_str(), std::ios::binary);
+					if (file) {
+						std::stringstream content;
+						content << file.rdbuf();
+						return createResponse(statusCode, getMimeType(full_path), content.str(), "");
 					}
 				}
 			}
 		}
 		catch(const std::exception& e)
 		{
-			Logger::cerrlog(Logger::ERROR, "Response::createErrorResponse: error page not found");
 		}
 		base = base->back_ref;
 	}
@@ -956,12 +991,12 @@ STR Response::getResponse() {
 	STR dir_path = "";
 	STR	file_path = "";
 
+	_request._file_path = urlDecode(_request._file_path);
+
 	if (_request._full_request == "" || !_config) {
 		Logger::cerrlog(Logger::ERROR, "Response::getResponse error, no config or request");
 		return "";
 	}
-
-	_request._file_path = urlDecode(_request._file_path);
 
 	for (size_t i = 0; i < _config->_servers.size(); i++) {
 		if (_config->_servers[i]->_listen_port != _request._port)
@@ -1155,7 +1190,6 @@ STR Response::getFinalResponse() {
     size_t header_end = _response_buffer.find("\r\n\r\n");
     if (header_end != STR::npos) {
         STR headers_section = _response_buffer.substr(0, header_end);
-		Logger::cerrlog(Logger::DEBUG, "Response::getFinalResponse: headers_section is: " + headers_section);
         STR body = _response_buffer.substr(header_end + 4); // +4 to skip "\r\n\r\n"
 
         // Use a vector to store headers since multiple headers can have the same name

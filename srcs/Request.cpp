@@ -155,7 +155,6 @@ bool Request::parseHeader() {
 		temp_token.clear();
 	}
 
-	// process_path(_file_path, _file_name);
 	return true;
 }
 
@@ -371,6 +370,14 @@ Request::Request(const Request &obj) {
 	_accepted_types = obj._accepted_types;
 	_body = obj._body;
 	_body_size = obj._body_size;
+	_chunked_flag = obj._chunked_flag;
+	_chunked_state = obj._chunked_state;
+	_chunk_size = obj._chunk_size;
+	_chunk_data_read = obj._chunk_data_read;
+	_chunk_buffer = obj._chunk_buffer;
+	_transfer_encoding = obj._transfer_encoding;
+	_query_string = obj._query_string;
+	_file_name = obj._file_name;
 }
 
 Request::~Request() {

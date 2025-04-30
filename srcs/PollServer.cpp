@@ -1,7 +1,7 @@
 #include "PollServer.hpp"
 #include "Logger.hpp"
 
-PollServer::PollServer() {
+PollServer::PollServer() : MAX_EVENTS(64) {
     config = NULL;
     running = false;
     _epoll_fd = epoll_create1(0);
@@ -11,7 +11,7 @@ PollServer::PollServer() {
     _events.resize(MAX_EVENTS);
 }
 
-PollServer::PollServer(const PollServer &obj) {
+PollServer::PollServer(const PollServer &obj) : MAX_EVENTS(64) {
     this->config = obj.config;
     running = false;
     _epoll_fd = epoll_create1(0);
@@ -21,7 +21,7 @@ PollServer::PollServer(const PollServer &obj) {
     _events.resize(MAX_EVENTS);
 }
 
-PollServer::PollServer(HttpConfig *config){
+PollServer::PollServer(HttpConfig *config) : MAX_EVENTS(64) {
     running = false;
     _epoll_fd = epoll_create1(0);
     if (_epoll_fd < 0) {
@@ -273,7 +273,6 @@ void PollServer::HandleCgiOutput(int cgi_fd, RequestsManager &manager) {
     }
 
     int client_fd = it->second;
-    Logger::cerrlog(Logger::INFO, "Processing CGI output for client: " + Utils::intToString(client_fd));
 
     try {
         // Process the CGI output
@@ -344,8 +343,6 @@ bool PollServer::WaitAndService(RequestsManager &manager) {
 
         // Check for errors first
         if (_events[i].events & (EPOLLERR | EPOLLHUP)) {
-            Logger::cerrlog(Logger::INFO, "Socket error or hangup for fd: " + Utils::intToString(fd));
-
             if (fd_type == SERVER_FD) {
                 Logger::cerrlog(Logger::ERROR, "Error on server socket: " + Utils::intToString(fd));
                 // Handle server socket error - possibly try to reopen
