@@ -20,6 +20,9 @@
 #include <map>
 #include <sys/epoll.h>
 
+// Potentially in PollServer.hpp or a constants file
+#define REQUEST_TIMEOUT_SECONDS 60 // Example: 60 seconds
+
 enum FdType {
     SERVER_FD,
     CLIENT_FD,
@@ -49,6 +52,12 @@ class PollServer {
 	bool RemoveFd(int fd);
 	bool AddServerSocket(int port, int socket_fd);
 	bool AddCgiFd(int cgi_fd, int client_fd);
+
+	MAP<int, std::time_t> _client_connection_times; // Track connection start time
+    MAP<int, bool> _client_request_received; // Track if request header is received
+
+    void CheckRequestTimeouts(RequestsManager &manager); // Add this declaration
+
 
 	public:
 		PollServer();

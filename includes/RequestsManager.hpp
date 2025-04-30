@@ -10,12 +10,13 @@ class RequestsManager {
 		MAP<int, STR>	_partial_responses;
         MAP<int, Response*> _active_responses; // Track active responses, particularly CGI ones
 
+
+		public:
 		int				HandleRead();               //*ints here should indicate next action like 1 = nothing, 0 = remove fd,
 													// 2 = update fd status
 		int 			HandleWrite();				//*
         STR             createErrorResponse(int statusCode, const STR& contentType, const STR& body, AConfigBase *base);
 
-		public:
 		RequestsManager();
 		RequestsManager(int client_fd);
 		RequestsManager(HttpConfig *config);
