@@ -60,8 +60,9 @@ static STR intToString(int num) {
 }
 
 int RequestsManager::HandleRead() {
-    static Request request;
-    static long long body_read = -1;
+    ClientState &client_state = _client_states[_client_fd];
+    long long &body_read = client_state.body_read;
+	Request &request = client_state.request;
 
     // Figure out why this here doesn't work (instead of two inside)
     // if (body_read != -1 && body_read >= (long long)request._body_size) {
@@ -148,7 +149,7 @@ int RequestsManager::HandleRead() {
 
             //HANDLE BODY IN if (body_read < (long long)request._body_size) else CASE, DON'T GO TO POLLOUT, body needed
             //           it's the same function - unify
-            
+
             if (request._body_size > 0) {
                 Logger::cerrlog(Logger::DEBUG, "RequestManager::HandleRead Body needed of size " + intToString(request._body_size));
                 body_read = _partial_requests[_client_fd].size() - header_end - 4;
@@ -464,6 +465,8 @@ void RequestsManager::CloseClient() {
     close(_client_fd);
     _partial_requests.erase(_client_fd);
     _partial_responses.erase(_client_fd);
+	_client_states.erase(_client_fd);
+
 }
 
 // Get the current CGI file descriptor for the active client

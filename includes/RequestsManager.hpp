@@ -2,6 +2,12 @@
 # define REQUESTSMANAGER_HPP
 # include "Response.hpp"
 
+struct ClientState {
+	Request request;
+	long long body_read;
+	ClientState() : body_read(-1) {}
+};
+
 class RequestsManager {
 	private:
 		HttpConfig 		*_config;
@@ -9,6 +15,7 @@ class RequestsManager {
 		MAP<int, STR>	_partial_requests;
 		MAP<int, STR>	_partial_responses;
         MAP<int, Response*> _active_responses; // Track active responses, particularly CGI ones
+		MAP<int, ClientState> _client_states; // Track client state for each client fd
 
 
 		public:
