@@ -324,12 +324,12 @@ bool PollServer::WaitAndService(RequestsManager &manager) {
     if (num_events < 0) {
         if (errno == EINTR) {
             // Just a signal interruption, not a real error
-            // Log in English
+
             Logger::cerrlog(Logger::DEBUG, "epoll wait interrupted by signal");
             return true; // Continue running
         } else {
             // A real error occurred
-             // Log in English
+             // Log in
             Logger::cerrlog(Logger::ERROR, "epoll_wait failed: " + STR(strerror(errno)));
             return false; // Stop the server loop on critical error
         }
@@ -350,17 +350,16 @@ bool PollServer::WaitAndService(RequestsManager &manager) {
             fd_type = type_it->second;
         } else {
             // This fd might have been closed by CheckRequestTimeouts or another event handler
-            // Log in English
+            // Log in
              Logger::cerrlog(Logger::DEBUG, "Processing event for unknown or already removed fd: " + Utils::intToString(fd));
             continue; // Skip this event
         }
 
         // Check for errors first (EPOLLERR, EPOLLHUP)
         if (revents & (EPOLLERR | EPOLLHUP)) {
-             // Log in English
+
             Logger::cerrlog(Logger::INFO, "Error or hangup detected on fd " + Utils::intToString(fd) + " (type: " + Utils::intToString(fd_type) + ")");
             if (fd_type == SERVER_FD) {
-                 // Log in English
                 Logger::cerrlog(Logger::ERROR, "Error on server socket: " + Utils::intToString(fd) + ". Check system logs. Removing from epoll.");
                 RemoveFd(fd); // Remove the faulty server socket
                 close(fd);    // Close it
@@ -372,7 +371,7 @@ bool PollServer::WaitAndService(RequestsManager &manager) {
                 MAP<int, int>::iterator cgi_it = _cgi_to_client.find(fd);
                 if (cgi_it != _cgi_to_client.end()) {
                     int client_fd = cgi_it->second;
-                    // Log in English
+
                     Logger::cerrlog(Logger::INFO, "Error/Hangup on CGI fd " + Utils::intToString(fd) + " (for client " + Utils::intToString(client_fd) + ").");
 
                     // Even on HUP/ERR, try to process any remaining output
@@ -380,7 +379,7 @@ bool PollServer::WaitAndService(RequestsManager &manager) {
                     try {
                         HandleCgiOutput(fd, manager); // This will handle cleanup if CGI finishes or errors out
                     } catch (const std::exception& e) {
-                         // Log in English
+
                         Logger::cerrlog(Logger::ERROR, "Exception handling CGI output on HUP/ERR for fd " + Utils::intToString(fd) + ": " + STR(e.what()));
                         // Ensure cleanup happens if HandleCgiOutput fails
                         RemoveFd(fd);
@@ -391,7 +390,7 @@ bool PollServer::WaitAndService(RequestsManager &manager) {
                     }
                 } else {
                     // Orphaned CGI fd error
-                     // Log in English
+
                     Logger::cerrlog(Logger::WARNING, "Error/Hangup on orphaned CGI fd " + Utils::intToString(fd) + ". Removing.");
                     RemoveFd(fd);
                     close(fd);
@@ -404,7 +403,6 @@ bool PollServer::WaitAndService(RequestsManager &manager) {
         // Handle events based on fd type
         if (fd_type == SERVER_FD && (revents & EPOLLIN)) {
             // Server socket has incoming connection(s)
-             // Log in English
              Logger::cerrlog(Logger::DEBUG, "EPOLLIN on server fd " + Utils::intToString(fd) + ". Accepting connections.");
             AcceptClient(fd);
         } else if (fd_type == CLIENT_FD) {
@@ -414,7 +412,7 @@ bool PollServer::WaitAndService(RequestsManager &manager) {
 
             if (revents & EPOLLIN) {
                 // Data available to read
-                 // Log in English
+
                  Logger::cerrlog(Logger::DEBUG, "EPOLLIN on client fd " + Utils::intToString(fd) + ". Calling HandleRead.");
                 status = manager.HandleRead();
 
@@ -427,11 +425,11 @@ bool PollServer::WaitAndService(RequestsManager &manager) {
 
             } else if (revents & EPOLLOUT) {
                 // Socket ready for writing
-                 // Log in English
+
                  Logger::cerrlog(Logger::DEBUG, "EPOLLOUT on client fd " + Utils::intToString(fd) + ". Calling HandleWrite.");
                 status = manager.HandleWrite();
             } else {
-                 // Log in English
+
                  Logger::cerrlog(Logger::WARNING, "Unexpected event combination " + Utils::intToString(revents) + " on client fd " + Utils::intToString(fd));
                  continue; // Skip if neither read nor write ready (shouldn't happen with current flags)
             }
@@ -440,7 +438,6 @@ bool PollServer::WaitAndService(RequestsManager &manager) {
             // Handle status returned by HandleRead/HandleWrite
             if (status == 0) {
                 // Remove client
-                // Log in English
                 Logger::cerrlog(Logger::INFO, "HandleRead/Write returned 0 for client fd " + Utils::intToString(fd) + ". Closing client.");
                 CloseClient(fd);
             } else if (status == 1) {
@@ -449,11 +446,10 @@ bool PollServer::WaitAndService(RequestsManager &manager) {
                 // Need clarification from RequestsManager on status code '1' meaning.
                 // Assuming '1' from HandleWrite means close now.
                 if (revents & EPOLLOUT) { // Only close if we were writing
-                     // Log in English
+
                      Logger::cerrlog(Logger::INFO, "HandleWrite returned 1 for client fd " + Utils::intToString(fd) + ". Closing client.");
                      CloseClient(fd);
                 } else {
-                     // Log in English (Reading state)
                      Logger::cerrlog(Logger::DEBUG, "HandleRead returned 1 for client fd " + Utils::intToString(fd) + ". Continuing EPOLLIN.");
                      // If HandleRead returns 1, we likely keep monitoring EPOLLIN (no change needed by ModifyFd)
                 }
@@ -461,11 +457,10 @@ bool PollServer::WaitAndService(RequestsManager &manager) {
                 // Reading: Request received, need to switch to write response
                 // Writing: Still writing data, continue waiting for EPOLLOUT
                 if (revents & EPOLLIN) { // If we were reading...
-                    // Log in English
                     Logger::cerrlog(Logger::DEBUG, "HandleRead returned 2 for client fd " + Utils::intToString(fd) + ". Switching to EPOLLOUT.");
                     if (!ModifyFd(fd, EPOLLOUT | EPOLLET)) { CloseClient(fd); } // Switch to write mode
                 } else { // If we were writing...
-                     // Log in English
+
                      Logger::cerrlog(Logger::DEBUG, "HandleWrite returned 2 for client fd " + Utils::intToString(fd) + ". Continuing EPOLLOUT.");
                      // Remain in write mode (no change needed by ModifyFd)
                 }
@@ -473,14 +468,14 @@ bool PollServer::WaitAndService(RequestsManager &manager) {
                 // Reading: Not applicable? HandleRead shouldn't return 3?
                 // Writing: Finished writing response, switch back to read for Keep-Alive
                 if (revents & EPOLLOUT) { // If we were writing...
-                     // Log in English
+
                      Logger::cerrlog(Logger::DEBUG, "HandleWrite returned 3 for client fd " + Utils::intToString(fd) + " (Keep-Alive). Switching back to EPOLLIN.");
                      if (!ModifyFd(fd, EPOLLIN | EPOLLET)) { CloseClient(fd); } // Switch back to read mode
                      // Reset timeout timers for the next request
                      _client_connection_times[fd] = std::time(NULL); // Reset idle timer
                      _client_request_received[fd] = false;         // Reset request received flag
                 } else {
-                      // Log in English
+
                       Logger::cerrlog(Logger::WARNING, "HandleRead unexpectedly returned 3 for client fd " + Utils::intToString(fd));
                 }
             } else if (status == 4) {
@@ -489,10 +484,10 @@ bool PollServer::WaitAndService(RequestsManager &manager) {
                 if (revents & EPOLLIN) { // If we were reading...
                     int cgi_fd = manager.getCurrentCgiFd(); // Get the CGI output fd from manager
                     if (cgi_fd > 0) {
-                        // Log in English
+
                         Logger::cerrlog(Logger::INFO, "HandleRead returned 4 for client fd " + Utils::intToString(fd) + ". Registering CGI fd " + Utils::intToString(cgi_fd) + ".");
                         if (!AddCgiFd(cgi_fd, fd)) { // Register the CGI fd with epoll
-                            // Log in English
+
                             Logger::cerrlog(Logger::ERROR, "Failed to register CGI fd " + Utils::intToString(cgi_fd) + " for client " + Utils::intToString(fd));
                             // Error handling: Send 500 error to client
                              _partial_responses[fd] = manager.createErrorResponse(500, "text/plain", "Failed to start CGI", NULL);
@@ -500,14 +495,14 @@ bool PollServer::WaitAndService(RequestsManager &manager) {
                         }
                          // Client fd itself doesn't need modification yet, wait for CGI output
                     } else {
-                         // Log in English
+
                          Logger::cerrlog(Logger::ERROR, "Manager returned invalid CGI fd (" + Utils::intToString(cgi_fd) + ") for client " + Utils::intToString(fd));
                          // Error handling: Send 500 error to client
                          _partial_responses[fd] = manager.createErrorResponse(500, "text/plain", "CGI Internal Error", NULL);
                          if (!ModifyFd(fd, EPOLLOUT | EPOLLET)) { CloseClient(fd); }
                     }
                 } else {
-                     // Log in English
+
                      Logger::cerrlog(Logger::WARNING, "HandleWrite unexpectedly returned 4 for client fd " + Utils::intToString(fd));
                 }
             }
@@ -515,7 +510,6 @@ bool PollServer::WaitAndService(RequestsManager &manager) {
 
         } else if (fd_type == CGI_FD && (revents & EPOLLIN)) {
             // CGI process has output ready to be read
-             // Log in English
              Logger::cerrlog(Logger::DEBUG, "EPOLLIN on CGI fd " + Utils::intToString(fd) + ". Handling CGI output.");
             HandleCgiOutput(fd, manager);
         } else {

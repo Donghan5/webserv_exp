@@ -27,7 +27,7 @@ enum FdType {
     SERVER_FD,
     CLIENT_FD,
     CGI_FD,
-    POST_FD  // 추가된 타입: POST 작업 파일 디스크립터
+    POST_FD
 };
 
 class PollServer {
