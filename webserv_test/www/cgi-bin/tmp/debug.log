@@ -1,0 +1,22 @@
+
+--- CGI env ---
+CONTENT_LENGTH: 69752
+CONTENT_TYPE: multipart/form-data; boundary=----WebKitFormBoundaryAki16K7zNDuZOXgt
+HTTP_COOKIE: 
+HTTP_HOST: localhost
+QUERY_STRING: 
+REQUEST_METHOD: POST
+SCRIPT_NAME: ./webserv_test/cgi-bin/upload.py
+SERVER_PORT: 8080
+SERVER_PROTOCOL: HTTP/1.1
+UPLOAD_STORE: /home/donghank/sgoinfre/ups
+LC_CTYPE: C.UTF-8
+
+--- DIRECT FORM PROCESSING ---
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryAki16K7zNDuZOXgt
+Content-Length: 69752
+Detected boundary: ------WebKitFormBoundaryAki16K7zNDuZOXgt
+Raw data size: 69752 bytes
+Split into 4 parts
+File field: filename, Filename: Screenshot from 2025-05-03 19-52-23.png, Content-Type: image/png, Size: 69410
+File content first 100 bytes (hex): 89504e470d0a1a0a0000000d49484452000003de0000021208060000003a3017500000000473424954080808087c0864880000001974455874536f66747761726500676e6f6d652d73637265656e73686f74ef03bf3e0000002e74455874437265617469

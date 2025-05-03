@@ -70,13 +70,13 @@ int RequestsManager::RegisterCgiFd(int cgi_fd, int client_fd) {
                    " for client " + Utils::intToString(client_fd));
     
     // Ensure the CGI fd is non-blocking
-    int flags = fcntl(cgi_fd, F_GETFL, 0);
-    if (flags == -1) {
-        Logger::cerrlog(Logger::ERROR, "Failed to get flags for CGI fd: " + STR(strerror(errno)));
-        return 0;
-    }
+    // int flags = fcntl(cgi_fd, F_GETFL, 0);
+    // if (flags == -1) {
+    //     Logger::cerrlog(Logger::ERROR, "Failed to get flags for CGI fd: " + STR(strerror(errno)));
+    //     return 0;
+    // }
     
-    if (fcntl(cgi_fd, F_SETFL, flags | O_NONBLOCK) == -1) {
+    if (fcntl(cgi_fd, F_SETFL, O_NONBLOCK) == -1) {
         Logger::cerrlog(Logger::ERROR, "Failed to set non-blocking for CGI fd: " + STR(strerror(errno)));
         return 0;
     }
@@ -97,6 +97,7 @@ int RequestsManager::HandleRead() {
     ClientState &client_state = _client_states[_client_fd];
     long long &body_read = client_state.body_read;
     Request &request = client_state.request;
+    bool done = false;
     
     if (_client_fd < 0) {
         Logger::cerrlog(Logger::ERROR, "HandleRead: Invalid client fd");
@@ -150,17 +151,19 @@ int RequestsManager::HandleRead() {
                     return 1; // Keep in read mode until we get the full body
                 } else {
                     // We've got the full body
-                    goto process_complete_request;
+                    done = true;
+                    // goto process_complete_request;
                 }
             } else {
                 // No body needed, process the request
-                goto process_complete_request;
+                done = true;
+                // goto process_complete_request;
             }
         }
         
         // Check if we've received the full body
-        if (body_read != -1 && body_read >= (long long)request._body_size) {
-process_complete_request:
+        if (done || (body_read != -1 && body_read >= (long long)request._body_size)) {
+// process_complete_request:
             Logger::cerrlog(Logger::INFO, "Complete request received");
             
             // Parse the request with body
@@ -321,6 +324,7 @@ int RequestsManager::HandleCgiOutput(int cgi_fd) {
     
     if (client_fd == -1 || !response) {
         Logger::cerrlog(Logger::ERROR, "CGI fd " + Utils::intToString(cgi_fd) + " has no associated client");
+        //close(cgi_fd); // CHECK NEW
         return 0;
     }
     
@@ -417,9 +421,10 @@ void RequestsManager::CloseClient() {
                 Logger::cerrlog(Logger::INFO, "Closing CGI fd " + Utils::intToString(cgi_fd) + 
                                 " for client " + Utils::intToString(_client_fd));
                 // Only close if still valid
-                if (fcntl(cgi_fd, F_GETFD) != -1) {
-                    close(cgi_fd);
-                }
+                // if (fcntl(cgi_fd, F_GETFD) != -1) {
+                    // close(cgi_fd);
+                // }
+                close(cgi_fd); // CHECK THIS
             }
             
             delete it->second;

@@ -263,7 +263,7 @@ try:
     upload_store = os.environ.get('UPLOAD_STORE', '')
     if not upload_store:
         upload_store = os.path.join(PROJECT_ROOT, 'www/uploads')
-
+    
     log_progress(f"Using upload directory: {upload_store}")
 
     # Create upload directory if it doesn't exist
@@ -411,13 +411,13 @@ try:
         if file_type and file_type.startswith('image/'):
             print('<div class="file-preview">')
             print('<h3>File Preview</h3>')
-
+            
             # Save a copy for preview in the debug directory
             preview_filename = filename
             preview_path = os.path.join(DEBUG_DIR, preview_filename)
             with open(preview_path, 'wb') as f:
                 f.write(file_content)
-
+                
             # Log preview info
             with open(os.path.join(DEBUG_DIR, 'image_preview.log'), 'a') as f:
                 f.write(f"\n--- Image Preview Info ---\n")
