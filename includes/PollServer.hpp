@@ -20,14 +20,11 @@
 #include <map>
 #include <sys/epoll.h>
 
-// Potentially in PollServer.hpp or a constants file
-#define REQUEST_TIMEOUT_SECONDS 60 // Example: 60 seconds
-
 enum FdType {
     SERVER_FD,
     CLIENT_FD,
     CGI_FD,
-    POST_FD
+    POST_FD  // 추가된 타입: POST 작업 파일 디스크립터
 };
 
 class PollServer {
@@ -52,12 +49,6 @@ class PollServer {
 	bool RemoveFd(int fd);
 	bool AddServerSocket(int port, int socket_fd);
 	bool AddCgiFd(int cgi_fd, int client_fd);
-
-	MAP<int, std::time_t> _client_connection_times; // Track connection start time
-    MAP<int, bool> _client_request_received; // Track if request header is received
-
-    void CheckRequestTimeouts(RequestsManager &manager); // Add this declaration
-
 
 	public:
 		PollServer();
