@@ -1,28 +1,7 @@
 
 --- Upload Status ---
-time: 2025-05-03 20:02:20
+time: 2025-05-03 20:17:19
 file_saved: True
-actual_size: 69410
-expected_size: 69410
-size_match: True
-
---- Upload Status ---
-time: 2025-05-03 20:03:05
-file_saved: True
-actual_size: 980
-expected_size: 980
-size_match: True
-
---- Upload Status ---
-time: 2025-05-03 20:04:29
-file_saved: True
-actual_size: 1406996480
-expected_size: 1406996480
-size_match: True
-
---- Upload Status ---
-time: 2025-05-03 20:05:04
-file_saved: True
-actual_size: 69410
-expected_size: 69410
+actual_size: 244
+expected_size: 244
 size_match: True

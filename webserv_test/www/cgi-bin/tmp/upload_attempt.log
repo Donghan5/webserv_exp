@@ -1,36 +1,9 @@
 
 --- New Upload Attempt ---
-time: 2025-05-03 20:02:20
-filename: Screenshot from 2025-05-03 19-52-23.png
-filepath: /home/donghank/sgoinfre/ups/Screenshot from 2025-05-03 19-52-23.png
-file_size: 69410
-file_type: image/png
-upload_dir_exists: True
-upload_dir_writable: True
-
---- New Upload Attempt ---
-time: 2025-05-03 20:03:05
-filename: Parser.hpp
-filepath: /home/donghank/sgoinfre/ups/Parser.hpp
-file_size: 980
-file_type: text/x-c++hdr
-upload_dir_exists: True
-upload_dir_writable: True
-
---- New Upload Attempt ---
-time: 2025-05-03 20:04:16
-filename: big.txt
-filepath: /home/donghank/sgoinfre/ups/big.txt
-file_size: 1406996480
-file_type: text/plain
-upload_dir_exists: True
-upload_dir_writable: True
-
---- New Upload Attempt ---
-time: 2025-05-03 20:05:04
-filename: Screenshot from 2025-05-03 19-52-23.png
-filepath: /home/donghank/sgoinfre/ups/Screenshot from 2025-05-03 19-52-23.png
-file_size: 69410
-file_type: image/png
+time: 2025-05-03 20:17:19
+filename: Utils.cpp
+filepath: /home/donghank/sgoinfre/ups/Utils.cpp
+file_size: 244
+file_type: text/x-c++src
 upload_dir_exists: True
 upload_dir_writable: True

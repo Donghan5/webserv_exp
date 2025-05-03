@@ -1,83 +1,18 @@
-[2025-05-03 20:02:20] ========== NEW UPLOAD REQUEST ==========
-[2025-05-03 20:02:20] Project root: /home/donghank/webserv_exp/webserv_test
-[2025-05-03 20:02:20] Reading raw POST data from stdin
-[2025-05-03 20:02:20] Read 69752 bytes from stdin
-[2025-05-03 20:02:20] Found file part in multipart data
-[2025-05-03 20:02:20] Extracted filename: Screenshot from 2025-05-03 19-52-23.png
-[2025-05-03 20:02:20] Form field name: filename
-[2025-05-03 20:02:20] File content type: image/png
-[2025-05-03 20:02:20] Extracted file content: 69410 bytes
-[2025-05-03 20:02:20] Using upload directory: /home/donghank/sgoinfre/ups
-[2025-05-03 20:02:20] Upload directory exists: /home/donghank/sgoinfre/ups
-[2025-05-03 20:02:20] Successfully extracted file: Screenshot from 2025-05-03 19-52-23.png
-[2025-05-03 20:02:20] Using basename: Screenshot from 2025-05-03 19-52-23.png
-[2025-05-03 20:02:20] File content size: 69410 bytes
-[2025-05-03 20:02:20] File type detected: image/png
-[2025-05-03 20:02:20] Starting to write file to: /home/donghank/sgoinfre/ups/Screenshot from 2025-05-03 19-52-23.png
-[2025-05-03 20:02:20] Writing progress: 70% (49152/69410 bytes)
-[2025-05-03 20:02:20] Writing progress: 100% (69410/69410 bytes)
-[2025-05-03 20:02:20] File successfully written to disk: /home/donghank/sgoinfre/ups/Screenshot from 2025-05-03 19-52-23.png
-[2025-05-03 20:03:05] ========== NEW UPLOAD REQUEST ==========
-[2025-05-03 20:03:05] Project root: /home/donghank/webserv_exp/webserv_test
-[2025-05-03 20:03:05] Reading raw POST data from stdin
-[2025-05-03 20:03:05] Read 1297 bytes from stdin
-[2025-05-03 20:03:05] Found file part in multipart data
-[2025-05-03 20:03:05] Extracted filename: Parser.hpp
-[2025-05-03 20:03:05] Form field name: filename
-[2025-05-03 20:03:05] File content type: text/x-c++hdr
-[2025-05-03 20:03:05] Extracted file content: 980 bytes
-[2025-05-03 20:03:05] Using upload directory: /home/donghank/sgoinfre/ups
-[2025-05-03 20:03:05] Upload directory exists: /home/donghank/sgoinfre/ups
-[2025-05-03 20:03:05] Successfully extracted file: Parser.hpp
-[2025-05-03 20:03:05] Using basename: Parser.hpp
-[2025-05-03 20:03:05] File content size: 980 bytes
-[2025-05-03 20:03:05] File type detected: text/x-c++hdr
-[2025-05-03 20:03:05] Starting to write file to: /home/donghank/sgoinfre/ups/Parser.hpp
-[2025-05-03 20:03:05] Writing progress: 100% (980/980 bytes)
-[2025-05-03 20:03:05] File successfully written to disk: /home/donghank/sgoinfre/ups/Parser.hpp
-[2025-05-03 20:04:13] ========== NEW UPLOAD REQUEST ==========
-[2025-05-03 20:04:13] Project root: /home/donghank/webserv_exp/webserv_test
-[2025-05-03 20:04:13] Reading raw POST data from stdin
-[2025-05-03 20:04:13] Read 1406996791 bytes from stdin
-[2025-05-03 20:04:15] Found file part in multipart data
-[2025-05-03 20:04:15] Extracted filename: big.txt
-[2025-05-03 20:04:15] Form field name: filename
-[2025-05-03 20:04:15] File content type: text/plain
-[2025-05-03 20:04:15] Extracted file content: 1406996480 bytes
-[2025-05-03 20:04:15] Using upload directory: /home/donghank/sgoinfre/ups
-[2025-05-03 20:04:16] Upload directory exists: /home/donghank/sgoinfre/ups
-[2025-05-03 20:04:16] Successfully extracted file: big.txt
-[2025-05-03 20:04:16] Using basename: big.txt
-[2025-05-03 20:04:16] File content size: 1406996480 bytes
-[2025-05-03 20:04:16] File type detected: text/plain
-[2025-05-03 20:04:16] Starting to write file to: /home/donghank/sgoinfre/ups/big.txt
-[2025-05-03 20:04:17] Writing progress: 10% (140701696/1406996480 bytes)
-[2025-05-03 20:04:17] Writing progress: 20% (281399296/1406996480 bytes)
-[2025-05-03 20:04:17] Writing progress: 30% (422100992/1406996480 bytes)
-[2025-05-03 20:04:17] Writing progress: 40% (562798592/1406996480 bytes)
-[2025-05-03 20:04:17] Writing progress: 50% (703500288/1406996480 bytes)
-[2025-05-03 20:04:17] Writing progress: 60% (844197888/1406996480 bytes)
-[2025-05-03 20:04:17] Writing progress: 70% (984899584/1406996480 bytes)
-[2025-05-03 20:04:18] Writing progress: 80% (1125597184/1406996480 bytes)
-[2025-05-03 20:04:18] Writing progress: 90% (1266298880/1406996480 bytes)
-[2025-05-03 20:04:19] Writing progress: 100% (1406996480/1406996480 bytes)
-[2025-05-03 20:04:29] File successfully written to disk: /home/donghank/sgoinfre/ups/big.txt
-[2025-05-03 20:05:04] ========== NEW UPLOAD REQUEST ==========
-[2025-05-03 20:05:04] Project root: /home/donghank/webserv_exp/webserv_test
-[2025-05-03 20:05:04] Reading raw POST data from stdin
-[2025-05-03 20:05:04] Read 69752 bytes from stdin
-[2025-05-03 20:05:04] Found file part in multipart data
-[2025-05-03 20:05:04] Extracted filename: Screenshot from 2025-05-03 19-52-23.png
-[2025-05-03 20:05:04] Form field name: filename
-[2025-05-03 20:05:04] File content type: image/png
-[2025-05-03 20:05:04] Extracted file content: 69410 bytes
-[2025-05-03 20:05:04] Using upload directory: /home/donghank/sgoinfre/ups
-[2025-05-03 20:05:04] Upload directory exists: /home/donghank/sgoinfre/ups
-[2025-05-03 20:05:04] Successfully extracted file: Screenshot from 2025-05-03 19-52-23.png
-[2025-05-03 20:05:04] Using basename: Screenshot from 2025-05-03 19-52-23.png
-[2025-05-03 20:05:04] File content size: 69410 bytes
-[2025-05-03 20:05:04] File type detected: image/png
-[2025-05-03 20:05:04] Starting to write file to: /home/donghank/sgoinfre/ups/Screenshot from 2025-05-03 19-52-23.png
-[2025-05-03 20:05:04] Writing progress: 70% (49152/69410 bytes)
-[2025-05-03 20:05:04] Writing progress: 100% (69410/69410 bytes)
-[2025-05-03 20:05:04] File successfully written to disk: /home/donghank/sgoinfre/ups/Screenshot from 2025-05-03 19-52-23.png
+[2025-05-03 20:17:19] ========== NEW UPLOAD REQUEST ==========
+[2025-05-03 20:17:19] Project root: /home/donghank/webserv_exp/webserv_test
+[2025-05-03 20:17:19] Reading raw POST data from stdin
+[2025-05-03 20:17:19] Read 560 bytes from stdin
+[2025-05-03 20:17:19] Found file part in multipart data
+[2025-05-03 20:17:19] Extracted filename: Utils.cpp
+[2025-05-03 20:17:19] Form field name: filename
+[2025-05-03 20:17:19] File content type: text/x-c++src
+[2025-05-03 20:17:19] Extracted file content: 244 bytes
+[2025-05-03 20:17:19] Using upload directory: /home/donghank/sgoinfre/ups
+[2025-05-03 20:17:19] Upload directory exists: /home/donghank/sgoinfre/ups
+[2025-05-03 20:17:19] Successfully extracted file: Utils.cpp
+[2025-05-03 20:17:19] Using basename: Utils.cpp
+[2025-05-03 20:17:19] File content size: 244 bytes
+[2025-05-03 20:17:19] File type detected: text/x-c++src
+[2025-05-03 20:17:19] Starting to write file to: /home/donghank/sgoinfre/ups/Utils.cpp
+[2025-05-03 20:17:19] Writing progress: 100% (244/244 bytes)
+[2025-05-03 20:17:19] File successfully written to disk: /home/donghank/sgoinfre/ups/Utils.cpp
