@@ -275,6 +275,9 @@ bool CgiHandler::checkCgiStatus() {
 	// closeCgi();
 	// return true; // Report as completed (timed out)
 
+	// track the start time and timeout
+	Logger::log(Logger::DEBUG, "value of _start_time: " + Utils::intToString(_start_time) + ", value of _timeout: " + Utils::intToString(_timeout));
+
     // Check for timeout
     if ((time(NULL) - _start_time) > _timeout) {
 		// log start tiem
@@ -305,18 +308,20 @@ bool CgiHandler::checkCgiStatus() {
 	Logger::cerrlog(Logger::DEBUG, "IS_PARENT: " + Utils::intToString(getppid()));
 	Logger::cerrlog(Logger::DEBUG, "CgiHandler::checkCgiStatus: CGI process started at " +
 				   Utils::intToString(_start_time) + ", current time: " + Utils::intToString(time(NULL)));
+
 	Logger::cerrlog(Logger::DEBUG, "CgiHandler::checkCgiStatus: CGI process PID: " +
 				   Utils::intToString(_cgi_pid) + ", status: " + Utils::intToString(status));
 
-		//notify that result is not 0
-		if (result != 0) {
-			Logger::cerrlog(Logger::ERROR, "NOT ZERO: " +
-						   Utils::intToString(_cgi_pid) + ", status: " + Utils::intToString(status));
-		}
+	//notify that result is not 0
+	if (result != 0) {
+		Logger::cerrlog(Logger::ERROR, "NOT ZERO: " +
+						Utils::intToString(_cgi_pid) + ", status: " + Utils::intToString(status));
+	}
 
     if (result == 0) {
-		std::cout << "Always here\n";
         // Process is still running
+		// if process is still running, and it broken pipes
+		
         return false;
     } else if (result == _cgi_pid) {
         // Process has exited
