@@ -321,7 +321,7 @@ bool CgiHandler::checkCgiStatus() {
     if (result == 0) {
         // Process is still running
 		// if process is still running, and it broken pipes
-		
+
         return false;
     } else if (result == _cgi_pid) {
         // Process has exited
@@ -349,6 +349,12 @@ bool CgiHandler::checkCgiStatus() {
 		closeCgi();
         return true;
     }
+
+	// Maybe crucial error
+	Logger::cerrlog(Logger::ERROR, "Unexpected result from waitpid: " + Utils::intToString(result));
+    _process_running = false;
+    closeCgi();
+	return true;
 }
 
 void CgiHandler::closeCgi() {
