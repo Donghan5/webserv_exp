@@ -1,6 +1,8 @@
 #include "PollServer.hpp"
 #include "Logger.hpp"
 
+extern volatile sig_atomic_t g_signal_received;
+
 PollServer::PollServer() : MAX_EVENTS(64) {
     config = NULL;
     running = false;
@@ -99,13 +101,13 @@ void PollServer::setConfig(HttpConfig *config) {
         }
 
         // Set non-blocking mode
-        // int flags = fcntl(server_socket, F_GETFL, 0);
-        // if (flags == -1) {
-        //     close(server_socket);
-        //     throw std::runtime_error("Failed to get socket flags: " + STR(strerror(errno)));
-        // }
+        int flags = fcntl(server_socket, F_GETFL, 0);
+        if (flags == -1) {
+            close(server_socket);
+            throw std::runtime_error("Failed to get socket flags: " + STR(strerror(errno)));
+        }
 
-        if (fcntl(server_socket, F_SETFL, O_NONBLOCK) == -1) {
+        if (fcntl(server_socket, F_SETFL, flags | O_NONBLOCK) == -1) {
             close(server_socket);
             throw std::runtime_error("Failed to set non-blocking mode: " + STR(strerror(errno)));
         }
@@ -173,13 +175,13 @@ bool PollServer::AddFd(int fd, uint32_t events, FdType type) {
     }
 
     // Set non-blocking mode for the fd
-    // int flags = fcntl(fd, F_GETFL, 0);
-    // if (flags == -1) {
-    //     Logger::cerrlog(Logger::ERROR, "Failed to get flags for fd " + Utils::intToString(fd) + ": " + STR(strerror(errno)));
-    //     return false;
-    // }
+    int flags = fcntl(fd, F_GETFL, 0);
+    if (flags == -1) {
+        Logger::cerrlog(Logger::ERROR, "Failed to get flags for fd " + Utils::intToString(fd) + ": " + STR(strerror(errno)));
+        return false;
+    }
 
-    if (fcntl(fd, F_SETFL, O_NONBLOCK) == -1) {
+    if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1) {
         Logger::cerrlog(Logger::ERROR, "Failed to set non-blocking mode for fd " + Utils::intToString(fd) + ": " + STR(strerror(errno)));
         return false;
     }
@@ -218,10 +220,41 @@ bool PollServer::AddFd(int fd, uint32_t events, FdType type) {
 }
 
 bool PollServer::AddCgiFd(int cgi_fd, int client_fd) {
-    if (AddFd(cgi_fd, EPOLLIN, CGI_FD)) {
+    // Validate file descriptors
+    if (cgi_fd < 0 || client_fd < 0) {
+        Logger::cerrlog(Logger::ERROR, "Invalid file descriptors in AddCgiFd");
+        return false;
+    }
+
+    // Make sure the CGI fd is valid
+    if (fcntl(cgi_fd, F_GETFD) == -1) {
+        Logger::cerrlog(Logger::ERROR, "CGI fd " + Utils::intToString(cgi_fd) + " is not valid");
+        return false;
+    }
+
+    // Make sure the client fd is still valid
+    if (fcntl(client_fd, F_GETFD) == -1) {
+        Logger::cerrlog(Logger::ERROR, "Client fd " + Utils::intToString(client_fd) + " is not valid");
+        return false;
+    }
+
+    // Set non-blocking mode for the CGI fd if not already set
+    int flags = fcntl(cgi_fd, F_GETFL, 0);
+    if ((flags & O_NONBLOCK) == 0) {
+        if (fcntl(cgi_fd, F_SETFL, flags | O_NONBLOCK) == -1) {
+            Logger::cerrlog(Logger::ERROR, "Failed to set non-blocking mode for CGI fd");
+            return false;
+        }
+    }
+
+    // Add the fd to epoll
+    if (AddFd(cgi_fd, EPOLLIN | EPOLLET, CGI_FD)) { // Using edge-triggered mode
         _cgi_to_client[cgi_fd] = client_fd;
+        Logger::cerrlog(Logger::INFO, "Successfully added CGI fd " + Utils::intToString(cgi_fd) +
+                       " for client " + Utils::intToString(client_fd));
         return true;
     }
+
     return false;
 }
 
@@ -232,10 +265,10 @@ bool PollServer::ModifyFd(int fd, uint32_t events) {
     }
 
     // CRITICAL FIX: Check if fd is still valid
-    // if (fcntl(fd, F_GETFD) == -1) {
-    //     Logger::cerrlog(Logger::ERROR, "Attempted to modify closed fd: " + Utils::intToString(fd));
-    //     return false;
-    // }
+    if (fcntl(fd, F_GETFD) == -1) {
+        Logger::cerrlog(Logger::ERROR, "Attempted to modify closed fd: " + Utils::intToString(fd));
+        return false;
+    }
 
     // Make sure we're tracking this fd
     if (_fd_types.find(fd) == _fd_types.end()) {
@@ -261,43 +294,39 @@ bool PollServer::RemoveFd(int fd) {
         return false;
     }
 
-    // Get fd type for logging
-    std::string type_name = "unknown";
-    if (_fd_types.find(fd) != _fd_types.end()) {
-        switch (_fd_types[fd]) {
-            case SERVER_FD: type_name = "server"; break;
-            case CLIENT_FD: type_name = "client"; break;
-            case CGI_FD: type_name = "CGI"; break;
-            case POST_FD: type_name = "POST"; break;
-            default: type_name = "unknown"; break;
-        }
-
-        Logger::cerrlog(Logger::DEBUG, "Removing " + type_name + " fd: " + Utils::intToString(fd));
-    } else {
+    // Check if we're tracking this fd
+    if (_fd_types.find(fd) == _fd_types.end()) {
         Logger::cerrlog(Logger::DEBUG, "RemoveFd: File descriptor " + Utils::intToString(fd) +
                       " not found in tracking map");
         return true; // Not an error if we weren't tracking it
     }
 
-    // CRITICAL FIX: Check if fd is still valid before removing from epoll
-    // bool fd_is_valid = (fcntl(fd, F_GETFD) != -1);
+    // Get fd type for logging
+    std::string type_name;
+    switch (_fd_types[fd]) {
+        case SERVER_FD: type_name = "server"; break;
+        case CLIENT_FD: type_name = "client"; break;
+        case CGI_FD: type_name = "CGI"; break;
+        case POST_FD: type_name = "POST"; break;
+        default: type_name = "unknown"; break;
+    }
 
-    // if (fd_is_valid) {
-    //     // Only try to remove from epoll if the fd is still valid
-    //     if (epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, fd, NULL) < 0) {
-    //         Logger::cerrlog(Logger::ERROR, "Failed to remove " + type_name + " fd from epoll: " +
-    //                       STR(strerror(errno)));
-    //         // Continue anyway to clean up our tracking
-    //     }
-    // } else {
-    //     Logger::cerrlog(Logger::DEBUG, "RemoveFd: " + type_name + " fd " + Utils::intToString(fd) +
-    //                   " was already closed or removed from epoll");
-    // }
+    Logger::cerrlog(Logger::DEBUG, "Removing " + type_name + " fd: " + Utils::intToString(fd));
+
+    // CRITICAL: Check if fd is still valid before trying to use it
+    if (fcntl(fd, F_GETFD) != -1) {
+        // Only try to remove from epoll if the fd is valid
+        if (epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, fd, NULL) < 0) {
+            Logger::cerrlog(Logger::DEBUG, "RemoveFd: " + type_name + " fd " + Utils::intToString(fd) +
+                          " could not be removed from epoll: " + STR(strerror(errno)));
+        }
+    } else {
+        Logger::cerrlog(Logger::DEBUG, "RemoveFd: " + type_name + " fd " + Utils::intToString(fd) +
+                      " was already closed or removed from epoll");
+    }
 
     // Always remove from tracking maps
     _fd_types.erase(fd);
-
-    // Don't remove from _cgi_to_client here, handle that in CloseClient
 
     return true;
 }
@@ -320,8 +349,8 @@ void PollServer::AcceptClient(int server_fd) {
 	}
 
 	// Set non-blocking
-	// int flags = fcntl(client_fd, F_GETFL, 0);
-	fcntl(client_fd, F_SETFL, O_NONBLOCK);
+	int flags = fcntl(client_fd, F_GETFL, 0);
+	fcntl(client_fd, F_SETFL, flags | O_NONBLOCK);
 
 	// Add to epoll for read events
 	if (!AddFd(client_fd, EPOLLIN , CLIENT_FD)) {
@@ -339,33 +368,37 @@ void PollServer::HandleCgiOutput(int cgi_fd, RequestsManager &manager) {
     if (it == _cgi_to_client.end()) {
         Logger::cerrlog(Logger::ERROR, "CGI fd without associated client: " + Utils::intToString(cgi_fd));
 
-        // CRITICAL FIX: Check if fd is still valid before removing from epoll & closing
-        // if (fcntl(cgi_fd, F_GETFD) != -1) {
-        // } else {
-            RemoveFd(cgi_fd);   // CHECK THIS
-            close(cgi_fd);      // CHECK THIS
+        // Safe cleanup since we don't know the client
+        if (fcntl(cgi_fd, F_GETFD) != -1) {
+            RemoveFd(cgi_fd);
+            close(cgi_fd);
+        } else {
             // Just clean up tracking
             _fd_types.erase(cgi_fd);
-        // }
+            _cgi_to_client.erase(cgi_fd);
+        }
         return;
     }
 
     int client_fd = it->second;
 
     // CRITICAL FIX: Check if client is still valid
-    if (_fd_types.find(client_fd) == _fd_types.end()) {
+    if (_fd_types.find(client_fd) == _fd_types.end() ||
+        fcntl(client_fd, F_GETFD) == -1) {
         Logger::cerrlog(Logger::WARNING, "Client fd " + Utils::intToString(client_fd) +
                       " associated with CGI fd " + Utils::intToString(cgi_fd) + " is invalid");
 
         // Clean up the orphaned CGI fd
+        _cgi_to_client.erase(it); // Remove from mapping first
 
-            RemoveFd(cgi_fd); //CHECK THIS
-            close(cgi_fd);  // CHECK THIS
+        if (fcntl(cgi_fd, F_GETFD) != -1) {
+            RemoveFd(cgi_fd);
+            close(cgi_fd);
+        } else {
             // Just clean up tracking
             _fd_types.erase(cgi_fd);
+        }
 
-        // Remove the mapping
-        _cgi_to_client.erase(it);
         return;
     }
 
@@ -376,27 +409,43 @@ void PollServer::HandleCgiOutput(int cgi_fd, RequestsManager &manager) {
 
         if (result > 0) {
             // CGI completed, switch client to write mode
-            if (ModifyFd(client_fd, EPOLLOUT)) {
-                // Successfully modified, now remove CGI tracking
-                _cgi_to_client.erase(it);
-                RemoveFd(cgi_fd);
-                // Don't close the fd, the Response object owns it
+            _cgi_to_client.erase(it); // Remove mapping first
+
+            // Check if client is still valid before modifying
+            if (fcntl(client_fd, F_GETFD) != -1) {
+                if (ModifyFd(client_fd, EPOLLOUT)) {
+                    // Successfully modified
+                    Logger::cerrlog(Logger::DEBUG, "Client fd " + Utils::intToString(client_fd) +
+                                  " switched to write mode");
+                } else {
+                    Logger::cerrlog(Logger::ERROR, "Failed to modify client fd for writing, closing");
+                    CloseClient(client_fd);
+                }
             } else {
-                Logger::cerrlog(Logger::ERROR, "Failed to modify client fd for writing, closing");
-                // CRITICAL FIX: Use CloseClient to handle cleanup properly
-                CloseClient(client_fd);
+                Logger::cerrlog(Logger::WARNING, "Client fd invalid in HandleCgiOutput");
+                // Client already closed, just clean up CGI
+            }
+
+            // Then handle the CGI fd
+            if (fcntl(cgi_fd, F_GETFD) != -1) {
+                RemoveFd(cgi_fd);
+                close(cgi_fd);
+            } else {
+                // Just clean up tracking
+                _fd_types.erase(cgi_fd);
             }
         } else if (result == 0) {
             // Error occurred, clean up both client and CGI
-            RemoveFd(cgi_fd);
+            _cgi_to_client.erase(it); // Remove mapping first
 
-            // Check if fd is valid before closing
-            // if (fcntl(cgi_fd, F_GETFD) != -1) {
-            //     close(cgi_fd);
-            // }
-            close(cgi_fd); // CHECK THIS
-            // Remove from mapping before closing client
-            _cgi_to_client.erase(it);
+            // Clean up CGI fd
+            if (fcntl(cgi_fd, F_GETFD) != -1) {
+                RemoveFd(cgi_fd);
+                close(cgi_fd);
+            } else {
+                // Just clean up tracking
+                _fd_types.erase(cgi_fd);
+            }
 
             // Close the client
             CloseClient(client_fd);
@@ -405,17 +454,17 @@ void PollServer::HandleCgiOutput(int cgi_fd, RequestsManager &manager) {
     } catch (const std::exception& e) {
         Logger::cerrlog(Logger::ERROR, "Error handling CGI output: " + STR(e.what()));
 
-        // Clean up CGI resources
-        RemoveFd(cgi_fd);
-
-        // Check if fd is valid before closing
-        // if (fcntl(cgi_fd, F_GETFD) != -1) {
-        //     close(cgi_fd);
-        // }
-        close(cgi_fd); // CHECK THIS
-
-        // Remove from mapping before closing client
+        // Remove mapping first
         _cgi_to_client.erase(it);
+
+        // Clean up CGI fd
+        if (fcntl(cgi_fd, F_GETFD) != -1) {
+            RemoveFd(cgi_fd);
+            close(cgi_fd);
+        } else {
+            // Just clean up tracking
+            _fd_types.erase(cgi_fd);
+        }
 
         // Close the client
         CloseClient(client_fd);
@@ -431,16 +480,16 @@ bool PollServer::WaitAndService(RequestsManager &manager) {
         int client_fd = it->second;
 
         // Skip if client fd is invalid
-        // if (fcntl(client_fd, F_GETFD) == -1) {
-        //     completed_cgis.push_back(cgi_fd);
-        //     continue;
-        // }
-        // CHECK THIS
+        if (fcntl(client_fd, F_GETFD) == -1) {
+            completed_cgis.push_back(cgi_fd);
+            continue;
+        }
+
         // Skip if CGI fd is invalid
-        // if (fcntl(cgi_fd, F_GETFD) == -1) {
-        //     completed_cgis.push_back(cgi_fd);
-        //     continue;
-        // }
+        if (fcntl(cgi_fd, F_GETFD) == -1) {
+            completed_cgis.push_back(cgi_fd);
+            continue;
+        }
 
         // Force CGI output processing to check for timeout
         try {
@@ -461,17 +510,16 @@ bool PollServer::WaitAndService(RequestsManager &manager) {
             _cgi_to_client.erase(it);
 
             // Try to mark client as writable
-            // if (fcntl(client_fd, F_GETFD) != -1) {
-            //     ModifyFd(client_fd, EPOLLOUT);
-            // }
-            ModifyFd(client_fd, EPOLLOUT); // CHECK THIS
+            if (fcntl(client_fd, F_GETFD) != -1) {
+                ModifyFd(client_fd, EPOLLOUT);
+            }
         }
     }
 
     if (num_events < 0) {
         if (errno == EINTR) {
             // Just a signal interruption, not a real error
-            Logger::cerrlog(Logger::DEBUG, "Epoll wait was interrupted by a signal");
+            // Logger::cerrlog(Logger::DEBUG, "Epoll wait was interrupted by a signal");
             return true;
         } else {
             Logger::cerrlog(Logger::ERROR, "Epoll wait failed: " + STR(strerror(errno)));
@@ -488,14 +536,22 @@ bool PollServer::WaitAndService(RequestsManager &manager) {
             continue;
         }
 
-        // Get the fd type
-        FdType fd_type = SERVER_FD; // Default to prevent issues
-        if (_fd_types.find(fd) != _fd_types.end()) {
-            fd_type = _fd_types[fd];
-        } else {
+        // Get the fd type - CRITICAL CHANGE: if not found, try to remove it from epoll
+        if (_fd_types.find(fd) == _fd_types.end()) {
             Logger::cerrlog(Logger::WARNING, "Unknown fd type for fd: " + Utils::intToString(fd));
-            continue; // Skip this fd if we don't know what it is
+
+            // Try to remove the fd from epoll to prevent future unknown fd errors
+            if (fcntl(fd, F_GETFD) != -1) { // Check if fd is still valid
+                Logger::cerrlog(Logger::DEBUG, "Removing untracked fd " + Utils::intToString(fd) + " from epoll");
+                epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, fd, NULL);
+
+                // If it's a valid fd, close it to prevent leaks
+                close(fd);
+            }
+            continue; // Skip this event
         }
+
+        FdType fd_type = _fd_types[fd];
 
         // Check for errors first
         if (_events[i].events & (EPOLLERR | EPOLLHUP)) {
@@ -604,70 +660,53 @@ bool PollServer::WaitAndService(RequestsManager &manager) {
 }
 
 void PollServer::CloseClient(int client_fd) {
+    if (client_fd < 0) {
+        return;
+    }
+
     Logger::cerrlog(Logger::INFO, "Closing client connection: " + Utils::intToString(client_fd));
 
-    // First check if the client_fd is valid
-    if (client_fd < 0) {
-        Logger::cerrlog(Logger::WARNING, "Attempted to close invalid client fd: " + Utils::intToString(client_fd));
-        return;
-    }
-
-    // Check if we're tracking this fd
-    if (_fd_types.find(client_fd) == _fd_types.end()) {
-        Logger::cerrlog(Logger::WARNING, "Client fd not in tracking map: " + Utils::intToString(client_fd));
-        // Still try to close it just to be safe
-        close(client_fd);
-        return;
-    }
-
-    // Remove from epoll first
-    RemoveFd(client_fd);
-
-    // Check if the fd is still valid before closing
-    // if (fcntl(client_fd, F_GETFD) != -1) {
-    //     if (close(client_fd) < 0) {
-    //         Logger::cerrlog(Logger::ERROR, "Error closing client socket: " + STR(strerror(errno)));
-    //     }
-    // } else {
-    //     Logger::cerrlog(Logger::WARNING, "Client fd already closed: " + Utils::intToString(client_fd));
-    // }
-    // CHECK THIS
-    close(client_fd); // CHECK THIS
-
-    // CRITICAL FIX: Make a copy of orphaned CGI fds to avoid iterator invalidation
-    std::vector<int> orphaned_cgis;
-
-    // Identify orphaned CGI processes
+    // First find any CGI fds associated with this client
+    std::vector<int> cgi_fds;
     for (MAP<int, int>::iterator it = _cgi_to_client.begin(); it != _cgi_to_client.end(); ++it) {
         if (it->second == client_fd) {
-            orphaned_cgis.push_back(it->first);
+            cgi_fds.push_back(it->first);
         }
     }
 
-    // Now clean up each orphaned CGI fd
-    for (size_t i = 0; i < orphaned_cgis.size(); i++) {
-        int cgi_fd = orphaned_cgis[i];
-        Logger::cerrlog(Logger::INFO, "Cleaning up orphaned CGI fd: " + Utils::intToString(cgi_fd));
-
-        // Remove from epoll first
-        RemoveFd(cgi_fd);
-
-        // Check if it's still valid before closing
-        // if (fcntl(cgi_fd, F_GETFD) != -1) {
-        //     if (close(cgi_fd) < 0) {
-        //         Logger::cerrlog(Logger::ERROR, "Error closing CGI fd: " + STR(strerror(errno)));
-        //     }
-        // } else {
-        //     Logger::cerrlog(Logger::WARNING, "CGI fd already closed: " + Utils::intToString(cgi_fd));
-        // }
-        close(cgi_fd); // CHECK THIS
-        // Now remove from map - AFTER closing to avoid double free
-        _cgi_to_client.erase(cgi_fd);
+    // Remove client from epoll
+    if (_fd_types.find(client_fd) != _fd_types.end()) {
+        RemoveFd(client_fd);
     }
 
-    // Clean up partial requests/responses
+    // Close client socket
+    if (fcntl(client_fd, F_GETFD) != -1) {
+        close(client_fd);
+    }
+
+    // Clean up client data
     _partial_requests.erase(client_fd);
     _partial_responses.erase(client_fd);
+
+    // Handle each orphaned CGI fd
+    for (size_t i = 0; i < cgi_fds.size(); i++) {
+        int cgi_fd = cgi_fds[i];
+
+        Logger::cerrlog(Logger::INFO, "Cleaning up orphaned CGI fd: " + Utils::intToString(cgi_fd));
+
+        // Remove from tracking map first
+        _cgi_to_client.erase(cgi_fd);
+
+        // Then remove from epoll
+        if (_fd_types.find(cgi_fd) != _fd_types.end()) {
+            RemoveFd(cgi_fd);
+        }
+
+        // Finally close the fd
+        if (fcntl(cgi_fd, F_GETFD) != -1) {
+            close(cgi_fd);
+        }
+    }
 }
 
 void PollServer::start() {
@@ -682,7 +721,34 @@ void PollServer::start() {
 	do {
 		if (!WaitAndService(manager))
 			throw std::runtime_error("Poll error");
+		if (g_signal_received != 0) {
+			Logger::cerrlog(Logger::INFO, "Signal received: " + Utils::intToString(g_signal_received));
+			running = false;
+			break;
+		}
 	} while (running);
+
+	Logger::log(Logger::INFO, "Stopped server loop. Clearing resources...");
+
+    for (std::map<int, int>::iterator it = _server_sockets.begin(); it != _server_sockets.end(); ++it) {
+        RemoveFd(it->second);
+        close(it->second);
+    }
+    _server_sockets.clear();
+
+    std::vector<int> clients_to_close;
+    for (std::map<int, FdType>::iterator it = _fd_types.begin(); it != _fd_types.end(); ++it) {
+        if (it->second == CLIENT_FD) {
+            clients_to_close.push_back(it->first);
+        }
+    }
+    for (size_t i = 0; i < clients_to_close.size(); ++i) {
+        CloseClient(clients_to_close[i]);
+    }
+    _fd_types.clear();
+    _cgi_to_client.clear();
+
+    Logger::log(Logger::INFO, "End to terminate server.");
 }
 
 void PollServer::stop() {

@@ -816,16 +816,16 @@ LocationConfig *Response::buildDirPath(ServerConfig *matchServer, STR &full_path
 
 	// check which path exists - relative or absolute
 	if (checkFile(relative_path) != NotFound) {
-		std::cerr << "Response::buildDirPath: relative path is " << relative_path << std::endl;
+		Logger::cerrlog(Logger::DEBUG, "Response::buildDirPath: relative path is " + relative_path);
 		full_path = relative_path;
 	} else if (checkFile(absolute_path) != NotFound) {
-		std::cerr << "Response::buildDirPath: absolute path is " << absolute_path << std::endl;
+		Logger::cerrlog(Logger::DEBUG, "Response::buildDirPath: absolute path is " + absolute_path);
 		full_path = absolute_path;
 	} else if (!isDIR && checkFile(regress_path(relative_path)) != NotFound) {
-		std::cerr << "Response::buildDirPath: relative path is " << relative_path << std::endl;
+		Logger::cerrlog(Logger::DEBUG, "Response::buildDirPath: relative path is " + relative_path);
 		full_path = relative_path;
 	} else if (!isDIR && checkFile(regress_path(absolute_path)) != NotFound) {
-		std::cerr << "Response::buildDirPath: relative path is " << relative_path << std::endl;
+		Logger::cerrlog(Logger::DEBUG, "Response::buildDirPath: absolute path is " + absolute_path);
 		full_path = relative_path;
 	} else {
 		Logger::cerrlog(Logger::INFO, "Response::buildDirPath: no such file or directory \"" + full_path + "\" for " + _request._file_path + "!");
@@ -844,7 +844,7 @@ int Response::buildIndexPath(LocationConfig *matchLocation, STR &best_file_path,
 	try
 	{
 		best_file_path.append(selectIndexAll(matchLocation, dir_path));
-		std::cerr << "Response::buildFilePath: AFT best_file_path is " << best_file_path << std::endl;
+		Logger::cerrlog(Logger::DEBUG, "Response::buildFilePath: AFT best_file_path is " + best_file_path);
 	}
 	catch(const std::exception& e)
 	{
@@ -873,17 +873,17 @@ STR	Response::matchMethod(STR path, bool isDIR, LocationConfig *matchLocation) {
 	if (_request._method == "GET") {
 		if (!check_method_allowed("GET", matchLocation))
 			return createErrorResponse(405, "text/plain", "Method Not Allowed", matchLocation);
-			Logger::log(Logger::INFO, "Response::matchMethod GET path" + path + " isDIR " + Utils::floatToString(isDIR));
+		Logger::log(Logger::INFO, "Response::matchMethod GET path" + path + " isDIR " + Utils::floatToString(isDIR));
 		return (handleGET(path, isDIR));
 	} else if (_request._method == "POST") {
 		if (!check_method_allowed("POST", matchLocation))
 			return createErrorResponse(405, "text/plain", "Method Not Allowed", matchLocation);
-			Logger::log(Logger::INFO, "Response::matchMethod POST path" + path + " isDIR " + Utils::floatToString(isDIR));
+		Logger::log(Logger::INFO, "Response::matchMethod POST path" + path + " isDIR " + Utils::floatToString(isDIR));
 		return (handlePOST(path));
 	} else if (_request._method == "DELETE") {
 		if (!check_method_allowed("DELETE", matchLocation))
 			return createErrorResponse(405, "text/plain", "Method Not Allowed", matchLocation);
-			Logger::log(Logger::INFO, "Response::matchMethod DELETE path" + path + " isDIR " + Utils::floatToString(isDIR));
+		Logger::log(Logger::INFO, "Response::matchMethod DELETE path" + path + " isDIR " + Utils::floatToString(isDIR));
 		return (handleDELETE(path));
 	} else {
 		Logger::cerrlog(Logger::ERROR, "Response::matchMethod: UNUSUAL METHOD ERROR: " + _request._method);
@@ -1045,13 +1045,9 @@ STR Response::getResponse() {
 
 		if (!matchLocation->_upload_store.empty()) {
 			env["UPLOAD_STORE"] = matchLocation->_upload_store;
-			std::cerr << "UPLOAD_STORE: " << matchLocation->_upload_store << "\n";
 		} else {
 			env["UPLOAD_STORE"] = "";
-			std::cerr << "UPLOAD_STORE: empty\n";
 		}
-
-		std::cerr << "Body (limited) and length: " << _request._body.substr(0, 250) << " " << _request._body.length() << "\n";
 
         // Create a new CGI handler and start it asynchronously
         if (_cgi_handler) {
@@ -1091,10 +1087,6 @@ STR Response::getResponse() {
 	}
 	file_path = dir_path;
 
-	std::cout << "DEBUG GETRESPONSE: file_path is " << file_path << "\n";
-	std::cout << "DEBUG GETRESPONSE: dir_path is " << dir_path << "\n";
-
-	std::cout << "Passing first checkFile\n";
 	//serve file if path is a file
 	if (checkFile(file_path) == NormalFile) {
 		return (matchMethod(file_path, false, matchLocation));

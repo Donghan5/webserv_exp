@@ -1,22 +1,19 @@
 
 --- CGI env ---
-CONTENT_LENGTH: 560
-CONTENT_TYPE: multipart/form-data; boundary=----WebKitFormBoundaryGpc1Um0jsDpoPVt8
-HTTP_COOKIE: 
+CONTENT_LENGTH: 0
+CONTENT_TYPE: text/plain
+HTTP_COOKIE: session_id=KtKcSIFgTiQPnJWXYJLOljGh6Yc55mC1; visit_count=9
 HTTP_HOST: localhost
 QUERY_STRING: 
-REQUEST_METHOD: POST
+REQUEST_METHOD: GET
 SCRIPT_NAME: ./webserv_test/cgi-bin/upload.py
 SERVER_PORT: 8080
 SERVER_PROTOCOL: HTTP/1.1
-UPLOAD_STORE: /home/donghank/sgoinfre/ups
+UPLOAD_STORE: 
 LC_CTYPE: C.UTF-8
 
 --- DIRECT FORM PROCESSING ---
-Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryGpc1Um0jsDpoPVt8
-Content-Length: 560
-Detected boundary: ------WebKitFormBoundaryGpc1Um0jsDpoPVt8
-Raw data size: 560 bytes
-Split into 4 parts
-File field: filename, Filename: Utils.cpp, Content-Type: text/x-c++src, Size: 244
-File content first 100 bytes (hex): 23696e636c75646520225574696c732e687070220a23696e636c756465202241436f6e666967426173652e687070220a0a53545220205574696c733a3a696e74546f537472696e6728696e74206e756d29207b0a097374643a3a6f737472696e67737472
+Content-Type: text/plain
+Content-Length: 0
+No boundary detected in Content-Type
+Cannot process form data without boundary
