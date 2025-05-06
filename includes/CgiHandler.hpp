@@ -27,7 +27,7 @@ class CgiHandler {
 		std::map<std::string, std::string> _env;
 		std::string _body;
 		std::map<std::string, std::string> _interpreters;
-        
+
 		// For non-blocking operation
 		pid_t _cgi_pid;
 		int _input_pipe[2];
@@ -35,6 +35,7 @@ class CgiHandler {
 		bool _process_running;
 		std::string _output_buffer;
 
+		bool setUpPipes(void);
 		char **convertEnvToCharArray(void);
 		char **convertArgsToCharArray(const std::string &interpreter);
 		std::string createErrorResponse(const std::string& status, const std::string& message);
@@ -45,7 +46,7 @@ class CgiHandler {
 	public:
 		CgiHandler(const std::string &scriptPath, const std::map<std::string, std::string> &env, const std::string &body);
 		~CgiHandler();
-        
+
 		// New asynchronous methods for use with epoll
 		bool startCgi(); // Returns true if successfully started
 		bool isCgiRunning() const { return _process_running; }

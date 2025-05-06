@@ -1,11 +1,11 @@
 
 --- CGI env ---
-CONTENT_LENGTH: 0
-CONTENT_TYPE: text/plain
-HTTP_COOKIE: session_id=KtKcSIFgTiQPnJWXYJLOljGh6Yc55mC1; visit_count=9
+CONTENT_LENGTH: 334768
+CONTENT_TYPE: multipart/form-data; boundary=----WebKitFormBoundary8bV8G6HO1FpfA0R9
+HTTP_COOKIE: username-localhost-8888="2|1:0|10:1745441556|23:username-localhost-8888|200:eyJ1c2VybmFtZSI6ICI5N2ZkYWU0NzU1NzE0ZTczYWIzNDg4ZGY0MmViOGYzYyIsICJuYW1lIjogIkFub255bW91cyBPcnRob3NpZSIsICJkaXNwbGF5X25hbWUiOiAiQW5vbnltb3VzIE9ydGhvc2llIiwgImluaXRpYWxzIjogIkFPIiwgImNvbG9yIjogbnVsbH0=|858659753ba0cda3ce716ff2538a50f809b654a4601edfc5bee34954827ec6af"; _xsrf=2|0af4e354|f6d70a16b28764a0f6c0136aa232cfe0|1745441556; username-localhost-8888="2|1:0|10:1745441556|23:username-localhost-8888|200:eyJ1c2VybmFtZSI6ICI5N2ZkYWU0NzU1NzE0ZTczYWIzNDg4ZGY0MmViOGYzYyIsICJuYW1lIjogIkFub255bW91cyBPcnRob3NpZSIsICJkaXNwbGF5X25hbWUiOiAiQW5vbnltb3VzIE9ydGhvc2llIiwgImluaXRpYWxzIjogIkFPIiwgImNvbG9yIjogbnVsbH0=|858659753ba0cda3ce716ff2538a50f809b654a4601edfc5bee34954827ec6af"; _xsrf=2|0af4e354|f6d70a16b28764a0f6c0136aa232cfe0|1745441556; session_id=AyBG9sYFmPmwps6IZE9XnQSkTUTCUDJh; visit_count=3
 HTTP_HOST: localhost
 QUERY_STRING: 
-REQUEST_METHOD: GET
+REQUEST_METHOD: POST
 SCRIPT_NAME: ./webserv_test/cgi-bin/upload.py
 SERVER_PORT: 8080
 SERVER_PROTOCOL: HTTP/1.1
@@ -13,7 +13,10 @@ UPLOAD_STORE:
 LC_CTYPE: C.UTF-8
 
 --- DIRECT FORM PROCESSING ---
-Content-Type: text/plain
-Content-Length: 0
-No boundary detected in Content-Type
-Cannot process form data without boundary
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary8bV8G6HO1FpfA0R9
+Content-Length: 334768
+Detected boundary: ------WebKitFormBoundary8bV8G6HO1FpfA0R9
+Raw data size: 334768 bytes
+Split into 4 parts
+File field: filename, Filename: DALL·E 2025-03-25 23.47.35 - A cute anime-style illustration of a young male backend and ML engineer in his mid-20s, with a slightly nerdy and adorable vibe. He is wearing round g.webp, Content-Type: image/webp, Size: 334298
+File content first 100 bytes (hex): 52494646d21905005745425056503820b2870300d008099d012a000400043e3116894322212120a8549c40400609656d53cbaa9e2283def22f988736baf8cee315edc927a296d95f75aebfafffc0e57dcfbad7f81f766b60fe819c6a73dcffc9e9553edf
