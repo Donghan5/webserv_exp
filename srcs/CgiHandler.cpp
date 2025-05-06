@@ -20,6 +20,16 @@ CgiHandler::~CgiHandler() {
     closeCgi();
 }
 
+// check timeout logic
+bool CgiHandler::isTimedOut(void) const {
+	time_t now = time(NULL);
+	if (now == (time_t)(-1)) {
+			return false;
+	}
+	return (now - _start_time) > _timeout;
+}
+
+
 // Set-up pipes
 bool CgiHandler::setUpPipes(void) {
 	if (pipe(_input_pipe) == -1) {
@@ -86,6 +96,32 @@ STR CgiHandler::createErrorResponse(const STR& status, const STR& message) {
            + message;
 }
 
+void CgiHandler::closeAndExitUnusedPipes(int input_pipe0, int input_pipe1, int output_pipe0, int output_pipe1) {
+	if (close(input_pipe1) == -1) {
+		Logger::cerrlog(Logger::ERROR, "Child: Failed to close input_pipe[1]: " + STR(strerror(errno)));
+		exit(1);
+	}
+
+	if (close(output_pipe0) == -1) {
+		Logger::cerrlog(Logger::ERROR, "Child: Failed to close output_pipe[0]: " + STR(strerror(errno)));
+		exit(1);
+	}
+
+	// Set up stdin from input pipe
+	if (dup2(input_pipe0, STDIN_FILENO) == -1) {
+		Logger::cerrlog(Logger::ERROR, "Child: Failed to redirect stdin: " + STR(strerror(errno)));
+		exit(1);
+	}
+	close(input_pipe0);
+
+	// Set up stdout to output pipe
+	if (dup2(output_pipe1, STDOUT_FILENO) == -1) {
+		Logger::cerrlog(Logger::ERROR, "Child: Failed to redirect stdout: " + STR(strerror(errno)));
+		exit(1);
+	}
+	close(output_pipe1);
+}
+
 bool CgiHandler::startCgi() {
     // Initialize pipes with error checking
 	if (!setUpPipes()) {  // set up the pipes (non-blocking etc...)
@@ -120,29 +156,7 @@ bool CgiHandler::startCgi() {
         _timeout = 30; // 30 seconds timeout
 
         // Close unused pipe ends first
-        if (close(input_pipe1) == -1) {
-            Logger::cerrlog(Logger::ERROR, "Child: Failed to close input_pipe[1]: " + STR(strerror(errno)));
-            exit(1);
-        }
-
-        if (close(output_pipe0) == -1) {
-            Logger::cerrlog(Logger::ERROR, "Child: Failed to close output_pipe[0]: " + STR(strerror(errno)));
-            exit(1);
-        }
-
-        // Set up stdin from input pipe
-        if (dup2(input_pipe0, STDIN_FILENO) == -1) {
-            Logger::cerrlog(Logger::ERROR, "Child: Failed to redirect stdin: " + STR(strerror(errno)));
-            exit(1);
-        }
-        close(input_pipe0);
-
-        // Set up stdout to output pipe
-        if (dup2(output_pipe1, STDOUT_FILENO) == -1) {
-            Logger::cerrlog(Logger::ERROR, "Child: Failed to redirect stdout: " + STR(strerror(errno)));
-            exit(1);
-        }
-        close(output_pipe1);
+		closeAndExitUnusedPipes(input_pipe0, input_pipe1, output_pipe0, output_pipe1);
 
         // Convert environment variables for execve
         char **envp = convertEnvToCharArray();
@@ -156,10 +170,7 @@ bool CgiHandler::startCgi() {
         MAP<STR, STR>::const_iterator it = _interpreters.find(extension);
         if (it == _interpreters.end()) {
             Logger::cerrlog(Logger::ERROR, "Child: No interpreter for " + extension);
-            for (size_t i = 0; envp[i] != NULL; i++) {
-                free(envp[i]);
-            }
-            delete[] envp;
+            Utils::cleanUpDoublePointer(envp);
             exit(1);
         }
 
@@ -167,10 +178,7 @@ bool CgiHandler::startCgi() {
         char **args = convertArgsToCharArray(it->second);
         if (!args) {
             Logger::cerrlog(Logger::ERROR, "Child: Failed to create args");
-            for (size_t i = 0; envp[i] != NULL; i++) {
-                free(envp[i]);
-            }
-            delete[] envp;
+            Utils::cleanUpDoublePointer(envp);
             exit(1);
         }
 
@@ -182,16 +190,11 @@ bool CgiHandler::startCgi() {
         // If execve returns, an error occurred
         Logger::cerrlog(Logger::ERROR, "Child: execve failed: " + STR(strerror(errno)));
 
-        // Clean up resources
-        for (size_t i = 0; envp[i] != NULL; i++) {
-            free(envp[i]);
-        }
-        delete[] envp;
+        // Clean up envp
+        Utils::cleanUpDoublePointer(envp);
 
-        for (size_t i = 0; args[i] != NULL; i++) {
-            free(args[i]);
-        }
-        delete[] args;
+		// Clean up args
+        Utils::cleanUpDoublePointer(args);
 
         exit(1);
     } else {
@@ -250,10 +253,11 @@ STR CgiHandler::readFromCgi() {
                        " bytes from CGI output");
         _output_buffer.append(buffer, bytes_read);
         return STR(buffer, bytes_read);
-    } else if (bytes_read == 0) {
-        // EOF - pipe closed
+    }
+	else if (bytes_read == 0) {  // EOF - pipe closed
         _process_running = false;
-    } else if (errno != EAGAIN && errno != EWOULDBLOCK) {
+    }
+	else if (errno != EAGAIN && errno != EWOULDBLOCK) {
         Logger::cerrlog(Logger::ERROR, "Failed to read from CGI: " + STR(strerror(errno)));
     }
 
@@ -288,7 +292,7 @@ bool CgiHandler::checkCgiStatus() {
     }
 
     // Check for timeout
-    if ((time(NULL) - _start_time) > _timeout) {
+    if (isTimedOut()) {
         Logger::cerrlog(Logger::WARNING, "CGI process timed out after " +
                        Utils::intToString(_timeout) + " seconds");
         closeCgi();
@@ -300,7 +304,7 @@ bool CgiHandler::checkCgiStatus() {
         return true;
     }
 
-    if (_process_running && (time(NULL) - _start_time > _timeout)) {
+    if (_process_running && isTimedOut()) {
         Logger::cerrlog(Logger::WARNING, "CGI process timed out after " +
                       Utils::intToString(_timeout) + " seconds");
         closeCgi();
@@ -313,7 +317,8 @@ bool CgiHandler::checkCgiStatus() {
     if (result == 0) {
         // Process is still running
         return false;
-    } else if (result == _cgi_pid) {
+    }
+	else if (result == _cgi_pid) {
         // Process has exited
         _process_running = false;
 
@@ -329,7 +334,6 @@ bool CgiHandler::checkCgiStatus() {
             Logger::cerrlog(Logger::WARNING, "CGI process terminated by signal: " +
                       Utils::intToString(WTERMSIG(status)));
         }
-
         return true;
     } else {
         // Error checking status
@@ -339,23 +343,8 @@ bool CgiHandler::checkCgiStatus() {
     }
 }
 
-void CgiHandler::closeCgi() {
-    // Log when we're cleaning up resources
-    Logger::cerrlog(Logger::DEBUG, "CgiHandler::closeCgi: Cleaning up resources");
-
-    // Set process as not running first to prevent further reads/writes
-    _process_running = false;
-
-    // Store fd values and set to -1 immediately to prevent double-close
-    int input_pipe0 = _input_pipe[0];
-    int input_pipe1 = _input_pipe[1];
-    int output_pipe0 = _output_pipe[0];
-    int output_pipe1 = _output_pipe[1];
-
-    _input_pipe[0] = _input_pipe[1] = -1;
-    _output_pipe[0] = _output_pipe[1] = -1;
-
-    // Close pipes safely
+// Close all pipes safely
+void CgiHandler::closePipes(int input_pipe0, int input_pipe1, int output_pipe0, int output_pipe1) {
     if (input_pipe0 >= 0) {
         if (close(input_pipe0) < 0 && errno != EBADF) {
             Logger::cerrlog(Logger::DEBUG, "Failed to close input pipe[0]: " + STR(strerror(errno)));
@@ -379,6 +368,25 @@ void CgiHandler::closeCgi() {
             Logger::cerrlog(Logger::DEBUG, "Failed to close output pipe[1]: " + STR(strerror(errno)));
         }
     }
+}
+
+void CgiHandler::closeCgi() {
+    // Log when we're cleaning up resources
+    Logger::cerrlog(Logger::DEBUG, "CgiHandler::closeCgi: Cleaning up resources");
+
+    // Set process as not running first to prevent further reads/writes
+    _process_running = false;
+
+    // Store fd values and set to -1 immediately to prevent double-close
+    int input_pipe0 = _input_pipe[0];
+    int input_pipe1 = _input_pipe[1];
+    int output_pipe0 = _output_pipe[0];
+    int output_pipe1 = _output_pipe[1];
+
+    _input_pipe[0] = _input_pipe[1] = -1;
+    _output_pipe[0] = _output_pipe[1] = -1;
+
+	closePipes(input_pipe0, input_pipe1, output_pipe0, output_pipe1);
 
     // Store and clear pid
     pid_t pid = _cgi_pid;

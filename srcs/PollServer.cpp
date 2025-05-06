@@ -78,21 +78,6 @@ void PollServer::setConfig(HttpConfig *config) {
             throw std::runtime_error("Failed to create socket: " + STR(strerror(errno)));
         }
 
-        // // For server sockets, keep the timeout but consider using level-triggered mode
-        // struct timeval timeout;
-        // timeout.tv_sec = 5;  // Increased to 5 seconds for better handling
-        // timeout.tv_usec = 0;
-
-        // if (setsockopt(server_socket, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) < 0) {
-        //     close(server_socket);
-        //     throw std::runtime_error("Failed to set receive timeout: " + STR(strerror(errno)));
-        // }
-
-        // if (setsockopt(server_socket, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout)) < 0) {
-        //     close(server_socket);
-        //     throw std::runtime_error("Failed to set send timeout: " + STR(strerror(errno)));
-        // }
-
         // Set reuse address option
         int reuse = 1;
         if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0) {
