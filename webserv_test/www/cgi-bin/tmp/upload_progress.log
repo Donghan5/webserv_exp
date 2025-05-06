@@ -73,3 +73,39 @@
 [2025-05-06 13:59:18] Writing progress: 90% (303104/334298 bytes)
 [2025-05-06 13:59:18] Writing progress: 100% (334298/334298 bytes)
 [2025-05-06 13:59:18] File successfully written to disk: /mnt/project/webserv_test/www/uploads/DALL·E 2025-03-25 23.47.35 - A cute anime-style illustration of a young male backend and ML engineer in his mid-20s, with a slightly nerdy and adorable vibe. He is wearing round g.webp
+[2025-05-06 19:50:04] ========== NEW UPLOAD REQUEST ==========
+[2025-05-06 19:50:04] Project root: /home/donghank/webserv_exp/webserv_test
+[2025-05-06 19:50:04] Reading raw POST data from stdin
+[2025-05-06 19:50:04] Read 3437 bytes from stdin
+[2025-05-06 19:50:04] Found file part in multipart data
+[2025-05-06 19:50:04] Extracted filename: Response.hpp
+[2025-05-06 19:50:04] Form field name: filename
+[2025-05-06 19:50:04] File content type: text/x-c++hdr
+[2025-05-06 19:50:04] Extracted file content: 3137 bytes
+[2025-05-06 19:50:04] Using upload directory: /home/donghank/webserv_exp/webserv_test/www/uploads
+[2025-05-06 19:50:04] Upload directory exists: /home/donghank/webserv_exp/webserv_test/www/uploads
+[2025-05-06 19:50:04] Successfully extracted file: Response.hpp
+[2025-05-06 19:50:04] Using basename: Response.hpp
+[2025-05-06 19:50:04] File content size: 3137 bytes
+[2025-05-06 19:50:04] File type detected: text/x-c++hdr
+[2025-05-06 19:50:04] Starting to write file to: /home/donghank/webserv_exp/webserv_test/www/uploads/Response.hpp
+[2025-05-06 19:50:04] Writing progress: 100% (3137/3137 bytes)
+[2025-05-06 19:50:04] File successfully written to disk: /home/donghank/webserv_exp/webserv_test/www/uploads/Response.hpp
+[2025-05-06 21:07:59] ========== NEW UPLOAD REQUEST ==========
+[2025-05-06 21:07:59] Project root: /home/donghank/webserv_exp/webserv_test
+[2025-05-06 21:07:59] Reading raw POST data from stdin
+[2025-05-06 21:07:59] Read 978 bytes from stdin
+[2025-05-06 21:07:59] Found file part in multipart data
+[2025-05-06 21:07:59] Extracted filename: basic (2).conf
+[2025-05-06 21:07:59] Form field name: filename
+[2025-05-06 21:07:59] File content type: application/octet-stream
+[2025-05-06 21:07:59] Extracted file content: 665 bytes
+[2025-05-06 21:07:59] Using upload directory: /home/donghank/webserv_exp/webserv_test/www/uploads
+[2025-05-06 21:07:59] Upload directory exists: /home/donghank/webserv_exp/webserv_test/www/uploads
+[2025-05-06 21:07:59] Successfully extracted file: basic (2).conf
+[2025-05-06 21:07:59] Using basename: basic (2).conf
+[2025-05-06 21:07:59] File content size: 665 bytes
+[2025-05-06 21:07:59] File type detected: application/octet-stream
+[2025-05-06 21:07:59] Starting to write file to: /home/donghank/webserv_exp/webserv_test/www/uploads/basic (2).conf
+[2025-05-06 21:07:59] Writing progress: 100% (665/665 bytes)
+[2025-05-06 21:07:59] File successfully written to disk: /home/donghank/webserv_exp/webserv_test/www/uploads/basic (2).conf

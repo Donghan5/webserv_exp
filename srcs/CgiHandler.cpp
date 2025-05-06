@@ -370,6 +370,7 @@ void CgiHandler::closePipes(int input_pipe0, int input_pipe1, int output_pipe0, 
     }
 }
 
+// Close all pipes and clean up resources related to CGI
 void CgiHandler::closeCgi() {
     // Log when we're cleaning up resources
     Logger::cerrlog(Logger::DEBUG, "CgiHandler::closeCgi: Cleaning up resources");
