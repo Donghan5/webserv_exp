@@ -555,6 +555,64 @@ void PollServer::checkingEventError(const epoll_event& current_event, RequestsMa
 		}
 	}
 }
+ // --- handle client event activity ---
+void PollServer::handleClientEventActivity(const epoll_event& current_event, RequestsManager &manager, int fd, int status) {
+	switch (status) {
+		case 0: // Remove client
+			CloseClient(fd);
+			break;
+		case 2: // Switch to write mode
+			ModifyFd(fd, EPOLLOUT);
+			break;
+		case 3: // Switch to read mode
+			ModifyFd(fd, EPOLLIN);
+			break;
+		case 4: { // Register CGI fd
+			int cgi_fd = manager.getCurrentCgiFd();
+			if (cgi_fd > 0) {
+				AddCgiFd(cgi_fd, fd);
+			} else {
+				Logger::cerrlog(Logger::ERROR, "Invalid CGI fd returned from manager");
+				ModifyFd(fd, EPOLLOUT);
+			}
+			break;
+		}
+	}
+}
+
+// --- handle event based on fd type ---
+void PollServer::handleEventBasedOnFdType(const epoll_event& current_event, RequestsManager &manager, int fd, FdType fd_type) {
+	try {
+		if (fd_type == SERVER_FD && (current_event.events & EPOLLIN)) {
+			// Server socket has incoming connection
+			AcceptClient(fd);
+		} else if (fd_type == CLIENT_FD) {
+			// Client activity
+			manager.setClientFd(fd);
+			int status = manager.HandleClient(current_event.events);
+			// handle client event activity
+			handleClientEventActivity(current_event, manager, fd, status);
+		} else if (fd_type == CGI_FD && (current_event.events & EPOLLIN)) {
+			// CGI output ready
+			HandleCgiOutput(fd, manager);
+		}
+	} catch (const std::exception& e) {
+		Logger::cerrlog(Logger::ERROR, "Exception in event handling: " + STR(e.what()));
+		// Clean up based on fd type
+		if (fd_type == CLIENT_FD) {
+			CloseClient(fd);
+		} else if (fd_type == CGI_FD) {
+			// Find and clean up associated client
+			MAP<int, int>::iterator it = _cgi_to_client.find(fd);
+			if (it != _cgi_to_client.end()) {
+				CloseClient(it->second);
+			}
+			// Clean up CGI fd
+			RemoveFd(fd);
+			close(fd);
+		}
+	}
+}
 
 void PollServer::handleSingleEpollEvent(const epoll_event& current_event, RequestsManager &manager) {
 	int fd = current_event.data.fd;
@@ -586,58 +644,7 @@ void PollServer::handleSingleEpollEvent(const epoll_event& current_event, Reques
 	checkingEventError(current_event, manager, fd_type, fd);
 
 	// Handle events based on fd type
-	try {
-		if (fd_type == SERVER_FD && (current_event.events & EPOLLIN)) {
-			// Server socket has incoming connection
-			AcceptClient(fd);
-		} else if (fd_type == CLIENT_FD) {
-			// Client activity
-			manager.setClientFd(fd);
-			int status = manager.HandleClient(current_event.events);
-
-			switch (status) {
-				case 0: // Remove client
-					CloseClient(fd);
-					break;
-				case 2: // Switch to write mode
-					ModifyFd(fd, EPOLLOUT);
-					break;
-				case 3: // Switch to read mode
-					ModifyFd(fd, EPOLLIN);
-					break;
-				case 4: { // Register CGI fd
-					int cgi_fd = manager.getCurrentCgiFd();
-					if (cgi_fd > 0) {
-						AddCgiFd(cgi_fd, fd);
-					} else {
-						Logger::cerrlog(Logger::ERROR, "Invalid CGI fd returned from manager");
-						ModifyFd(fd, EPOLLOUT);
-					}
-					break;
-				}
-			}
-		} else if (fd_type == CGI_FD && (current_event.events & EPOLLIN)) {
-			// CGI output ready
-			HandleCgiOutput(fd, manager);
-		}
-	} catch (const std::exception& e) {
-		Logger::cerrlog(Logger::ERROR, "Exception in event handling: " + STR(e.what()));
-
-		// Clean up based on fd type
-		if (fd_type == CLIENT_FD) {
-			CloseClient(fd);
-		} else if (fd_type == CGI_FD) {
-			// Find and clean up associated client
-			MAP<int, int>::iterator it = _cgi_to_client.find(fd);
-			if (it != _cgi_to_client.end()) {
-				CloseClient(it->second);
-			}
-
-			// Clean up CGI fd
-			RemoveFd(fd);
-			close(fd);
-		}
-	}
+	handleEventBasedOnFdType(current_event, manager, fd, fd_type);
 }
 
 bool PollServer::WaitAndService(RequestsManager &manager) {
@@ -661,6 +668,7 @@ bool PollServer::WaitAndService(RequestsManager &manager) {
     }
     return true;
 }
+
 
 void PollServer::CloseClient(int client_fd) {
     if (client_fd < 0) {

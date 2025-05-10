@@ -40,19 +40,21 @@ class PollServer {
 		VECTOR<struct epoll_event>	_events;
 		const int 					MAX_EVENTS;
 
-		bool						WaitAndService(RequestsManager &requests);
-		void						AcceptClient(int new_fd);
-		void 						CloseClient(int client_fd);
-		void                        HandleCgiOutput(int cgi_fd, RequestsManager &requests);
-		bool AddFd(int fd, uint32_t events, FdType type);
-		bool ModifyFd(int fd, uint32_t events);
-		bool RemoveFd(int fd);
-		bool AddServerSocket(int port, int socket_fd);
-		bool AddCgiFd(int cgi_fd, int client_fd);
-		void getUniqueServers(const HttpConfig *hcf, MAP<int, STR>& unique_servers);
-		void processDisconnectOrTimeoutCgis(RequestsManager &manager);
-		void handleSingleEpollEvent(const epoll_event& current_event, RequestsManager &manager);
-		void checkingEventError(const epoll_event& current_event, RequestsManager &manager, FdType fd_type, int fd);
+		bool	WaitAndService(RequestsManager &requests);
+		void	AcceptClient(int new_fd);
+		void	CloseClient(int client_fd);
+		void	HandleCgiOutput(int cgi_fd, RequestsManager &requests);
+		bool	AddFd(int fd, uint32_t events, FdType type);
+		bool	ModifyFd(int fd, uint32_t events);
+		bool	RemoveFd(int fd);
+		bool	AddServerSocket(int port, int socket_fd);
+		bool	AddCgiFd(int cgi_fd, int client_fd);
+		void	getUniqueServers(const HttpConfig *hcf, MAP<int, STR>& unique_servers);
+		void	processDisconnectOrTimeoutCgis(RequestsManager &manager);
+		void	handleSingleEpollEvent(const epoll_event& current_event, RequestsManager &manager);
+		void	checkingEventError(const epoll_event& current_event, RequestsManager &manager, FdType fd_type, int fd);
+		void	handleClientEventActivity(const epoll_event& current_event, RequestsManager &manager, int fd, int status);
+		void	handleEventBasedOnFdType(const epoll_event& current_event, RequestsManager &manager, int fd, FdType fd_type);
 
 	public:
 		PollServer();
