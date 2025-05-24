@@ -405,6 +405,7 @@ bool FillServer(ServerConfig* serverConf, VECTOR<STR> tokens){
 	return true;
 }
 
+//  -- to fill location config --
 bool FillLocation(LocationConfig* locConf, VECTOR<STR> tokens){
 	if (tokens[0] == "proxy_pass") {
 		int	host_start;
@@ -427,8 +428,6 @@ bool FillLocation(LocationConfig* locConf, VECTOR<STR> tokens){
 			locConf->_proxy_pass_host = tokens[1].substr(host_start, host_end - host_start);
 			locConf->_proxy_pass_port = atoi(tokens[1].substr(delim_position + 1, delim_position + 1 - port_end).c_str());
 		}
-		// std::cerr << "DEBUG CHECKFillDirective LocationConfig proxy_pass_host " << locConf->_proxy_pass_host << "\n";
-		// std::cerr << "DEBUG CHECKFillDirective LocationConfig proxy_pass_port " << locConf->_proxy_pass_port << "\n";
 	} else if (tokens[0] == "path") {
 		locConf->_path = tokens[1];
 	} else if (tokens[0] == "add_header") {
