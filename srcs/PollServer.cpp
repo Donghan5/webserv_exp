@@ -44,7 +44,7 @@ void PollServer::getUniqueServers(const HttpConfig *hcf, MAP<int, STR>& unique_s
 	if (!hcf)
 		throw std::runtime_error("Config does not exist");
 
-	// iterate through the servers and add them to the map. changed to map
+	// iterate through the servers and add them to the map. changed to map 
     for (size_t i = 0; i < hcf->_servers.size(); i++) {
 		bool is_port_found = false;
         try {
@@ -62,18 +62,9 @@ void PollServer::getUniqueServers(const HttpConfig *hcf, MAP<int, STR>& unique_s
     }
 }
 
-void PollServer::setConfig(HttpConfig *config) {
-	if (!config)
-		throw std::runtime_error("Config does not exist");
-
-	this->config = config;
-
-    MAP<int, STR> unique_servers;
-
-	getUniqueServers(config, unique_servers);
-
-	 // Create sockets for unique server entries
-	 for (MAP<int, STR>::iterator it = unique_servers.begin(); it != unique_servers.end(); ++it) {
+// new helper function to initialize server sockets
+void PollServer::initializeServerSockets(MAP<int, STR>& unique_servers) {
+    for (MAP<int, STR>::iterator it = unique_servers.begin(); it != unique_servers.end(); ++it) {
         int port = it->first;
         STR server_addr_str = it->second;
 
@@ -158,6 +149,19 @@ void PollServer::setConfig(HttpConfig *config) {
 
         Logger::log(Logger::INFO, "Server listening on " + server_addr_str + ":" + Utils::intToString(port));
     }
+}
+
+void PollServer::setConfig(HttpConfig *config) {
+	if (!config)
+		throw std::runtime_error("Config does not exist");
+
+	this->config = config;
+
+    MAP<int, STR> unique_servers;
+
+	getUniqueServers(config, unique_servers);
+
+	initializeServerSockets(unique_servers);
 }
 
 bool PollServer::AddFd(int fd, uint32_t events, FdType type) {

@@ -555,11 +555,7 @@ bool	check_location_path_duplicate(STR new_path, MAP<STR, LocationConfig*> locs)
 			MAP<STR, LocationConfig*>::iterator it = loc_loc.begin();
 			if (it->first == new_path)
 				return false;
-			MAP<STR, LocationConfig*>::iterator it = loc_loc.begin();
-			if (it->first == new_path)
-				return false;
 			if (it->second->_locations.size() > 0) {
-				// std::cerr << "DEBUG AConfigBase	*check_location_path_duplicate loc_loc.begin()->second->_locations.size() " << it->second->_locations.size() << "\n";
 				loc_loc.insert(it->second->_locations.begin(), it->second->_locations.end());
 			}
 			loc_loc.erase(it);
