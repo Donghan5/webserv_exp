@@ -1315,12 +1315,3 @@ STR Response::getFinalResponse() {
         return createErrorResponse(500, "text/plain", "Internal Server Error", NULL);
     }
 }
-
-
-STR Response::createErrorResponse(const STR& status, const STR& message) {
-    return "HTTP/1.1 " + status + " Error\r\n"
-           "Content-Type: text/plain\r\n"
-           "Content-Length: " + Utils::intToString(message.length()) + "\r\n"
-           "\r\n"
-           + message;
-}

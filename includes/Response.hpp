@@ -71,7 +71,7 @@ class Response {
         STR     handlePOST(STR full_path);
         STR     handleDELETE(STR full_path);
         CgiHandler* getCgiHandler() const { return _cgi_handler; }
-        STR     createErrorResponse(const STR& status, const STR& message);
 
 };
+
 #endif

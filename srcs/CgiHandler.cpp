@@ -1,5 +1,5 @@
 #include "../includes/CgiHandler.hpp"
-#include "../includes/AConfigBase.hpp" 
+#include "../includes/AConfigBase.hpp"
 #include "Logger.hpp"
 
 CgiHandler::CgiHandler(const STR &scriptPath, const MAP<STR, STR> &env, const STR &body):
@@ -87,6 +87,95 @@ void CgiHandler::closeAndExitUnusedPipes(int input_pipe0, int input_pipe1, int o
 	close(output_pipe1);
 }
 
+// Child process part logic
+bool CgiHandler::childProcess(int input_pipe0, int input_pipe1, int output_pipe0, int output_pipe1) {
+	 _start_time = time(NULL);
+	_timeout = 30; // 30 seconds timeout
+
+	// Close unused pipe ends first
+	closeAndExitUnusedPipes(input_pipe0, input_pipe1, output_pipe0, output_pipe1);
+
+	// Convert environment variables for execve
+	char **envp = CgiUtils::convertEnvToCharArray(_env);
+	if (!envp) {
+		Logger::cerrlog(Logger::ERROR, "Child: Failed to create environment");
+		exit(1);
+	}
+
+	// Find the appropriate interpreter
+	STR extension = _scriptPath.substr(_scriptPath.find_last_of("."));
+	MAP<STR, STR>::const_iterator it = _interpreters.find(extension);
+	if (it == _interpreters.end()) {
+		Logger::cerrlog(Logger::ERROR, "Child: No interpreter for " + extension);
+		Utils::cleanUpDoublePointer(envp);
+		exit(1);
+	}
+
+	// Prepare arguments for execve
+	char **args = CgiUtils::convertArgsToCharArray(it->second, _scriptPath);
+	if (!args) {
+		Logger::cerrlog(Logger::ERROR, "Child: Failed to create args");
+		Utils::cleanUpDoublePointer(envp);
+		exit(1);
+	}
+
+	Logger::cerrlog(Logger::INFO, "Executing: " + it->second + " " + _scriptPath);
+
+	// Execute the script
+	execve(args[0], args, envp);
+
+	// If execve returns, an error occurred
+	Logger::cerrlog(Logger::ERROR, "Child: execve failed: " + STR(strerror(errno)));
+
+	// Clean up envp
+	Utils::cleanUpDoublePointer(envp);
+
+	// Clean up args
+	Utils::cleanUpDoublePointer(args);
+
+	exit(1);
+
+	return false; // Should never reach here
+}
+
+// Parent process part logic
+bool CgiHandler::parentProcess(int input_pipe0, int input_pipe1, int output_pipe0, int output_pipe1) {
+	if (close(input_pipe0) == -1) {
+		Logger::cerrlog(Logger::ERROR, "Parent: Failed to close input_pipe[0]: " + STR(strerror(errno)));
+		// Don't return false yet, continue with cleanup
+	}
+	_input_pipe[0] = -1; // Mark as closed
+
+	if (close(output_pipe1) == -1) {
+		Logger::cerrlog(Logger::ERROR, "Parent: Failed to close output_pipe[1]: " + STR(strerror(errno)));
+		// Don't return false yet, continue with cleanup
+	}
+	_output_pipe[1] = -1; // Mark as closed
+
+	_start_time = time(NULL);
+	_timeout = 30; // 30 seconds timeout
+	_process_running = true;
+
+	// Write request body to CGI script's stdin
+	if (!_body.empty()) {
+		Logger::cerrlog(Logger::DEBUG, "Sending body to CGI (size: " + Utils::intToString(_body.size()) + " bytes)");
+		if (!writeToCgi(_body.c_str(), _body.size())) {
+			Logger::cerrlog(Logger::ERROR, "Failed to write request body to CGI");
+			closeCgi();
+			return false;
+		}
+	}
+
+	// CRITICAL: Close input pipe after writing to prevent SIGPIPE in child process
+	if (_input_pipe[1] >= 0) {
+		if (close(_input_pipe[1]) == -1) {
+			Logger::cerrlog(Logger::ERROR, "Parent: Failed to close input_pipe[1] after writing: " + STR(strerror(errno)));
+		}
+		_input_pipe[1] = -1; // Mark as closed
+	}
+	return true; // Successfully started CGI
+}
+
 bool CgiHandler::startCgi() {
     // Initialize pipes with error checking
 	if (!setUpPipes()) {  // set up the pipes (non-blocking etc...)
@@ -117,89 +206,12 @@ bool CgiHandler::startCgi() {
 
     if (_cgi_pid == 0) {
         // Child process
-        _start_time = time(NULL);
-        _timeout = 30; // 30 seconds timeout
+		childProcess(input_pipe0, input_pipe1, output_pipe0, output_pipe1);
 
-        // Close unused pipe ends first
-		closeAndExitUnusedPipes(input_pipe0, input_pipe1, output_pipe0, output_pipe1);
-
-        // Convert environment variables for execve
-        char **envp = CgiUtils::convertEnvToCharArray();
-        if (!envp) {
-            Logger::cerrlog(Logger::ERROR, "Child: Failed to create environment");
-            exit(1);
-        }
-
-        // Find the appropriate interpreter
-        STR extension = _scriptPath.substr(_scriptPath.find_last_of("."));
-        MAP<STR, STR>::const_iterator it = _interpreters.find(extension);
-        if (it == _interpreters.end()) {
-            Logger::cerrlog(Logger::ERROR, "Child: No interpreter for " + extension);
-            Utils::cleanUpDoublePointer(envp);
-            exit(1);
-        }
-
-        // Prepare arguments for execve
-        char **args = CgiUtils::convertArgsToCharArray(it->second);
-        if (!args) {
-            Logger::cerrlog(Logger::ERROR, "Child: Failed to create args");
-            Utils::cleanUpDoublePointer(envp);
-            exit(1);
-        }
-
-        Logger::cerrlog(Logger::INFO, "Executing: " + it->second + " " + _scriptPath);
-
-        // Execute the script
-        execve(args[0], args, envp);
-
-        // If execve returns, an error occurred
-        Logger::cerrlog(Logger::ERROR, "Child: execve failed: " + STR(strerror(errno)));
-
-        // Clean up envp
-        Utils::cleanUpDoublePointer(envp);
-
-		// Clean up args
-        Utils::cleanUpDoublePointer(args);
-
-        exit(1);
     } else {
         // Parent process
         // CRITICAL: Close the pipes that the child process uses
-        if (close(input_pipe0) == -1) {
-            Logger::cerrlog(Logger::ERROR, "Parent: Failed to close input_pipe[0]: " + STR(strerror(errno)));
-            // Don't return false yet, continue with cleanup
-        }
-        _input_pipe[0] = -1; // Mark as closed
-
-        if (close(output_pipe1) == -1) {
-            Logger::cerrlog(Logger::ERROR, "Parent: Failed to close output_pipe[1]: " + STR(strerror(errno)));
-            // Don't return false yet, continue with cleanup
-        }
-        _output_pipe[1] = -1; // Mark as closed
-
-        _start_time = time(NULL);
-        _timeout = 30; // 30 seconds timeout
-        _process_running = true;
-
-        // Write request body to CGI script's stdin
-        if (!_body.empty()) {
-            Logger::cerrlog(Logger::DEBUG, "Sending body to CGI (size: " + Utils::intToString(_body.size()) + " bytes)");
-            if (!writeToCgi(_body.c_str(), _body.size())) {
-                Logger::cerrlog(Logger::ERROR, "Failed to write request body to CGI");
-                closeCgi();
-                return false;
-            }
-        }
-
-        // CRITICAL: Close input pipe after writing to prevent SIGPIPE in child process
-        if (_input_pipe[1] >= 0) {
-            if (close(_input_pipe[1]) == -1) {
-                Logger::cerrlog(Logger::ERROR, "Parent: Failed to close input_pipe[1] after writing: " + STR(strerror(errno)));
-            }
-            _input_pipe[1] = -1; // Mark as closed
-        }
-
-        return true;
+		return parentProcess(input_pipe0, input_pipe1, output_pipe0, output_pipe1);
     }
 }
 
@@ -308,33 +320,6 @@ bool CgiHandler::checkCgiStatus() {
     }
 }
 
-// Close all pipes safely
-void CgiHandler::closePipes(int input_pipe0, int input_pipe1, int output_pipe0, int output_pipe1) {
-    if (input_pipe0 >= 0) {
-        if (close(input_pipe0) < 0 && errno != EBADF) {
-            Logger::cerrlog(Logger::DEBUG, "Failed to close input pipe[0]: " + STR(strerror(errno)));
-        }
-    }
-
-    if (input_pipe1 >= 0) {
-        if (close(input_pipe1) < 0 && errno != EBADF) {
-            Logger::cerrlog(Logger::DEBUG, "Failed to close input pipe[1]: " + STR(strerror(errno)));
-        }
-    }
-
-    if (output_pipe0 >= 0) {
-        if (close(output_pipe0) < 0 && errno != EBADF) {
-            Logger::cerrlog(Logger::DEBUG, "Failed to close output pipe[0]: " + STR(strerror(errno)));
-        }
-    }
-
-    if (output_pipe1 >= 0) {
-        if (close(output_pipe1) < 0 && errno != EBADF) {
-            Logger::cerrlog(Logger::DEBUG, "Failed to close output pipe[1]: " + STR(strerror(errno)));
-        }
-    }
-}
-
 // Close all pipes and clean up resources related to CGI
 void CgiHandler::closeCgi() {
     // Log when we're cleaning up resources
@@ -352,7 +337,7 @@ void CgiHandler::closeCgi() {
     _input_pipe[0] = _input_pipe[1] = -1;
     _output_pipe[0] = _output_pipe[1] = -1;
 
-	closePipes(input_pipe0, input_pipe1, output_pipe0, output_pipe1);
+	CgiUtils::closePipes(input_pipe0, input_pipe1, output_pipe0, output_pipe1);
 
     // Store and clear pid
     pid_t pid = _cgi_pid;
