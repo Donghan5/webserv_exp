@@ -63,14 +63,15 @@ class Response {
 
         // CGI 통합 메소드
         bool    isResponseReady() const { return _state != PROCESSING_CGI && _state != PROCESSING_POST; }
-        int     getCgiOutputFd() const; // CGI가 처리 중이 아니면 -1 반환
-        bool    processCgiOutput(); // CGI 출력 데이터 처리, 완료되면 true 반환
-        STR     getFinalResponse(); // CGI 완료 후 최종 응답 획득
+        int     getCgiOutputFd() const;
+        bool    processCgiOutput();
+        STR     getFinalResponse();
 
         // POST 처리 메소드 추가
-        STR     handlePOST(STR full_path); // POST 처리 시작
-        STR     handleDELETE(STR full_path); // DELETE 처리
+        STR     handlePOST(STR full_path);
+        STR     handleDELETE(STR full_path);
         CgiHandler* getCgiHandler() const { return _cgi_handler; }
-};
+        STR     createErrorResponse(const STR& status, const STR& message);
 
+};
 #endif

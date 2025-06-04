@@ -1,5 +1,5 @@
 #include "../includes/CgiHandler.hpp"
-#include "../includes/AConfigBase.hpp"
+#include "../includes/AConfigBase.hpp" 
 #include "Logger.hpp"
 
 CgiHandler::CgiHandler(const STR &scriptPath, const MAP<STR, STR> &env, const STR &body):
@@ -24,11 +24,10 @@ CgiHandler::~CgiHandler() {
 bool CgiHandler::isTimedOut(void) const {
 	time_t now = time(NULL);
 	if (now == (time_t)(-1)) {
-			return false;
+		return false;
 	}
 	return (now - _start_time) > _timeout;
 }
-
 
 // Set-up pipes
 bool CgiHandler::setUpPipes(void) {
@@ -60,40 +59,6 @@ bool CgiHandler::setUpPipes(void) {
     }
 
 	return true;
-}
-/*
-	Convert to envp using execve function
-*/
-char **CgiHandler::convertEnvToCharArray(void) {
-	char **envp = new char*[_env.size() + 1];
-	int i = 0;
-	MAP<STR, STR>::const_iterator it = _env.begin();
-	for (; it != _env.end(); it++) {
-		STR envEntry = it->first + "=" + it->second;
-		envp[i] = strdup(envEntry.c_str());
-		i++;
-	}
-	envp[i] = NULL;
-	return envp;
-}
-
-/*
-	args to launch cgi
-*/
-char **CgiHandler::convertArgsToCharArray(const STR &interpreter) {
-	char **args = new char*[3];
-	args[0] = strdup(interpreter.c_str());
-	args[1] = strdup(_scriptPath.c_str());
-	args[2] = NULL;
-	return (args);
-}
-
-STR CgiHandler::createErrorResponse(const STR& status, const STR& message) {
-    return "HTTP/1.1 " + status + " Error\r\n"
-           "Content-Type: text/plain\r\n"
-           "Content-Length: " + Utils::intToString(message.length()) + "\r\n"
-           "\r\n"
-           + message;
 }
 
 void CgiHandler::closeAndExitUnusedPipes(int input_pipe0, int input_pipe1, int output_pipe0, int output_pipe1) {
@@ -159,7 +124,7 @@ bool CgiHandler::startCgi() {
 		closeAndExitUnusedPipes(input_pipe0, input_pipe1, output_pipe0, output_pipe1);
 
         // Convert environment variables for execve
-        char **envp = convertEnvToCharArray();
+        char **envp = CgiUtils::convertEnvToCharArray();
         if (!envp) {
             Logger::cerrlog(Logger::ERROR, "Child: Failed to create environment");
             exit(1);
@@ -175,7 +140,7 @@ bool CgiHandler::startCgi() {
         }
 
         // Prepare arguments for execve
-        char **args = convertArgsToCharArray(it->second);
+        char **args = CgiUtils::convertArgsToCharArray(it->second);
         if (!args) {
             Logger::cerrlog(Logger::ERROR, "Child: Failed to create args");
             Utils::cleanUpDoublePointer(envp);

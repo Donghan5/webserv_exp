@@ -11,6 +11,7 @@
 #include <map>
 #include <cstring>
 #include "Utils.hpp"
+#include "CgiUtils.hpp"
 
 #include <cerrno>
 
@@ -37,10 +38,6 @@ class CgiHandler {
 
 		bool setUpPipes(void);
 		bool isTimedOut(void) const;
-		char **convertEnvToCharArray(void);
-		char **convertArgsToCharArray(const std::string &interpreter);
-		std::string createErrorResponse(const std::string& status, const std::string& message);
-
 
 		time_t _start_time;
     	int _timeout;

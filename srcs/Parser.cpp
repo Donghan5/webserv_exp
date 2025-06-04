@@ -48,7 +48,7 @@ bool Parser::verifyAutoIndex(STR autoindex_str) {
 }
 
 /*
-	 * client_max_body_size we use MB NOT MiB
+ * client_max_body_size we use MB NOT MiB
  * 1b = 1 byte
  * 1k = 1000 bytes
  * 1m = 1000 * 1000 bytes
@@ -413,7 +413,7 @@ bool FillLocation(LocationConfig* locConf, VECTOR<STR> tokens){
 		int	delim_position;
 		int	port_end;
 
-		//extracting host and port from 		Host: localhost:8080
+		//extracting host and port from		Host: localhost:8080
 		host_start = tokens[1].find_first_of(':') + 3;
 		delim_position = tokens[1].find(':', tokens[1].find_first_of(':') + 1);
 
