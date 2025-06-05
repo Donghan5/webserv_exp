@@ -269,7 +269,7 @@ bool CgiHandler::checkCgiStatus() {
     }
 
     // Check for timeout
-    if (isTimedOut()) {
+    if (isTimedOut()) {  // possibility of 504 Gateway Timeout
         Logger::cerrlog(Logger::WARNING, "CGI process timed out after " +
                        Utils::intToString(_timeout) + " seconds");
         closeCgi();

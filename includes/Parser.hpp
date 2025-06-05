@@ -6,6 +6,8 @@
 # include <iostream>
 # include <fstream>
 # include <limits.h>
+# include "ParserUtils.hpp"
+# include "ParserFiller.hpp"
 
 enum ElemType {
     BLOCK,
@@ -45,9 +47,6 @@ class Parser {
 		~Parser();
 
 		HttpConfig	*Parse();
-		static long long	verifyClientMaxBodySize(std::string client_max_body_size_str);
-		static bool			verifyAutoIndex(std::string autoindex_str);
-		static int 			verifyPort(std::string port_str);
 };
 
 #endif

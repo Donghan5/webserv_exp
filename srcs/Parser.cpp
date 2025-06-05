@@ -26,146 +26,6 @@ Parser::~Parser() {
 		delete _config;
 }
 
-int Parser::verifyPort(STR port_str) {
-	std::stringstream ss(port_str);
-	int port;
-
-	if (!(ss >> port) || port < 0 || port > 65335) {
-		return -1;
-	}
-	return port;
-}
-
-bool Parser::verifyAutoIndex(STR autoindex_str) {
-	bool autoindex = false;
-	if (autoindex_str == "on") {
-		autoindex = true;
-	}
-	else if (autoindex_str == "off") {
-		autoindex = false;
-	}
-	return autoindex;
-}
-
-/*
- * client_max_body_size we use MB NOT MiB
- * 1b = 1 byte
- * 1k = 1000 bytes
- * 1m = 1000 * 1000 bytes
- * 1g = 1000 * 1000 * 1000 bytes
- *
- * default is 1M
-*/
-long long Parser::verifyClientMaxBodySize(STR client_max_body_size_str) {
-	std::stringstream ss(client_max_body_size_str);
-	long long value;
-	STR unit;
-
-	if (!(ss >> value)) {
-		return -1;
-	}
-	ss >> unit;
-
-	if (value < 0) {
-		return -1;
-	}
-
-	if (unit.empty() || unit == "b" || unit == "B") { // default byte
-		value *= 1;
-	}
-	else if (unit == "k" || unit == "K") {
-		value *= 1000;
-	}
-	else if (unit == "m" || unit == "M") {
-		value *= 1000 * 1000;
-	}
-	else if (unit == "g" || unit == "G") {
-		value *= 1000 * 1000 * 1000;
-	}
-
-	if (value > LLONG_MAX) {
-		return -1;
-	}
-
-	return value;
-}
-
-VECTOR<STR>	split(STR string, char delim, bool use_whitespaces_delim) {
-	VECTOR<STR>	result;
-	STR					temp_line;
-	std::istringstream	string_stream (string);
-
-	// Split by any whitespace (>> skips at the beginning and then stops at any whitespace by default)
-	if (use_whitespaces_delim) {
-        STR token;
-
-        while (string_stream >> token) {
-            result.push_back(token);
-        }
-		return result;
-	}
-
-	while (getline(string_stream >> std::ws, temp_line, delim)) {
-		result.push_back(temp_line);
-	}
-
-	return result;
-}
-
-bool	isDirectiveOk(STR line, int start, int end) {
-	VECTOR<STR>	tokens;
-	STR			trimmed_line;
-
-	trimmed_line = line.substr(start, end - start);
-	// std::cerr << "TRIMMED |" << trimmed_line << "|\n";
-	tokens = split(trimmed_line, ' ', 1);
-	if (tokens.size() < 2)
-		return false;
-	return true;
-}
-
-bool	isBlockOk(STR line, int start, int end) {
-	VECTOR<STR>	tokens;
-	STR			trimmed_line;
-	STR			block_name;
-
-	trimmed_line = line.substr(start, end - start + 1);
-
-	block_name = trimmed_line.substr(0, trimmed_line.find('{'));
-
-	if (block_name == "")
-		return false;
-
-	//checking text before block
-	tokens = split(block_name, ' ', 1);
-	if (tokens.size() != 1 && tokens.size() != 2)
-		return false;
-
-	if (tokens[0] != "events" && tokens[0] != "http" && tokens[0] != "server" && tokens[0] != "location")
-		return false;
-
-	if (tokens[0] == "location" && tokens.size() != 2)
-		return false;
-
-	if (tokens[0] != "location" && tokens.size() != 1)
-		return false;
-
-	return true;
-}
-
-bool	isBlockEndOk(STR line, int start) {
-	std::istringstream	string_stream;
-	STR					trimmed_line;
-	STR					no_ws;
-
-	trimmed_line = line.substr(start);
-
-	string_stream.str(trimmed_line);
-	string_stream >> no_ws;
-	if (no_ws[0] != '}')
-		return false;
-	return true;
-}
 
 ElemType	Parser::DetectNextType(STR line, int position, int &block_size) {
 	int	semicol = line.find(';', position);
@@ -175,7 +35,7 @@ ElemType	Parser::DetectNextType(STR line, int position, int &block_size) {
 
 	block_size = 0;
 
-	VECTOR<STR> last_char_check = split(line.c_str() + position, ' ', 1);
+	VECTOR<STR> last_char_check = Utils::split(line.c_str() + position, ' ', 1);
 	if (last_char_check.size() == 1 &&
 		last_char_check[0].size() == 1 &&
 		last_char_check[0][0] == '}' &&
@@ -186,7 +46,7 @@ ElemType	Parser::DetectNextType(STR line, int position, int &block_size) {
 	if (semicol != CHAR_NOT_FOUND) {
 		if (open_brace != CHAR_NOT_FOUND && close_brace != CHAR_NOT_FOUND) {
 			if (semicol < open_brace && semicol < close_brace) {
-				if (isDirectiveOk(line, position, semicol)) {
+				if (ParserUtils::isDirectiveOk(line, position, semicol)) {
 					block_size = semicol - position + 1;
 					return DIRECTIVE;
 				}
@@ -195,7 +55,7 @@ ElemType	Parser::DetectNextType(STR line, int position, int &block_size) {
 			}
 		} else if (open_brace != CHAR_NOT_FOUND) {
 			if (semicol < open_brace) {
-				if (isDirectiveOk(line, position, semicol)) {
+				if (ParserUtils::isDirectiveOk(line, position, semicol)) {
 					block_size = semicol - position + 1;
 					return DIRECTIVE;
 				}
@@ -204,7 +64,7 @@ ElemType	Parser::DetectNextType(STR line, int position, int &block_size) {
 			}
 		} else if (close_brace != CHAR_NOT_FOUND) {
 			if (semicol < close_brace) {
-				if (isDirectiveOk(line, position, semicol)) {
+				if (ParserUtils::isDirectiveOk(line, position, semicol)) {
 					block_size = semicol - position + 1;
 					return DIRECTIVE;
 				}
@@ -212,7 +72,7 @@ ElemType	Parser::DetectNextType(STR line, int position, int &block_size) {
 					return BAD_TYPE;
 			}
 		} else {	//no open and no close braces
-			if (isDirectiveOk(line, position, semicol)) {
+			if (ParserUtils::isDirectiveOk(line, position, semicol)) {
 				block_size = semicol - position + 1;
 				return DIRECTIVE;
 			}
@@ -224,12 +84,12 @@ ElemType	Parser::DetectNextType(STR line, int position, int &block_size) {
 		if (close_brace < open_brace && depth <= 0)
 			return BAD_TYPE;
 		if (close_brace < open_brace) {
-			if (isBlockEndOk(line, position)) {
+			if (ParserUtils::isBlockEndOk(line, position)) {
 				block_size = close_brace - position + 1;
 				depth--;
 				return BLOCK_END;
 			}
-		} else if (isBlockOk(line, position, close_brace)) {
+		} else if (ParserUtils::isBlockOk(line, position, close_brace)) {
 			block_size = open_brace - position + 1;
 			depth++;
 			return BLOCK;
@@ -237,14 +97,14 @@ ElemType	Parser::DetectNextType(STR line, int position, int &block_size) {
 	} else if (close_brace != CHAR_NOT_FOUND) {
 		if (depth <= 0)
 			return BAD_TYPE;
-		if (isBlockEndOk(line, position)) {
+		if (ParserUtils::isBlockEndOk(line, position)) {
 			block_size = close_brace - position + 1;
 			depth--;
 			return BLOCK_END;
 		}
 	}
 	// else if (open_brace != CHAR_NOT_FOUND) {
-	// 	if (isBlockOk(line, position, close_brace)) {
+	// 	if (ParserUtils::isBlockOk(line, position, close_brace)) {
 	// 		block_size = open_brace - position + 1;
 	// 		depth++;
 	// 		return BLOCK;
@@ -283,236 +143,7 @@ bool	Parser::ValidateConfig(STR full_config) {
 	return true;
 }
 
-// Fill HTTP block
-bool FillHttp(HttpConfig* httpConf, VECTOR<STR> tokens){
-	if (tokens[0] == "user") {
-		httpConf->_global_user = tokens[1];
-	} else if (tokens[0] == "worker_process") {
-		httpConf->_global_worker_process = tokens[1];
-	} else if (tokens[0] == "DEBUG_log") {
-		httpConf->_global_error_log = tokens[1];
-	} else if (tokens[0] == "pid") {
-		httpConf->_global_pid = tokens[1];
-	} else if (tokens[0] == "keepalive_timeout") {
-		httpConf->_keepalive_timeout = tokens[1];
-	} else if (tokens[0] == "add_header") {
-		httpConf->_add_header = tokens[1];
-	} else if (tokens[0] == "client_max_body_size") {
-		httpConf->_client_max_body_size = Parser::verifyClientMaxBodySize(tokens[1]);  // C++98 long long
-		if (httpConf->_client_max_body_size == -1) {
-			std::cerr << "Invalid client_max_body_size value" << std::endl;
-			return false;
-		}
-	} else if (tokens[0] == "root") {
-		httpConf->_root = tokens[1];
-	} else if (tokens[0] == "index") {
-		for (size_t j = 1; j < tokens.size(); j++) {
-			httpConf->_index.push_back(tokens[j]);
-		}
-	} else if (tokens[0] == "error_page") {
-		// Handle multiple error codes for a single page
-		STR page_path = tokens[tokens.size() - 1]; // Last token is the path
 
-		// Process all error codes (all tokens except first and last)
-		for (size_t j = 1; j < tokens.size() - 1; j++) {
-			int code = atoi(tokens[j].c_str());
-			if (code > 0) { // Only process valid numeric codes
-				httpConf->_error_pages[code] = page_path;
-			} else {
-				Logger::cerrlog(Logger::ERROR, "Invalid error code: " + tokens[j]);
-			}
-		}
-	} else {
-		Logger::cerrlog(Logger::ERROR, "CHECKFillDirective HttpConfig extra type " + tokens[0]);
-		return false;
-	}
-	return true;
-}
-
-bool FillServer(ServerConfig* serverConf, VECTOR<STR> tokens){
-	if (tokens[0] == "add_header") {
-		serverConf->_add_header = tokens[1];
-	} else if (tokens[0] == "listen") {  // change listen server and port
-		// parse server address and port
-		size_t position = tokens[1].find(':');
-		if (position == STR::npos) {
-			serverConf->_listen_port = Parser::verifyPort(tokens[1]);
-			if (serverConf->_listen_port == -1) {
-				Logger::cerrlog(Logger::ERROR, "Invalid port value");
-				return false;
-			}
-		} else {
-			serverConf->_listen_server = tokens[1].substr(0, position);
-			if (serverConf->_listen_server == "") {
-				Logger::cerrlog(Logger::ERROR, "Invalid server address");
-				return false;
-			}
-			serverConf->_listen_port = Parser::verifyPort(tokens[1].substr(position + 1));
-			if (serverConf->_listen_port == -1) {
-				Logger::cerrlog(Logger::ERROR, "Invalid port value");
-				return false;
-			}
-		}
-
-	} else if (tokens[0] == "server_name") {
-		for (size_t j = 1; j < tokens.size(); j++) {
-			serverConf->_server_name.push_back(tokens[j]);
-		}
-	} else if (tokens[0] == "root") {
-		serverConf->_root = tokens[1];
-	} else if (tokens[0] == "index") {
-		for (size_t j = 1; j < tokens.size(); j++) {
-			serverConf->_index.push_back(tokens[j]);
-		}
-	} else if (tokens[0] == "error_page") {
-		// Handle multiple error codes for a single page
-		STR page_path = tokens[tokens.size() - 1]; // Last token is the path
-
-		// Process all error codes (all tokens except first and last)
-		for (size_t j = 1; j < tokens.size() - 1; j++) {
-			int code = atoi(tokens[j].c_str());
-			if (code > 0) { // Only process valid numeric codes
-				serverConf->_error_pages[code] = page_path;
-			} else {
-				Logger::cerrlog(Logger::ERROR, "Invalid error code: " + tokens[j]);
-			}
-		}
-	} else if (tokens[0] == "client_max_body_size") {
-		serverConf->_client_max_body_size = Parser::verifyClientMaxBodySize(tokens[1]);
-		if (serverConf->_client_max_body_size == -1) {
-			Logger::cerrlog(Logger::ERROR, "Invalid client_max_body_size value");
-			return false;
-		}
-	} else if (tokens[0] == "return") {  // indicate that it's a return directive
-		if (tokens.size() < 2) {
-			Logger::cerrlog(Logger::ERROR, "Invalid return directive");
-			return false;
-		}
-		else if (tokens.size() == 3) {
-			serverConf->_return_code = atoi(tokens[1].c_str());
-			if (serverConf->_return_code < 300 || serverConf->_return_code > 400) {
-				Logger::cerrlog(Logger::ERROR, "Invalid return code");
-				return false;
-			}
-			serverConf->_return_url = tokens[2];
-		}
-		else // tokens.size() == 2
-			serverConf->_return_url = tokens[1];
-	} else {
-		Logger::cerrlog(Logger::ERROR, "CHECKFillDirective ServerConfig extra type " + tokens[0]);
-		return false;
-	}
-	return true;
-}
-
-//  -- to fill location config --
-bool FillLocation(LocationConfig* locConf, VECTOR<STR> tokens){
-	if (tokens[0] == "proxy_pass") {
-		int	host_start;
-		int	host_end;
-		int	delim_position;
-		int	port_end;
-
-		//extracting host and port from		Host: localhost:8080
-		host_start = tokens[1].find_first_of(':') + 3;
-		delim_position = tokens[1].find(':', tokens[1].find_first_of(':') + 1);
-
-		if (delim_position == (int)STR::npos) {
-		//host without port
-			host_end = tokens[1].find_last_not_of(' ');
-			locConf->_proxy_pass_host = tokens[1].substr(host_start, host_end - host_start);
-		} else {
-		//host with port
-			host_end = delim_position;
-			port_end = tokens[1].find_last_not_of(' ');
-			locConf->_proxy_pass_host = tokens[1].substr(host_start, host_end - host_start);
-			locConf->_proxy_pass_port = atoi(tokens[1].substr(delim_position + 1, delim_position + 1 - port_end).c_str());
-		}
-	} else if (tokens[0] == "path") {
-		locConf->_path = tokens[1];
-	} else if (tokens[0] == "add_header") {
-		locConf->_add_header = tokens[1];
-	} else if (tokens[0] == "return") {
-		if (tokens.size() < 2) {
-			Logger::cerrlog(Logger::ERROR, "Invalid return directive");
-			return false;
-		}
-		else if (tokens.size() == 3) {
-			locConf->_return_code = atoi(tokens[1].c_str());
-			if (locConf->_return_code < 300 || locConf->_return_code > 400) {
-				Logger::cerrlog(Logger::ERROR, "Invalid return code");
-				return false;
-			}
-			locConf->_return_url = tokens[2];
-		}
-		else // tokens.size() == 2
-		locConf->_return_url = tokens[1];
-	} else if (tokens[0] == "root") {
-		locConf->_root = tokens[1];
-	} else if (tokens[0] == "client_max_body_size") {
-		locConf->_client_max_body_size = Parser::verifyClientMaxBodySize(tokens[1]);
-		if (locConf->_client_max_body_size == -1) {
-			std::cerr << "Invalid client_max_body_size value" << std::endl;
-			return false;
-		}
-	} else if (tokens[0] == "autoindex") {
-		// locConf->_autoindex = (tokens[1] == "on");  // Simple bool conversion
-		locConf->_autoindex = Parser::verifyAutoIndex(tokens[1]);
-	} else if (tokens[0] == "index") {
-		for (size_t j = 1; j < tokens.size(); j++) {
-			locConf->_index.push_back(tokens[j]);
-		}
-	} else if (tokens[0] == "error_page") {
-		// Handle multiple error codes for a single page
-		STR page_path = tokens[tokens.size() - 1]; // Last token is the path
-
-		// Process all error codes (all tokens except first and last)
-		for (size_t j = 1; j < tokens.size() - 1; j++) {
-			int code = atoi(tokens[j].c_str());
-			if (code > 0) { // Only process valid numeric codes
-				locConf->_error_pages[code] = page_path;
-			} else {
-				Logger::cerrlog(Logger::ERROR, "Invalid error code: " + tokens[j]);
-			}
-		}
-	} else if (tokens[0] == "allowed_methods") {
-		for (size_t j = 1; j < tokens.size(); j++) {
-			if (tokens[j] != "GET" && tokens[j] != "POST" && tokens[j] != "DELETE")
-				return false;
-			locConf->_allowed_methods[tokens[j]] = true;
-		}
-	} else if (tokens[0] == "upload_store") {
-		locConf->_upload_store = tokens[1];
-	} else if (tokens[0] == "alias") {
-		locConf->_alias = tokens[1];
-	} else {
-		Logger::cerrlog(Logger::ERROR, "CHECKFillDirective LocationConfig extra type " + tokens[0]);
-		return false;
-	}
-	return true;
-}
-
-bool FillDirective(AConfigBase* block, STR line, int position) {
-	VECTOR<STR> tokens;
-	STR 		trimmed_line;
-
-	int semicol = line.find(';', position);
-	trimmed_line = line.substr(position, semicol - position);
-	tokens = split(trimmed_line, ' ', 1);
-
-	if (HttpConfig* httpConf = dynamic_cast<HttpConfig*>(block)) {
-		return FillHttp(httpConf, tokens);
-    }
-	else if (ServerConfig* serverConf = dynamic_cast<ServerConfig*>(block)) {
-		return FillServer(serverConf, tokens);
-    }
-    else if (LocationConfig* locConf = dynamic_cast<LocationConfig*>(block)) {
-		return FillLocation(locConf, tokens);
-    }
-	Logger::cerrlog(Logger::ERROR, "CHECKFillDirective Unknown block type " + tokens[0]);
-
-    return false;  // Unknown block type
-}
 
 AConfigBase	*CreateBlock(STR line, int start) {
 	AConfigBase *block;
@@ -524,7 +155,7 @@ AConfigBase	*CreateBlock(STR line, int start) {
 
 	trimmed_line = line.substr(start, close_brace - start);
 	block_name = trimmed_line.substr(0, trimmed_line.find('{'));
-	tokens = split(block_name, ' ', 1);
+	tokens = Utils::split(block_name, ' ', 1);
 
 	block = NULL;
 	if (tokens[0] == "events" || tokens[0] == "http") {
@@ -730,7 +361,7 @@ HttpConfig *Parser::Parse() {
 		case DIRECTIVE:
 			directives_per_block[depth]++;
 			Logger::log(Logger::DEBUG, "DIRECTIVE (" + full_config.substr(i, 50) + ")");
-			if (!FillDirective(currentBlock, full_config, i)) {
+			if (!ParserFiller::FillDirective(currentBlock, full_config, i)) {
 				base->_self_destruct();
 
 				Logger::cerrlog(Logger::ERROR, "CHECKFillDirective");

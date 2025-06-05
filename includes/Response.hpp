@@ -18,7 +18,7 @@ enum FileType {
 enum ResponseState {
     READY,
     PROCESSING_CGI,
-    PROCESSING_POST,  // 추가된 상태: POST 작업 진행 중
+    PROCESSING_POST,  // Post request is processing, but not yet ready
     COMPLETE
 };
 
