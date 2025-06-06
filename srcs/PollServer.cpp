@@ -652,8 +652,8 @@ void PollServer::handleSingleEpollEvent(const epoll_event& current_event, Reques
 }
 
 bool PollServer::WaitAndService(RequestsManager &manager) {
-    int num_events = epoll_wait(_epoll_fd, &_events[0], MAX_EVENTS, -1); // Use a timeout
-
+    // int num_events = epoll_wait(_epoll_fd, &_events[0], MAX_EVENTS, -1); // Use a timeout
+    int num_events = epoll_wait(_epoll_fd, &_events[0], MAX_EVENTS, 1000);  // testing timeout
 	processDisconnectOrTimeoutCgis(manager);
 
     if (num_events < 0) {
