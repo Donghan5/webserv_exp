@@ -1145,31 +1145,15 @@ bool Response::processCgiOutput() {
 
         // Check if CGI has completed
         if (_cgi_handler->checkCgiStatus()) {
-            Logger::cerrlog(Logger::INFO, "CGI process has completed");
-            _state = COMPLETE;
-
-			if (_cgi_handler->isTimedOut()) {  // testing 504 timeout
-				Logger::cerrlog(Logger::ERROR, "CGI process timed out");
-				_response_buffer = "Status: 504 Gateway Timeout\r\n"
-								  "Content-Type: text/html\r\n\r\n"
-								  "<html><body><h1>504 Gateway Timeout</h1>"
-								  "<p>The server did not receive a timely response from the CGI script.</p>"
-								  "</body></html>";
-			}
-            return true;
+			Logger::cerrlog(Logger::INFO, "CGI process has completed");
+			_state = COMPLETE;
+			return true;
         }
-
         return false; // Still running
     } catch (const std::exception& e) {
         Logger::cerrlog(Logger::ERROR, "Error in processCgiOutput: " + STR(e.what()));
 
-        // Create a fallback response on error
-        _response_buffer = "Status: 500 Internal Server Error\r\n"
-                          "Content-Type: text/html\r\n\r\n"
-                          "<html><body><h1>500 Internal Server Error</h1>"
-                          "<p>The server encountered an error while processing your request.</p>"
-                          "</body></html>";
-
+		if(_cgi_handler) _cgi_handler->closeCgi();
         _state = COMPLETE;
         return true;
     }
@@ -1180,6 +1164,25 @@ STR Response::getFinalResponse() {
         // Not ready yet or no CGI handler
         return createErrorResponse(500, "text/plain", "Internal Server Error", NULL);
     }
+
+	CgiStatus cgiStatus = _cgi_handler->getCgiStatus();
+
+	if (cgiStatus == TIMEDOUT) {
+		Logger::cerrlog(Logger::ERROR, "CGI process timed out");
+		return createErrorResponse(504, "text/html", "Gateway Timeout", NULL);
+	}
+
+	if (cgiStatus == FINISHED_ERROR) {
+		Logger::cerrlog(Logger::ERROR, "CGI process finished with an error");
+		return createErrorResponse(502, "text/html", "Bad Gateway", NULL);
+	}
+
+	if (cgiStatus == FINISHED_OK && _response_buffer.find("\r\n\r\n") == STR::npos) {
+        Logger::cerrlog(Logger::ERROR, "CGI script produced a malformed response (no headers). Generating 502 Bad Gateway.");
+        return createErrorResponse(502, "text/html", "Bad Gateway", NULL);
+    }
+
+	Logger::log(Logger::INFO, "CGI finished successfully, processing output");
 
     try {
         // Process CGI output into a proper HTTP response

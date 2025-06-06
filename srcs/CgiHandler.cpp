@@ -270,20 +270,7 @@ bool CgiHandler::checkCgiStatus() {
 
     // Check for timeout
     if (isTimedOut()) {  // possibility of 504 Gateway Timeout
-        Logger::cerrlog(Logger::WARNING, "CGI process timed out after " +
-                       Utils::intToString(_timeout) + " seconds");
-        closeCgi();
-        return true; // Report as completed (timed out)
-    }
-
-    if (_cgi_pid <= 0) {
-        _process_running = false;
-        return true;
-    }
-
-    if (_process_running && isTimedOut()) {
-        Logger::cerrlog(Logger::WARNING, "CGI process timed out after " +
-                      Utils::intToString(_timeout) + " seconds");
+		_status = TIMEDOUT;
         closeCgi();
         return true; // Report as completed (timed out)
     }
@@ -302,12 +289,15 @@ bool CgiHandler::checkCgiStatus() {
         if (WIFEXITED(status)) {
             int exit_code = WEXITSTATUS(status);
             if (exit_code == 0) {
+				_status = FINISHED_OK;
                 Logger::cerrlog(Logger::INFO, "CGI process exited successfully");
             } else {
+				_status = FINISHED_ERROR;
                 Logger::cerrlog(Logger::WARNING, "CGI process exited with code: " +
                           Utils::intToString(exit_code));
             }
         } else if (WIFSIGNALED(status)) {
+			_status = FINISHED_ERROR;
             Logger::cerrlog(Logger::WARNING, "CGI process terminated by signal: " +
                       Utils::intToString(WTERMSIG(status)));
         }
@@ -316,6 +306,7 @@ bool CgiHandler::checkCgiStatus() {
         // Error checking status
         Logger::cerrlog(Logger::ERROR, "Failed to check CGI status: " + STR(strerror(errno)));
         _process_running = false;
+		_status = FINISHED_ERROR;
         return true;
     }
 }

@@ -17,7 +17,7 @@ enum ElemType {
 };
 
 struct Directive {
-	STR					name;
+	STR			name;
 	VECTOR<STR>	values;
 };
 

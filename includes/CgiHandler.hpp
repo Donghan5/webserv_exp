@@ -22,6 +22,13 @@
 
 #include <sstream>
 
+enum CgiStatus {
+	RUNNING,
+	FINISHED_OK,
+	FINISHED_ERROR,
+	TIMEDOUT
+};
+
 class CgiHandler {
 	private:
 		std::string _scriptPath;
@@ -41,6 +48,7 @@ class CgiHandler {
 		time_t _start_time;
     	int _timeout;
 
+		CgiStatus _status;
 
 		bool childProcess(int input_pipe0, int input_pipe1, int output_pipe0, int output_pipe1);
 		bool parentProcess(int input_pipe0, int input_pipe1, int output_pipe0, int output_pipe1);
@@ -59,7 +67,7 @@ class CgiHandler {
 		std::string readFromCgi(); // Read data from CGI output
 		void closeCgi(); // Clean up resources
 		bool checkCgiStatus(); // Check if CGI has completed, returns true if done
-
+		CgiStatus getCgiStatus() const { return _status; }
 };
 
 #endif
