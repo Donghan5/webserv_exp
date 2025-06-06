@@ -37,18 +37,20 @@ class CgiHandler {
 		std::string _output_buffer;
 
 		bool setUpPipes(void);
-		bool isTimedOut(void) const;
 
 		time_t _start_time;
     	int _timeout;
+
+
 		bool childProcess(int input_pipe0, int input_pipe1, int output_pipe0, int output_pipe1);
 		bool parentProcess(int input_pipe0, int input_pipe1, int output_pipe0, int output_pipe1);
 
-	public:
+		public:
 		CgiHandler(const std::string &scriptPath, const std::map<std::string, std::string> &env, const std::string &body);
 		~CgiHandler();
 
 		// New asynchronous methods for use with epoll
+		bool isTimedOut(void) const;
 		bool startCgi(); // Returns true if successfully started
 		bool isCgiRunning() const { return _process_running; }
 		int getOutputFd() const { return _output_pipe[0]; }

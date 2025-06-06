@@ -1147,6 +1147,15 @@ bool Response::processCgiOutput() {
         if (_cgi_handler->checkCgiStatus()) {
             Logger::cerrlog(Logger::INFO, "CGI process has completed");
             _state = COMPLETE;
+
+			if (_cgi_handler->isTimedOut()) {  // testing 504 timeout
+				Logger::cerrlog(Logger::ERROR, "CGI process timed out");
+				_response_buffer = "Status: 504 Gateway Timeout\r\n"
+								  "Content-Type: text/html\r\n\r\n"
+								  "<html><body><h1>504 Gateway Timeout</h1>"
+								  "<p>The server did not receive a timely response from the CGI script.</p>"
+								  "</body></html>";
+			}
             return true;
         }
 

@@ -356,6 +356,7 @@ HttpConfig *Parser::Parse() {
 	int depth = 0;
 	for (size_t i = 0; i < full_config.size(); i += size)
 	{
+
 		switch (DetectNextType(full_config, i, size))
 		{
 		case DIRECTIVE:

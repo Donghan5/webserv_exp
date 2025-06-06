@@ -38,6 +38,8 @@ class Parser {
 
 		ElemType	DetectNextType(STR line, int position, int &block_size);
 		bool		ValidateConfig(STR full_config);
+		bool 		handleBlockStart(AConfigBase*& currentBlock, int& depth, MAP<int, int>& directives_per_block, int& skipped_depth, const STR& line, size_t pos);
+
 
 	public:
 		Parser();

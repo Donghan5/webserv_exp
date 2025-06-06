@@ -27,5 +27,8 @@ import sys
 # </html>
 # """.format(sys.version))
 
-while True:
-    pass        #intented to keep the CGI running to test cgi timeout
+# while True:
+#     pass # Infinite loop to simulate a server error
+
+# a = 1 / 0  # This will raise a ZeroDivisionError
+sys.exit(1)  # Exit with an error code to simulate a server error

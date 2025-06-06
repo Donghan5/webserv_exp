@@ -44,7 +44,7 @@ void PollServer::getUniqueServers(const HttpConfig *hcf, MAP<int, STR>& unique_s
 	if (!hcf)
 		throw std::runtime_error("Config does not exist");
 
-	// iterate through the servers and add them to the map. changed to map 
+	// iterate through the servers and add them to the map. changed to map
     for (size_t i = 0; i < hcf->_servers.size(); i++) {
 		bool is_port_found = false;
         try {
