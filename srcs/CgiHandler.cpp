@@ -4,7 +4,7 @@
 
 CgiHandler::CgiHandler(const STR &scriptPath, const MAP<STR, STR> &env, const STR &body):
     _scriptPath(scriptPath), _env(env), _body(body), _cgi_pid(-1), _process_running(false),
-    _start_time(time(NULL)), _timeout(30)  // Add timeout initialization (30 seconds)
+    _start_time(time(NULL)), _timeout(30), _status(RUNNING)  // Add timeout initialization (30 seconds)
 {
     _interpreters[".py"] = "/usr/bin/python3";
     _interpreters[".php"] = "/usr/bin/php";
@@ -232,7 +232,7 @@ STR CgiHandler::readFromCgi() {
         return STR(buffer, bytes_read);
     }
 	else if (bytes_read == 0) {  // EOF - pipe closed
-        _process_running = false;
+        // verify in checkCgiStatus --> so do nothing
     }
 	else if (errno != EAGAIN && errno != EWOULDBLOCK) {
         Logger::cerrlog(Logger::ERROR, "Failed to read from CGI: " + STR(strerror(errno)));
