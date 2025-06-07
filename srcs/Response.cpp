@@ -593,134 +593,6 @@ std::string joinPaths(const std::string& p1, const std::string& p2) {
         return p1 + p2;
 }
 
-// to test alias
-/*
-LocationConfig* Response::buildDirPath(ServerConfig *matchServer, STR &full_path, bool &isDIR) {
-    LocationConfig *matchLocation = NULL;
-    STR request_uri = _request._file_path;
-    STR location_uri_part = "";
-
-    STR current_best_path = "";
-    LocationConfig* current_best_match = NULL;
-    std::vector<const LocationConfig*> queue;  // to store locations to check
-
-    for (MAP<STR, LocationConfig*>::const_iterator it = matchServer->_locations.begin(); it != matchServer->_locations.end(); ++it) {
-        if (it->second != NULL) {
-             queue.push_back(it->second);
-        }
-    }
-
-    unsigned int head = 0;
-    while(head < queue.size()){
-        const LocationConfig* current_loc = queue[head++];
-        STR loc_path = current_loc->_path;
-
-        if (request_uri.rfind(loc_path, 0) == 0) {
-			// boundary check
-			bool isBoundary = false;
-			if (loc_path == "/") isBoundary = true;  // root location
-			else if (request_uri.length() == loc_path.length()) isBoundary = true;  // check if loc_path is the same as request_uri
-			else if (request_uri[loc_path.length() - 1] == '/') isBoundary = true;
-			else if (request_uri[loc_path.length()] == '/') isBoundary = true;
-
-			if (isBoundary) {
-                 if (loc_path.length() > current_best_path.length()) {
-                    current_best_path = loc_path;
-                    current_best_match = const_cast<LocationConfig*>(current_loc);
-					Logger::log(Logger::DEBUG, "Response::buildDirPath: current best match is " + current_best_path);
-				}
-			}
-        }
-
-		// -- nested_it is to check nested locations --
-        for (MAP<STR, LocationConfig*>::const_iterator nested_it = current_loc->_locations.begin(); nested_it != current_loc->_locations.end(); ++nested_it) {
-             if (nested_it->second != NULL) {
-                queue.push_back(nested_it->second);
-            }
-        }
-    }
-
-    matchLocation = current_best_match;
-    location_uri_part = current_best_path;
-
-    // --- 2. If no matchLocation value, using server. ---
-    if (matchLocation == NULL) {
-        Logger::cerrlog(Logger::INFO, "No specific location found for: " + request_uri + ". Trying server root.");
-        if (!matchServer->_root.empty()) {
-            full_path = joinPaths(matchServer->_root, request_uri);
-			Logger::log(Logger::DEBUG, "Response::buildDirPath: full path is " + full_path);
-            FileType type = checkFile(full_path);
-            if (type != NotFound) {
-                isDIR = (type == Directory);
-                Logger::cerrlog(Logger::DEBUG, "Using server root. Path: " + full_path);
-                return NULL;
-            }
-        }
-        Logger::cerrlog(Logger::ERROR, "No matching location or server root found for: " + request_uri);
-        return NULL; // Not found
-    }
-
-    // --- 3. Determine alias or root ---
-    STR determined_path = "";
-    STR alias_value = "";
-    STR root_value = "";
-    bool alias_found = false;
-
-    AConfigBase* current_config = matchLocation;
-    while (current_config != NULL) {
-        LocationConfig* loc = dynamic_cast<LocationConfig*>(current_config);
-        if (loc != NULL && !alias_found && !loc->_alias.empty()) {
-            alias_value = loc->_alias;
-            alias_found = true;
-            break; // found alias, no need to check further
-        }
-
-        // check for root (alias not founded)
-        if (root_value.empty() && !current_config->_root.empty()) {
-			root_value = current_config->_root;
-			Logger::log(Logger::DEBUG, "Response::buildDirPath: root value is " + root_value);
-			break;
-		}
-        current_config = current_config->back_ref;
-    }
-
-    // --- 4. full_path calculate ---
-    if (alias_found) {
-        // Alias logic: alias path + (requested URI - matched location URI part)
-        STR remaining_path = "";
-        if (request_uri.rfind(location_uri_part, 0) == 0) {
-            remaining_path = request_uri.substr(location_uri_part.length());
-        } else {
-             Logger::cerrlog(Logger::WARNING, "Request URI does not start with matched location URI part? Req: " + request_uri + ", Loc: " + location_uri_part);
-             remaining_path = request_uri;
-        }
-        determined_path = joinPaths(alias_value, remaining_path);
-        Logger::cerrlog(Logger::DEBUG, "Path constructed using ALIAS: " + determined_path);
-    } else if (!root_value.empty()) {
-        // root logic : root path + request_uri
-        determined_path = joinPaths(root_value, request_uri);
-        Logger::cerrlog(Logger::DEBUG, "Path constructed using ROOT: " + determined_path);
-    } else {
-        Logger::cerrlog(Logger::ERROR, "Neither alias nor root directive found!");
-        return NULL; // error
-    }
-
-    // --- 5. verify path computed ---
-    FileType type = checkFile(determined_path);
-    if (type == NotFound) {
-        Logger::cerrlog(Logger::INFO, "Response::buildDirPath: Resulting path not found: \"" + determined_path + "\"");
-        return NULL;
-    }
-
-    full_path = determined_path;
-    // isDIR = (type == Directory);
-
-    Logger::cerrlog(Logger::DEBUG, "Response::buildDirPath: final path is " + full_path + " (isDIR: " + (isDIR ? "true" : "false") + ")");
-    return matchLocation;
-}
-*/
-
-
 LocationConfig *Response::buildDirPath(ServerConfig *matchServer, STR &full_path, bool &isDIR) {
 	LocationConfig *matchLocation = NULL;
 	STR path_to_match = _request._file_path;
@@ -1162,24 +1034,24 @@ bool Response::processCgiOutput() {
 STR Response::getFinalResponse() {
     if (_state != COMPLETE || !_cgi_handler) {
         // Not ready yet or no CGI handler
-        return createErrorResponse(500, "text/plain", "Internal Server Error", NULL);
+        _response_buffer = createErrorResponse(500, "text/plain", "Internal Server Error", NULL);
     }
 
 	CgiStatus cgiStatus = _cgi_handler->getCgiStatus();
 
-	if (cgiStatus == TIMEDOUT) {
+	if (cgiStatus == TIMEDOUT) {  // CGI process timed out
 		Logger::cerrlog(Logger::ERROR, "CGI process timed out");
-		return createErrorResponse(504, "text/html", "Gateway Timeout", NULL);
+		_response_buffer =  createErrorResponse(504, "text/plain", "504 Gateway Timeout", NULL);
 	}
 
-	if (cgiStatus == FINISHED_ERROR) {
+	if (cgiStatus == FINISHED_ERROR) {  // CGI finished with an error
 		Logger::cerrlog(Logger::ERROR, "CGI process finished with an error");
-		return createErrorResponse(502, "text/html", "Bad Gateway", NULL);
+		_response_buffer = createErrorResponse(502, "text/plain", "502 Bad Gateway", NULL);
 	}
 
-	if (cgiStatus == FINISHED_OK && _response_buffer.find("\r\n\r\n") == STR::npos) {
+	if (cgiStatus == FINISHED_OK && _response_buffer.find("\r\n\r\n") == STR::npos) {  // malformed headers response
         Logger::cerrlog(Logger::ERROR, "CGI script produced a malformed response (no headers). Generating 502 Bad Gateway.");
-        return createErrorResponse(502, "text/html", "Bad Gateway", NULL);
+        _response_buffer = createErrorResponse(502, "text/plain", "502 Bad Gateway", NULL);
     }
 
 	Logger::log(Logger::INFO, "CGI finished successfully, processing output");

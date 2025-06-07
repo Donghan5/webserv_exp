@@ -109,3 +109,30 @@
 [2025-05-06 21:07:59] Starting to write file to: /home/donghank/webserv_exp/webserv_test/www/uploads/basic (2).conf
 [2025-05-06 21:07:59] Writing progress: 100% (665/665 bytes)
 [2025-05-06 21:07:59] File successfully written to disk: /home/donghank/webserv_exp/webserv_test/www/uploads/basic (2).conf
+[2025-06-07 17:19:38] ========== NEW UPLOAD REQUEST ==========
+[2025-06-07 17:19:38] Project root: /home/donghank/webserv_exp/webserv_test
+[2025-06-07 17:19:38] Reading raw POST data from stdin
+[2025-06-07 17:19:38] Read 314152 bytes from stdin
+[2025-06-07 17:19:38] Found file part in multipart data
+[2025-06-07 17:19:38] Extracted filename: Screenshot from 2025-04-15 19-14-07.png
+[2025-06-07 17:19:38] Form field name: filename
+[2025-06-07 17:19:38] File content type: image/png
+[2025-06-07 17:19:38] Extracted file content: 313778 bytes
+[2025-06-07 17:19:38] Using upload directory: /home/donghank/webserv_exp/webserv_test/www/uploads
+[2025-06-07 17:19:38] Upload directory exists: /home/donghank/webserv_exp/webserv_test/www/uploads
+[2025-06-07 17:19:38] Successfully extracted file: Screenshot from 2025-04-15 19-14-07.png
+[2025-06-07 17:19:38] Using basename: Screenshot from 2025-04-15 19-14-07.png
+[2025-06-07 17:19:38] File content size: 313778 bytes
+[2025-06-07 17:19:38] File type detected: image/png
+[2025-06-07 17:19:38] Starting to write file to: /home/donghank/webserv_exp/webserv_test/www/uploads/Screenshot from 2025-04-15 19-14-07.png
+[2025-06-07 17:19:38] Writing progress: 10% (32768/313778 bytes)
+[2025-06-07 17:19:38] Writing progress: 20% (65536/313778 bytes)
+[2025-06-07 17:19:38] Writing progress: 30% (94208/313778 bytes)
+[2025-06-07 17:19:38] Writing progress: 40% (126976/313778 bytes)
+[2025-06-07 17:19:38] Writing progress: 50% (159744/313778 bytes)
+[2025-06-07 17:19:38] Writing progress: 60% (188416/313778 bytes)
+[2025-06-07 17:19:38] Writing progress: 70% (221184/313778 bytes)
+[2025-06-07 17:19:38] Writing progress: 80% (253952/313778 bytes)
+[2025-06-07 17:19:38] Writing progress: 90% (282624/313778 bytes)
+[2025-06-07 17:19:38] Writing progress: 100% (313778/313778 bytes)
+[2025-06-07 17:19:38] File successfully written to disk: /home/donghank/webserv_exp/webserv_test/www/uploads/Screenshot from 2025-04-15 19-14-07.png

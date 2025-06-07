@@ -1,7 +1,7 @@
 
 --- CGI env ---
-CONTENT_LENGTH: 978
-CONTENT_TYPE: multipart/form-data; boundary=----WebKitFormBoundarym8CqkYIezqLfs2Jo
+CONTENT_LENGTH: 314152
+CONTENT_TYPE: multipart/form-data; boundary=---------------------------2915506393440930312058076111
 HTTP_COOKIE: 
 HTTP_HOST: localhost
 QUERY_STRING: 
@@ -13,10 +13,10 @@ UPLOAD_STORE:
 LC_CTYPE: C.UTF-8
 
 --- DIRECT FORM PROCESSING ---
-Content-Type: multipart/form-data; boundary=----WebKitFormBoundarym8CqkYIezqLfs2Jo
-Content-Length: 978
-Detected boundary: ------WebKitFormBoundarym8CqkYIezqLfs2Jo
-Raw data size: 978 bytes
+Content-Type: multipart/form-data; boundary=---------------------------2915506393440930312058076111
+Content-Length: 314152
+Detected boundary: -----------------------------2915506393440930312058076111
+Raw data size: 314152 bytes
 Split into 4 parts
-File field: filename, Filename: basic (2).conf, Content-Type: application/octet-stream, Size: 665
-File content first 100 bytes (hex): 68747470207b0a20202020726f6f74202e2f776562736572765f746573742f7777773b0a0a20202020736572766572207b0a20202020202020206c697374656e20383038303b0a20202020202020207365727665725f6e616d65206c6f63616c686f7374
+File field: filename, Filename: Screenshot from 2025-04-15 19-14-07.png, Content-Type: image/png, Size: 313778
+File content first 100 bytes (hex): 89504e470d0a1a0a0000000d4948445200000780000004180806000000ef7fc4750000000473424954080808087c0864880000001974455874536f66747761726500676e6f6d652d73637265656e73686f74ef03bf3e0000002e74455874437265617469

@@ -251,10 +251,6 @@ bool CgiHandler::writeToCgi(const char* data, size_t len) {
     ssize_t bytes_written = write(_input_pipe[1], data, len);
 
     if (bytes_written < 0) {
-        if (errno != EAGAIN && errno != EWOULDBLOCK) {
-            Logger::cerrlog(Logger::ERROR, "Write to CGI failed: " + STR(strerror(errno)));
-            return false;
-        }
         return false; // Would block
     }
 
