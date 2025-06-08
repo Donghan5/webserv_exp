@@ -15,7 +15,8 @@ SRCS =  $(SRC_DIR)/AConfigBase.cpp $(SRC_DIR)/HttpConfig.cpp $(SRC_DIR)/Location
 		$(SRC_DIR)/PollServer.cpp  $(SRC_DIR)/RequestsManager.cpp $(SRC_DIR)/Request.cpp \
 		$(SRC_DIR)/Response.cpp $(SRC_DIR)/CgiHandler.cpp \
 		$(SRC_DIR)/Logger.cpp $(SRC_DIR)/Utils.cpp $(SRC_DIR)/CgiUtils.cpp \
-		$(SRC_DIR)/ParserUtils.cpp $(SRC_DIR)/ParserFiller.cpp $(SRC_DIR)/ParserConfig.cpp
+		$(SRC_DIR)/ParserUtils.cpp $(SRC_DIR)/ParserFiller.cpp $(SRC_DIR)/ParserConfig.cpp \
+		$(SRC_DIR)/ParserBlock.cpp
 
 # Object files (convert .cpp to .o)
 OBJS = $(SRCS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)

@@ -9,6 +9,7 @@
 #include "ServerConfig.hpp"
 #include "LocationConfig.hpp"
 #include "Utils.hpp"
+#include "Logger.hpp"
 
 class ParserUtils {
 	public:
@@ -18,6 +19,8 @@ class ParserUtils {
 		static bool isDirectiveOk(std::string line, int start, int end);
 		static bool isBlockOk(std::string line, int start, int end);
 		static bool isBlockEndOk(STR line, int start);
+		static bool check_location_path_duplicate(STR new_path, MAP<STR, LocationConfig*> locs);
+		static bool minimum_value_check(HttpConfig *conf);
 };
 
 #endif // PARSERUTILS_HPP

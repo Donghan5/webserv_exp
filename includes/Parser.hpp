@@ -46,7 +46,8 @@ class Parser {
 		Parser(const Parser &obj);
 		Parser &operator=(const Parser &obj);
 		~Parser();
-
+		AConfigBase	*CreateBlock(STR line, int start);
+		AConfigBase	*AddBlock(AConfigBase *prev_block, STR line, int start);
 		HttpConfig	*Parse();
 };
 

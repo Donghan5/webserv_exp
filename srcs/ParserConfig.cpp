@@ -1,8 +1,5 @@
 #include "Parser.hpp"
 
-
-
-
 ElemType	Parser::DetectNextType(STR line, int position, int &block_size) {
 	int	semicol = line.find(';', position);
 	int	open_brace = line.find('{', position);
@@ -90,6 +87,7 @@ ElemType	Parser::DetectNextType(STR line, int position, int &block_size) {
 	return BAD_TYPE;
 }
 
+// checking the configuration file
 bool	Parser::ValidateConfig(STR full_config) {
 	int	size = 1;
 

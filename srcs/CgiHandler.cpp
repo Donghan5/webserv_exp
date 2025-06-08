@@ -207,7 +207,7 @@ bool CgiHandler::startCgi() {
     if (_cgi_pid == 0) {
         // Child process
 		childProcess(input_pipe0, input_pipe1, output_pipe0, output_pipe1);
-
+        return false;  // child process should never return
     } else {
         // Parent process
         // CRITICAL: Close the pipes that the child process uses

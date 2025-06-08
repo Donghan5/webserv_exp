@@ -118,3 +118,48 @@ bool	ParserUtils::isBlockEndOk(STR line, int start) {
 		return false;
 	return true;
 }
+
+bool	ParserUtils::check_location_path_duplicate(STR new_path, MAP<STR, LocationConfig*> locs) {
+	try
+	{
+		MAP<STR, LocationConfig*> loc_loc = locs;
+		while (loc_loc.size() > 0) {
+			MAP<STR, LocationConfig*>::iterator it = loc_loc.begin();
+			if (it->first == new_path)
+				return false;
+			if (it->second->_locations.size() > 0) {
+				loc_loc.insert(it->second->_locations.begin(), it->second->_locations.end());
+			}
+			loc_loc.erase(it);
+		}
+	}
+	catch(const std::exception& e)
+	{
+		return false;
+	}
+	return true;
+}
+
+bool	ParserUtils::minimum_value_check(HttpConfig *conf) {
+	if (conf->_servers.empty()) {
+		Logger::cerrlog(Logger::ERROR, "No servers found");
+		return false;
+	}
+
+	for (size_t i = 0; i < conf->_servers.size(); i++)
+	{
+		//if it's the only block - defaults to 80
+		if (conf->_servers[i]->_listen_port == -1 && conf->_servers.size() == 1) {
+			conf->_servers[i]->_listen_port = 80;
+		}
+		if (conf->_servers[i]->_listen_port == -1) {
+			Logger::cerrlog(Logger::ERROR, "Server without port found");
+			return false;
+		}
+		if (conf->_servers[i]->_locations.empty()) {
+			Logger::cerrlog(Logger::ERROR, "Server without location found");
+			return false;
+		}
+	}
+	return true;
+}
