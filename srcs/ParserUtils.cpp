@@ -69,7 +69,6 @@ bool ParserUtils::isDirectiveOk(STR line, int start, int end) {
 	STR			trimmed_line;
 
 	trimmed_line = line.substr(start, end - start);
-	// std::cerr << "TRIMMED |" << trimmed_line << "|\n";
 	tokens = Utils::split(trimmed_line, ' ', 1);
 	if (tokens.size() < 2)
 		return false;

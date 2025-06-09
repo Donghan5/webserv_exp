@@ -26,7 +26,7 @@ Parser::~Parser() {
 		delete _config;
 }
 
-
+// ---- Main parsing function ----
 HttpConfig *Parser::Parse() {
 	STR			line;
 	VECTOR<STR>	tokens;
@@ -73,10 +73,9 @@ HttpConfig *Parser::Parse() {
 			if (!ParserFiller::FillDirective(currentBlock, full_config, i)) {
 				base->_self_destruct();
 
-				Logger::cerrlog(Logger::ERROR, "CHECKFillDirective");
+				Logger::cerrlog(Logger::ERROR, "CHECK - FillDirective failed");
 				return NULL;
 			}
-			std::cerr << "--DIRECTIVE\n";
 			break;
 		case BLOCK:
 			depth++;
@@ -85,7 +84,6 @@ HttpConfig *Parser::Parse() {
 			//if event/http, we already have default one
 			if (!strncmp(full_config.c_str() + i, "http", 4) || !strncmp(full_config.c_str() + i, "events", 6)) {
 				skipped_block1 = depth;
-				std::cerr << "--(skip)BLOCK\n";
 				continue;
 			}
 
@@ -93,7 +91,6 @@ HttpConfig *Parser::Parse() {
 			if (!currentBlock) {
 				base->_self_destruct();
 
-				Logger::log(Logger::ERROR, "CHECKAddBlock");
 				return NULL;
 			}
 			std::cerr << "--BLOCK\n";
@@ -107,14 +104,12 @@ HttpConfig *Parser::Parse() {
 			else
 				currentBlock = currentBlock->back_ref;
 			if (directives_per_block[depth] == 0) {
-				//ERROR: block doesn't have it's own directives!
 				base->_self_destruct();
 
-				Logger::cerrlog(Logger::ERROR, "CHECKFillDirective block doesn't have it's own directives!");
+				Logger::cerrlog(Logger::ERROR, "CHECK - FillDirective block doesn't have it's own directives!");
 				return NULL;
 			}
 			depth--;
-			std::cerr << "--BLOCK_END\n";
 			break;
 		default:
 			size = -1;

@@ -158,7 +158,7 @@ bool CgiHandler::parentProcess(int input_pipe0, int input_pipe1, int output_pipe
 
 	// Write request body to CGI script's stdin
 	if (!_body.empty()) {
-		Logger::cerrlog(Logger::DEBUG, "Sending body to CGI (size: " + Utils::intToString(_body.size()) + " bytes)");
+		// Logger::cerrlog(Logger::DEBUG, "Sending body to CGI (size: " + Utils::intToString(_body.size()) + " bytes)");
 		if (!writeToCgi(_body.c_str(), _body.size())) {
 			Logger::cerrlog(Logger::ERROR, "Failed to write request body to CGI");
 			closeCgi();

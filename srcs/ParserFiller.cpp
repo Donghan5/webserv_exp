@@ -17,7 +17,7 @@ bool ParserFiller::FillHttp(HttpConfig* httpConf, VECTOR<STR> tokens){
 	} else if (tokens[0] == "client_max_body_size") {
 		httpConf->_client_max_body_size = ParserUtils::verifyClientMaxBodySize(tokens[1]);  // C++98 long long
 		if (httpConf->_client_max_body_size == -1) {
-			std::cerr << "Invalid client_max_body_size value" << std::endl;
+			Logger::cerrlog(Logger::ERROR, "Invalid client_max_body_size value");
 			return false;
 		}
 	} else if (tokens[0] == "root") {
@@ -40,12 +40,13 @@ bool ParserFiller::FillHttp(HttpConfig* httpConf, VECTOR<STR> tokens){
 			}
 		}
 	} else {
-		Logger::cerrlog(Logger::ERROR, "CHECKFillDirective HttpConfig extra type " + tokens[0]);
+		Logger::cerrlog(Logger::ERROR, "CHECK - FillDirective HttpConfig extra type " + tokens[0]);
 		return false;
 	}
 	return true;
 }
 
+// Fill Server block
 bool ParserFiller::FillServer(ServerConfig* serverConf, VECTOR<STR> tokens){
 	if (tokens[0] == "add_header") {
 		serverConf->_add_header = tokens[1];
@@ -116,7 +117,7 @@ bool ParserFiller::FillServer(ServerConfig* serverConf, VECTOR<STR> tokens){
 		else // tokens.size() == 2
 			serverConf->_return_url = tokens[1];
 	} else {
-		Logger::cerrlog(Logger::ERROR, "CHECKFillDirective ServerConfig extra type " + tokens[0]);
+		Logger::cerrlog(Logger::ERROR, "CHECK - FillDirective ServerConfig extra type " + tokens[0]);
 		return false;
 	}
 	return true;
@@ -169,7 +170,7 @@ bool ParserFiller::FillLocation(LocationConfig* locConf, VECTOR<STR> tokens){
 	} else if (tokens[0] == "client_max_body_size") {
 		locConf->_client_max_body_size = ParserUtils::verifyClientMaxBodySize(tokens[1]);
 		if (locConf->_client_max_body_size == -1) {
-			std::cerr << "Invalid client_max_body_size value" << std::endl;
+			Logger::cerrlog(Logger::ERROR, "Invalid client_max_body_size value");
 			return false;
 		}
 	} else if (tokens[0] == "autoindex") {

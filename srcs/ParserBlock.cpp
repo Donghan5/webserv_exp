@@ -17,19 +17,14 @@ AConfigBase	*Parser::CreateBlock(STR line, int start) {
 	if (tokens[0] == "events" || tokens[0] == "http") {
 		HttpConfig *conf = new HttpConfig();
 		block = conf;
-		Logger::log(Logger::DEBUG, "AConfigBase *CreateBlock CREATED http");
-
 	} else if (tokens[0] == "server") {
 		ServerConfig *conf = new ServerConfig();
 		block = conf;
-		Logger::log(Logger::DEBUG, "AConfigBase *CreateBlock CREATED server");
 	} else if (tokens[0] == "location") {
 		LocationConfig *conf = new LocationConfig();
 		conf->_path = tokens[1];
 		block = conf;
-		Logger::log(Logger::DEBUG, "AConfigBase *CreateBlock CREATED location");
 	}
-	Logger::log(Logger::DEBUG, "AConfigBase *CreateBlock CREATED block2");
 
 	return block;
 }
@@ -104,7 +99,7 @@ AConfigBase	*Parser::AddBlock(AConfigBase *prev_block, STR line, int start) {
 		if (!serverConf || serverConf->_identify(serverConf) != SERVER) {
 			if (child)
 				child->_self_destruct();
-			std::cerr << "DEBUG AConfigBase	*AddBlock !serverConf" << !serverConf << "\n";
+			Logger::cerrlog(Logger::ERROR, "AConfigBase *AddBlock LOCATION SERVER NOT FOUND");
 			return NULL;
 		}
 
@@ -126,7 +121,5 @@ AConfigBase	*Parser::AddBlock(AConfigBase *prev_block, STR line, int start) {
 		Logger::cerrlog(Logger::ERROR, ss.str());
 		return NULL;
 	}
-	Logger::log(Logger::INFO, "AConfigBase *AddBlock exit");
-
 	return child;
 }

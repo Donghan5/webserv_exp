@@ -76,14 +76,6 @@ ElemType	Parser::DetectNextType(STR line, int position, int &block_size) {
 			return BLOCK_END;
 		}
 	}
-	// else if (open_brace != CHAR_NOT_FOUND) {
-	// 	if (ParserUtils::isBlockOk(line, position, close_brace)) {
-	// 		block_size = open_brace - position + 1;
-	// 		depth++;
-	// 		return BLOCK;
-	// 	}
-	// }
-
 	return BAD_TYPE;
 }
 
