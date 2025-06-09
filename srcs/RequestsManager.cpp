@@ -139,7 +139,7 @@ int RequestsManager::ProcessBufferedData() {
                     return 2; // change to write mode (error response)
                 }
 
-                if (request._body_size > 0) { // if the request has a body
+                if (request._body_size > 0 || request._chunked_flag == true) { // if the request has a body
                     Logger::cerrlog(Logger::DEBUG, "Request has body of size " + Utils::intToString(request._body_size));
                     // the remaining part of the current buffer is the body data
                     body_read = static_cast<long long>(_partial_requests[_client_fd].size()) - (header_end_pos + 4);
@@ -181,7 +181,7 @@ int RequestsManager::ProcessBufferedData() {
                 return 2; // change to write mode
             }
 
-            if (request._body_size > 0) { // if the request has a body
+            if (request._body_size > 0 || request._chunked_flag == true) { // if the request has a body
                 if (!request.parseBody()) {
                     Logger::cerrlog(Logger::ERROR, "Failed to parse request body");
                     _partial_responses[_client_fd] = createErrorResponse(400, "text/plain", "Bad Request", NULL);

@@ -1,0 +1,126 @@
+[2025-06-09 21:06:26] --- CGI script execution started ---
+[2025-06-09 21:06:26] Python version: 3.10.17 (main, Apr  9 2025, 08:54:15) [GCC 9.4.0]
+[2025-06-09 21:06:26] Python executable: /usr/bin/python3
+[2025-06-09 21:06:26] Environment Variables:
+[2025-06-09 21:06:26]   CONTENT_LENGTH: 0
+[2025-06-09 21:06:26]   CONTENT_TYPE: application/x-www-form-urlencoded
+[2025-06-09 21:06:26]   HTTP_COOKIE: 
+[2025-06-09 21:06:26]   HTTP_HOST: localhost
+[2025-06-09 21:06:26]   QUERY_STRING: 
+[2025-06-09 21:06:26]   REQUEST_METHOD: POST
+[2025-06-09 21:06:26]   SCRIPT_NAME: ./webserv_test/cgi-bin/echo.py
+[2025-06-09 21:06:26]   SERVER_PORT: 8080
+[2025-06-09 21:06:26]   SERVER_PROTOCOL: HTTP/1.1
+[2025-06-09 21:06:26]   UPLOAD_STORE: 
+[2025-06-09 21:06:26]   LC_CTYPE: C.UTF-8
+[2025-06-09 21:06:26] Attempting to read from stdin...
+[2025-06-09 21:06:26] Successfully read 0 bytes from stdin.
+[2025-06-09 21:06:26] Body content: 
+[2025-06-09 21:06:26] Generating HTTP response...
+[2025-06-09 21:06:26] HTTP response sent successfully.
+[2025-06-09 21:06:26] --- CGI script execution finished ---
+[2025-06-09 21:09:34] --- CGI script execution started ---
+[2025-06-09 21:09:34] Python version: 3.10.17 (main, Apr  9 2025, 08:54:15) [GCC 9.4.0]
+[2025-06-09 21:09:34] Python executable: /usr/bin/python3
+[2025-06-09 21:09:34] Environment Variables:
+[2025-06-09 21:09:34]   CONTENT_LENGTH: 0
+[2025-06-09 21:09:34]   CONTENT_TYPE: application/x-www-form-urlencoded
+[2025-06-09 21:09:34]   HTTP_COOKIE: 
+[2025-06-09 21:09:34]   HTTP_HOST: localhost
+[2025-06-09 21:09:34]   QUERY_STRING: 
+[2025-06-09 21:09:34]   REQUEST_METHOD: POST
+[2025-06-09 21:09:34]   SCRIPT_NAME: ./webserv_test/cgi-bin/echo.py
+[2025-06-09 21:09:34]   SERVER_PORT: 8080
+[2025-06-09 21:09:34]   SERVER_PROTOCOL: HTTP/1.1
+[2025-06-09 21:09:34]   UPLOAD_STORE: 
+[2025-06-09 21:09:34]   LC_CTYPE: C.UTF-8
+[2025-06-09 21:09:34] Attempting to read from stdin...
+[2025-06-09 21:09:34] Successfully read 0 bytes from stdin.
+[2025-06-09 21:09:34] Body content: 
+[2025-06-09 21:09:34] Generating HTTP response...
+[2025-06-09 21:09:34] HTTP response sent successfully.
+[2025-06-09 21:09:34] --- CGI script execution finished ---
+[2025-06-09 21:09:36] --- CGI script execution started ---
+[2025-06-09 21:09:36] Python version: 3.10.17 (main, Apr  9 2025, 08:54:15) [GCC 9.4.0]
+[2025-06-09 21:09:36] Python executable: /usr/bin/python3
+[2025-06-09 21:09:36] Environment Variables:
+[2025-06-09 21:09:36]   CONTENT_LENGTH: 0
+[2025-06-09 21:09:36]   CONTENT_TYPE: application/x-www-form-urlencoded
+[2025-06-09 21:09:36]   HTTP_COOKIE: 
+[2025-06-09 21:09:36]   HTTP_HOST: localhost
+[2025-06-09 21:09:36]   QUERY_STRING: 
+[2025-06-09 21:09:36]   REQUEST_METHOD: POST
+[2025-06-09 21:09:36]   SCRIPT_NAME: ./webserv_test/cgi-bin/echo.py
+[2025-06-09 21:09:36]   SERVER_PORT: 8080
+[2025-06-09 21:09:36]   SERVER_PROTOCOL: HTTP/1.1
+[2025-06-09 21:09:36]   UPLOAD_STORE: 
+[2025-06-09 21:09:36]   LC_CTYPE: C.UTF-8
+[2025-06-09 21:09:36] Attempting to read from stdin...
+[2025-06-09 21:09:36] Successfully read 0 bytes from stdin.
+[2025-06-09 21:09:36] Body content: 
+[2025-06-09 21:09:36] Generating HTTP response...
+[2025-06-09 21:09:36] HTTP response sent successfully.
+[2025-06-09 21:09:36] --- CGI script execution finished ---
+[2025-06-09 21:09:37] --- CGI script execution started ---
+[2025-06-09 21:09:37] Python version: 3.10.17 (main, Apr  9 2025, 08:54:15) [GCC 9.4.0]
+[2025-06-09 21:09:37] Python executable: /usr/bin/python3
+[2025-06-09 21:09:37] Environment Variables:
+[2025-06-09 21:09:37]   CONTENT_LENGTH: 0
+[2025-06-09 21:09:37]   CONTENT_TYPE: application/x-www-form-urlencoded
+[2025-06-09 21:09:37]   HTTP_COOKIE: 
+[2025-06-09 21:09:37]   HTTP_HOST: localhost
+[2025-06-09 21:09:37]   QUERY_STRING: 
+[2025-06-09 21:09:37]   REQUEST_METHOD: POST
+[2025-06-09 21:09:37]   SCRIPT_NAME: ./webserv_test/cgi-bin/echo.py
+[2025-06-09 21:09:37]   SERVER_PORT: 8080
+[2025-06-09 21:09:37]   SERVER_PROTOCOL: HTTP/1.1
+[2025-06-09 21:09:37]   UPLOAD_STORE: 
+[2025-06-09 21:09:37]   LC_CTYPE: C.UTF-8
+[2025-06-09 21:09:37] Attempting to read from stdin...
+[2025-06-09 21:09:37] Successfully read 0 bytes from stdin.
+[2025-06-09 21:09:37] Body content: 
+[2025-06-09 21:09:37] Generating HTTP response...
+[2025-06-09 21:09:37] HTTP response sent successfully.
+[2025-06-09 21:09:37] --- CGI script execution finished ---
+[2025-06-09 21:09:37] --- CGI script execution started ---
+[2025-06-09 21:09:37] Python version: 3.10.17 (main, Apr  9 2025, 08:54:15) [GCC 9.4.0]
+[2025-06-09 21:09:37] Python executable: /usr/bin/python3
+[2025-06-09 21:09:37] Environment Variables:
+[2025-06-09 21:09:37]   CONTENT_LENGTH: 0
+[2025-06-09 21:09:37]   CONTENT_TYPE: application/x-www-form-urlencoded
+[2025-06-09 21:09:37]   HTTP_COOKIE: 
+[2025-06-09 21:09:37]   HTTP_HOST: localhost
+[2025-06-09 21:09:37]   QUERY_STRING: 
+[2025-06-09 21:09:37]   REQUEST_METHOD: POST
+[2025-06-09 21:09:37]   SCRIPT_NAME: ./webserv_test/cgi-bin/echo.py
+[2025-06-09 21:09:37]   SERVER_PORT: 8080
+[2025-06-09 21:09:37]   SERVER_PROTOCOL: HTTP/1.1
+[2025-06-09 21:09:37]   UPLOAD_STORE: 
+[2025-06-09 21:09:37]   LC_CTYPE: C.UTF-8
+[2025-06-09 21:09:37] Attempting to read from stdin...
+[2025-06-09 21:09:37] Successfully read 0 bytes from stdin.
+[2025-06-09 21:09:37] Body content: 
+[2025-06-09 21:09:37] Generating HTTP response...
+[2025-06-09 21:09:37] HTTP response sent successfully.
+[2025-06-09 21:09:37] --- CGI script execution finished ---
+[2025-06-09 21:12:17] --- CGI script execution started ---
+[2025-06-09 21:12:17] Python version: 3.10.17 (main, Apr  9 2025, 08:54:15) [GCC 9.4.0]
+[2025-06-09 21:12:17] Python executable: /usr/bin/python3
+[2025-06-09 21:12:17] Environment Variables:
+[2025-06-09 21:12:17]   CONTENT_LENGTH: 0
+[2025-06-09 21:12:17]   CONTENT_TYPE: application/x-www-form-urlencoded
+[2025-06-09 21:12:17]   HTTP_COOKIE: 
+[2025-06-09 21:12:17]   HTTP_HOST: localhost
+[2025-06-09 21:12:17]   QUERY_STRING: 
+[2025-06-09 21:12:17]   REQUEST_METHOD: POST
+[2025-06-09 21:12:17]   SCRIPT_NAME: ./webserv_test/cgi-bin/echo.py
+[2025-06-09 21:12:17]   SERVER_PORT: 8080
+[2025-06-09 21:12:17]   SERVER_PROTOCOL: HTTP/1.1
+[2025-06-09 21:12:17]   UPLOAD_STORE: 
+[2025-06-09 21:12:17]   LC_CTYPE: C.UTF-8
+[2025-06-09 21:12:17] Attempting to read from stdin...
+[2025-06-09 21:12:17] Successfully read 0 bytes from stdin.
+[2025-06-09 21:12:17] Body content: 
+[2025-06-09 21:12:17] Generating HTTP response...
+[2025-06-09 21:12:17] HTTP response sent successfully.
+[2025-06-09 21:12:17] --- CGI script execution finished ---

@@ -15,9 +15,9 @@ static void toLower(STR &str) {
 }
 
 void remove_trailing_r(STR &str) {
-	if (!str.empty() && str[str.length() - 1] == '\r') {
-		str.replace(str.length() - 1, 1, "\0");
-	}
+    if (!str.empty() && str.at(str.length() - 1) == '\r') {
+        str.erase(str.length() - 1);
+    }
 }
 
 void	process_path(STR &full_path, STR &file_name) {
