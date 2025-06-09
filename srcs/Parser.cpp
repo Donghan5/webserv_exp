@@ -93,7 +93,7 @@ HttpConfig *Parser::Parse() {
 
 				return NULL;
 			}
-			std::cerr << "--BLOCK\n";
+			Logger::log(Logger::DEBUG, "--BLOCK");
 			break;
 		case BLOCK_END:
 			Logger::log(Logger::DEBUG, "BLOCK_END (" + full_config.substr(i, 50) + ")");
