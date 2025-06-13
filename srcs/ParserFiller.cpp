@@ -17,7 +17,7 @@ bool ParserFiller::FillHttp(HttpConfig* httpConf, VECTOR<STR> tokens){
 	} else if (tokens[0] == "client_max_body_size") {
 		httpConf->_client_max_body_size = ParserUtils::verifyClientMaxBodySize(tokens[1]);  // C++98 long long
 		if (httpConf->_client_max_body_size == -1) {
-			Logger::cerrlog(Logger::ERROR, "Invalid client_max_body_size value");
+			Logger::log(Logger::ERROR, "Invalid client_max_body_size value");
 			return false;
 		}
 	} else if (tokens[0] == "root") {
@@ -36,11 +36,11 @@ bool ParserFiller::FillHttp(HttpConfig* httpConf, VECTOR<STR> tokens){
 			if (code > 0) { // Only process valid numeric codes
 				httpConf->_error_pages[code] = page_path;
 			} else {
-				Logger::cerrlog(Logger::ERROR, "Invalid error code: " + tokens[j]);
+				Logger::log(Logger::ERROR, "Invalid error code: " + tokens[j]);
 			}
 		}
 	} else {
-		Logger::cerrlog(Logger::ERROR, "CHECK - FillDirective HttpConfig extra type " + tokens[0]);
+		Logger::log(Logger::ERROR, "CHECK - FillDirective HttpConfig extra type " + tokens[0]);
 		return false;
 	}
 	return true;
@@ -56,18 +56,18 @@ bool ParserFiller::FillServer(ServerConfig* serverConf, VECTOR<STR> tokens){
 		if (position == STR::npos) {
 			serverConf->_listen_port = ParserUtils::verifyPort(tokens[1]);
 			if (serverConf->_listen_port == -1) {
-				Logger::cerrlog(Logger::ERROR, "Invalid port value");
+				Logger::log(Logger::ERROR, "Invalid port value");
 				return false;
 			}
 		} else {
 			serverConf->_listen_server = tokens[1].substr(0, position);
 			if (serverConf->_listen_server == "") {
-				Logger::cerrlog(Logger::ERROR, "Invalid server address");
+				Logger::log(Logger::ERROR, "Invalid server address");
 				return false;
 			}
 			serverConf->_listen_port = ParserUtils::verifyPort(tokens[1].substr(position + 1));
 			if (serverConf->_listen_port == -1) {
-				Logger::cerrlog(Logger::ERROR, "Invalid port value");
+				Logger::log(Logger::ERROR, "Invalid port value");
 				return false;
 			}
 		}
@@ -92,24 +92,24 @@ bool ParserFiller::FillServer(ServerConfig* serverConf, VECTOR<STR> tokens){
 			if (code > 0) { // Only process valid numeric codes
 				serverConf->_error_pages[code] = page_path;
 			} else {
-				Logger::cerrlog(Logger::ERROR, "Invalid error code: " + tokens[j]);
+				Logger::log(Logger::ERROR, "Invalid error code: " + tokens[j]);
 			}
 		}
 	} else if (tokens[0] == "client_max_body_size") {
 		serverConf->_client_max_body_size = ParserUtils::verifyClientMaxBodySize(tokens[1]);
 		if (serverConf->_client_max_body_size == -1) {
-			Logger::cerrlog(Logger::ERROR, "Invalid client_max_body_size value");
+			Logger::log(Logger::ERROR, "Invalid client_max_body_size value");
 			return false;
 		}
 	} else if (tokens[0] == "return") {  // indicate that it's a return directive
 		if (tokens.size() < 2) {
-			Logger::cerrlog(Logger::ERROR, "Invalid return directive");
+			Logger::log(Logger::ERROR, "Invalid return directive");
 			return false;
 		}
 		else if (tokens.size() == 3) {
 			serverConf->_return_code = atoi(tokens[1].c_str());
 			if (serverConf->_return_code < 300 || serverConf->_return_code > 400) {
-				Logger::cerrlog(Logger::ERROR, "Invalid return code");
+				Logger::log(Logger::ERROR, "Invalid return code");
 				return false;
 			}
 			serverConf->_return_url = tokens[2];
@@ -117,7 +117,7 @@ bool ParserFiller::FillServer(ServerConfig* serverConf, VECTOR<STR> tokens){
 		else // tokens.size() == 2
 			serverConf->_return_url = tokens[1];
 	} else {
-		Logger::cerrlog(Logger::ERROR, "CHECK - FillDirective ServerConfig extra type " + tokens[0]);
+		Logger::log(Logger::ERROR, "CHECK - FillDirective ServerConfig extra type " + tokens[0]);
 		return false;
 	}
 	return true;
@@ -152,13 +152,13 @@ bool ParserFiller::FillLocation(LocationConfig* locConf, VECTOR<STR> tokens){
 		locConf->_add_header = tokens[1];
 	} else if (tokens[0] == "return") {
 		if (tokens.size() < 2) {
-			Logger::cerrlog(Logger::ERROR, "Invalid return directive");
+			Logger::log(Logger::ERROR, "Invalid return directive");
 			return false;
 		}
 		else if (tokens.size() == 3) {
 			locConf->_return_code = atoi(tokens[1].c_str());
 			if (locConf->_return_code < 300 || locConf->_return_code > 400) {
-				Logger::cerrlog(Logger::ERROR, "Invalid return code");
+				Logger::log(Logger::ERROR, "Invalid return code");
 				return false;
 			}
 			locConf->_return_url = tokens[2];
@@ -170,7 +170,7 @@ bool ParserFiller::FillLocation(LocationConfig* locConf, VECTOR<STR> tokens){
 	} else if (tokens[0] == "client_max_body_size") {
 		locConf->_client_max_body_size = ParserUtils::verifyClientMaxBodySize(tokens[1]);
 		if (locConf->_client_max_body_size == -1) {
-			Logger::cerrlog(Logger::ERROR, "Invalid client_max_body_size value");
+			Logger::log(Logger::ERROR, "Invalid client_max_body_size value");
 			return false;
 		}
 	} else if (tokens[0] == "autoindex") {
@@ -190,7 +190,7 @@ bool ParserFiller::FillLocation(LocationConfig* locConf, VECTOR<STR> tokens){
 			if (code > 0) { // Only process valid numeric codes
 				locConf->_error_pages[code] = page_path;
 			} else {
-				Logger::cerrlog(Logger::ERROR, "Invalid error code: " + tokens[j]);
+				Logger::log(Logger::ERROR, "Invalid error code: " + tokens[j]);
 			}
 		}
 	} else if (tokens[0] == "allowed_methods") {
@@ -204,7 +204,7 @@ bool ParserFiller::FillLocation(LocationConfig* locConf, VECTOR<STR> tokens){
 	} else if (tokens[0] == "alias") {
 		locConf->_alias = tokens[1];
 	} else {
-		Logger::cerrlog(Logger::ERROR, "CHECKFillDirective LocationConfig extra type " + tokens[0]);
+		Logger::log(Logger::ERROR, "CHECKFillDirective LocationConfig extra type " + tokens[0]);
 		return false;
 	}
 	return true;
@@ -227,7 +227,7 @@ bool ParserFiller::FillDirective(AConfigBase* block, STR line, int position) {
     else if (LocationConfig* locConf = dynamic_cast<LocationConfig*>(block)) {
 		return FillLocation(locConf, tokens);
     }
-	Logger::cerrlog(Logger::ERROR, "CHECKFillDirective Unknown block type " + tokens[0]);
+	Logger::log(Logger::ERROR, "CHECKFillDirective Unknown block type " + tokens[0]);
 
     return false;  // Unknown block type
 }

@@ -35,9 +35,8 @@ class Request {
 	private:
 		void								parseQueryString();
 		void								parseTransferEncoding(const std::string &header);
-		bool								processTransferEncoding(const char *data, size_t size);
 
-	public:
+		public:
 		STR									_cookies;
 		STR									_full_request;
 		STR									_method;
@@ -47,7 +46,7 @@ class Request {
 		STR									_host;
 		int									_port;
 		std::map<STR, float>				_accepted_types; //application/xml;q=0.9
-																	//STR      float
+		//STR      float
 		STR									_content_type;
 		STR									_http_content_type;  // added
 		unsigned long long					_body_size;
@@ -62,6 +61,7 @@ class Request {
 
 		bool								setRequest(STR request);
 
+		bool								processTransferEncoding(const char *data);
 		bool								parseHeader();
 		bool								parseBody();
 		void 								clear();

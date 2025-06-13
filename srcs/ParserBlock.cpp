@@ -63,7 +63,7 @@ AConfigBase	*Parser::AddBlock(AConfigBase *prev_block, STR line, int start) {
 		if (!ParserUtils::check_location_path_duplicate(location->_path, serverConf->_locations)) {
 			child->_self_destruct();
 
-			Logger::cerrlog(Logger::ERROR, "AConfigBase *AddBlock LOCATION DUPLICATE " + location->_path);
+			Logger::log(Logger::ERROR, "AConfigBase *AddBlock LOCATION DUPLICATE " + location->_path);
 
 			return NULL;
 		}
@@ -99,7 +99,7 @@ AConfigBase	*Parser::AddBlock(AConfigBase *prev_block, STR line, int start) {
 		if (!serverConf || serverConf->_identify(serverConf) != SERVER) {
 			if (child)
 				child->_self_destruct();
-			Logger::cerrlog(Logger::ERROR, "AConfigBase *AddBlock LOCATION SERVER NOT FOUND");
+			Logger::log(Logger::ERROR, "AConfigBase *AddBlock LOCATION SERVER NOT FOUND");
 			return NULL;
 		}
 
@@ -107,7 +107,7 @@ AConfigBase	*Parser::AddBlock(AConfigBase *prev_block, STR line, int start) {
 		if (!ParserUtils::check_location_path_duplicate(locChild->_path, serverConf->_locations)) {
 			child->_self_destruct();
 
-			Logger::cerrlog(Logger::ERROR, "AConfigBase *AddBlock LOCATION DUPLICATE " + locChild->_path);
+			Logger::log(Logger::ERROR, "AConfigBase *AddBlock LOCATION DUPLICATE " + locChild->_path);
 
 			return NULL;
 		}
@@ -118,7 +118,7 @@ AConfigBase	*Parser::AddBlock(AConfigBase *prev_block, STR line, int start) {
 	} else {
 		std::stringstream ss;
 		ss << "AddBlockNULL Type " << static_cast<int>(parent_type);
-		Logger::cerrlog(Logger::ERROR, ss.str());
+		Logger::log(Logger::ERROR, ss.str());
 		return NULL;
 	}
 	return child;

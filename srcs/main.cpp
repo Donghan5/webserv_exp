@@ -30,14 +30,14 @@ int	init_start_webserv(HttpConfig *config) {
 		try {
 			poll_server.setConfig(config);
 		} catch (const std::exception& e) {
-			Logger::cerrlog(Logger::ERROR, "Poll Initialization error: " + STR(e.what()));
+			Logger::log(Logger::ERROR, "Poll Initialization error: " + STR(e.what()));
 			return 0;
 		}
 
 		try {
 			poll_server.start();
 		} catch (const std::exception& e) {
-			Logger::cerrlog(Logger::ERROR, "Poll Running error: " + STR(e.what()));
+			Logger::log(Logger::ERROR, "Poll Running error: " + STR(e.what()));
 			return 0;
 		}
 	return 0;
@@ -168,21 +168,21 @@ int main(int argc, char **argv) {
         newConf = parser.Parse();
     } catch (const std::exception& e) {
 		// Using logger
-		Logger::cerrlog(Logger::ERROR, "Parsing failure: " + STR(e.what()));
+		Logger::log(Logger::ERROR, "Parsing failure: " + STR(e.what()));
         return 1;
     }
 
 	if (!newConf) {
-		Logger::cerrlog(Logger::ERROR, "Parsing failed");
+		Logger::log(Logger::ERROR, "Parsing failed");
         return 1;
     }
 
-	printHttpConfig(*newConf);
+	// printHttpConfig(*newConf);
 
     try {
         init_start_webserv(newConf);
     } catch (const std::exception& e) {
-		Logger::cerrlog(Logger::ERROR, "Running failure: " + STR(e.what()));
+		Logger::log(Logger::ERROR, "Running failure: " + STR(e.what()));
         newConf->_self_destruct();
         return 1;
     }

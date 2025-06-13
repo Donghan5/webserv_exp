@@ -37,7 +37,7 @@ HttpConfig *Parser::Parse() {
 	else
 		_file.open(_filepath.c_str());
 	if (!_file.is_open()) {
-		Logger::cerrlog(Logger::ERROR, "Could not open file " + _filepath);
+		Logger::log(Logger::ERROR, "Could not open file " + _filepath);
 		return (NULL);
 	}
 
@@ -48,7 +48,7 @@ HttpConfig *Parser::Parse() {
 	_file.close();
 
 	if (!ValidateConfig(full_config)) {
-		Logger::cerrlog(Logger::ERROR, "Config is not correct!");
+		Logger::log(Logger::ERROR, "Config is not correct!");
 		return NULL;
 	}
 
@@ -73,7 +73,7 @@ HttpConfig *Parser::Parse() {
 			if (!ParserFiller::FillDirective(currentBlock, full_config, i)) {
 				base->_self_destruct();
 
-				Logger::cerrlog(Logger::ERROR, "CHECK - FillDirective failed");
+				Logger::log(Logger::ERROR, "CHECK - FillDirective failed");
 				return NULL;
 			}
 			break;
@@ -106,7 +106,7 @@ HttpConfig *Parser::Parse() {
 			if (directives_per_block[depth] == 0) {
 				base->_self_destruct();
 
-				Logger::cerrlog(Logger::ERROR, "CHECK - FillDirective block doesn't have it's own directives!");
+				Logger::log(Logger::ERROR, "CHECK - FillDirective block doesn't have it's own directives!");
 				return NULL;
 			}
 			depth--;

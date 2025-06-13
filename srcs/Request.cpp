@@ -21,7 +21,7 @@ void remove_trailing_r(STR &str) {
 }
 
 void	process_path(STR &full_path, STR &file_name) {
-	Logger::cerrlog(Logger::DEBUG, "Request::process_path: full path is " + full_path);
+	Logger::log(Logger::DEBUG, "Request::process_path: full path is " + full_path);
 
 	if (full_path.find('.') != STR::npos) {
 		file_name = full_path.substr(full_path.find_last_of('/') + 1, full_path.size());
@@ -134,7 +134,6 @@ bool Request::parseHeader() {
 			_body_size = atoi((temp_line.substr(delim_position + 1, delim_position + 1 - end_position)).c_str());
 			_chunked_flag = false;  // if content-length is present, chunked transfer encoding is not used
 		} else if (temp_token == "Transfer-Encoding:") {
-
 			STR encoding_value = temp_line.substr(temp_line.find_first_of(':') + 2);
 			parseTransferEncoding(encoding_value);
 
@@ -152,30 +151,30 @@ bool Request::parseHeader() {
 bool Request::parseBody() {
 	int	body_beginning = -1;
 	if (_full_request == "") {
-		Logger::cerrlog(Logger::ERROR, "Request::parseBody: Empty request");
+		Logger::log(Logger::ERROR, "Request::parseBody: Empty request");
 		return false;
 	}
 
 	body_beginning = _full_request.find("\r\n\r\n");
 	if (body_beginning == CHAR_NOT_FOUND) {
-		Logger::cerrlog(Logger::ERROR, "Request::parseBody: No body beginning found");
+		Logger::log(Logger::ERROR, "Request::parseBody: No body beginning found");
 		return false;
 	}
 
 	if (_content_type.find("multipart/form-data") != STR::npos) {
 		_body = _full_request.substr(body_beginning + 4, _full_request.length() - (body_beginning + 4));
-		// std::cerr << "multipart/form-data\n";
 		return true;
 	}
 	if (_chunked_flag) {
-		const char *data = _full_request.c_str() + body_beginning + 4;  // skip \r\n\r\n (4 bytes)
-		size_t size = _full_request.length() - (body_beginning + 4);  // skip \r\n\r\n (4 bytes)
-		// std::cerr << "_chunked_flag\n";
-
-		return processTransferEncoding(data, size);
+		const char *data = _full_request.c_str() + body_beginning + 4;
+		int size_ending = STR(data).find("\r\n");
+		const char *data_end = data + size_ending + 2; // +2 for \r\n
+		if (!processTransferEncoding(data_end)) {
+			Logger::log(Logger::ERROR, "Transfer-Encoding format is incorrect");
+			return false;
+		}
+		return true;
 	}
-
-	// std::cerr << "DEBUG Request::parseBody _full_request = |" << _full_request << "|\n";
 
 	try {
 		_body = _full_request.substr(body_beginning + 4, _full_request.length() - (body_beginning + 4));
@@ -184,10 +183,6 @@ bool Request::parseBody() {
 		return false;
 	}
 
-	// std::cerr << "endeded body beginning = " << body_beginning << "\n";
-	//if _full_request.length() - (body_beginning + 4) != _body_size 		potential error
-
-	// std::cerr << "DEBUG Requet::parseBody _body = |" << _body << "|\n";
 	return true;
 }
 
@@ -206,7 +201,7 @@ void Request::parseQueryString(void) {
 void Request::parseTransferEncoding(const STR &header) {
 	VECTOR<STR> encodings;
 	size_t start = 0, end;
-
+	Logger::log(Logger::INFO, "Request::parseTransferEncoding: Parsing Transfer-Encoding header: " + header);
 	while ((end = header.find(',', start)) != STR::npos) {
 		STR encoding = header.substr(start, end - start);
 		trimSpace(encoding);
@@ -229,8 +224,8 @@ void Request::parseTransferEncoding(const STR &header) {
 	}
 }
 
-bool Request::processTransferEncoding(const char *data, size_t size) {
-	for (size_t i = 0; i < size; i++) {
+bool Request::processTransferEncoding(const char *data) {
+	for (size_t i = 0; ; i++) {
 		char ch = data[i];
 
 		switch (_chunked_state) {
@@ -238,7 +233,7 @@ bool Request::processTransferEncoding(const char *data, size_t size) {
 				if (isxdigit(ch)) {
 					_chunk_buffer += ch;
 				}
-				else if (ch == ';') { // after semicolon is chunk extension
+				else if (ch == ';') {
 					if (_chunk_buffer.empty()) {
 						return false;
 					}
@@ -266,8 +261,11 @@ bool Request::processTransferEncoding(const char *data, size_t size) {
 				break;
 			case CHUNK_LF:
 				if (ch == '\n') {
-					_chunk_data_read = 0;
-					if (_chunk_size == 0) {
+					if (_chunk_data_read > 0) {
+						_chunk_data_read = 0;
+						_chunked_state = CHUNK_SIZE;
+					}
+					else if (_chunk_size == 0) {
 						_chunked_state = CHUNK_TRAILER;
 					}
 					else {
@@ -301,6 +299,7 @@ bool Request::processTransferEncoding(const char *data, size_t size) {
 			case TRAILER_FINAL_LF:
 				if (ch == '\n') {
 					_chunked_state = CHUNK_COMPLETE;
+					return true;
 				}
 				else {
 					_chunked_state = CHUNK_TRAILER;
@@ -386,6 +385,10 @@ void Request::clear() {
 	_content_type = "";
 	_body = "";
 	_body_size = 0;
+
+	_chunked_flag = false;
+    _chunked_state = CHUNK_SIZE;
+    _chunk_data_read = 0;
 }
 
 bool Request::setRequest(STR request) {
@@ -393,7 +396,7 @@ bool Request::setRequest(STR request) {
 	_body = "";
 
 	if (!parseHeader()) {
-		Logger::cerrlog(Logger::ERROR, "Request::setRequest: Header Parsing error!");
+		Logger::log(Logger::ERROR, "Request::setRequest: Header Parsing error!");
 		return false;
 	}
 	return true;

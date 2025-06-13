@@ -141,7 +141,7 @@ bool	ParserUtils::check_location_path_duplicate(STR new_path, MAP<STR, LocationC
 
 bool	ParserUtils::minimum_value_check(HttpConfig *conf) {
 	if (conf->_servers.empty()) {
-		Logger::cerrlog(Logger::ERROR, "No servers found");
+		Logger::log(Logger::ERROR, "No servers found");
 		return false;
 	}
 
@@ -152,11 +152,11 @@ bool	ParserUtils::minimum_value_check(HttpConfig *conf) {
 			conf->_servers[i]->_listen_port = 80;
 		}
 		if (conf->_servers[i]->_listen_port == -1) {
-			Logger::cerrlog(Logger::ERROR, "Server without port found");
+			Logger::log(Logger::ERROR, "Server without port found");
 			return false;
 		}
 		if (conf->_servers[i]->_locations.empty()) {
-			Logger::cerrlog(Logger::ERROR, "Server without location found");
+			Logger::log(Logger::ERROR, "Server without location found");
 			return false;
 		}
 	}

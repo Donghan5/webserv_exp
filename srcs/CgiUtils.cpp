@@ -35,25 +35,25 @@ char **CgiUtils::convertArgsToCharArray(const std::string &interpreter, const st
 void CgiUtils::closePipes(int input_pipe0, int input_pipe1, int output_pipe0, int output_pipe1) {
     if (input_pipe0 >= 0) {
         if (close(input_pipe0) < 0 && errno != EBADF) {
-            Logger::cerrlog(Logger::DEBUG, "Failed to close input pipe[0]: " + std::string(strerror(errno)));
+            Logger::log(Logger::DEBUG, "Failed to close input pipe[0]: " + std::string(strerror(errno)));
         }
     }
 
     if (input_pipe1 >= 0) {
         if (close(input_pipe1) < 0 && errno != EBADF) {
-            Logger::cerrlog(Logger::DEBUG, "Failed to close input pipe[1]: " + std::string(strerror(errno)));
+            Logger::log(Logger::DEBUG, "Failed to close input pipe[1]: " + std::string(strerror(errno)));
         }
     }
 
     if (output_pipe0 >= 0) {
         if (close(output_pipe0) < 0 && errno != EBADF) {
-            Logger::cerrlog(Logger::DEBUG, "Failed to close output pipe[0]: " + std::string(strerror(errno)));
+            Logger::log(Logger::DEBUG, "Failed to close output pipe[0]: " + std::string(strerror(errno)));
         }
     }
 
     if (output_pipe1 >= 0) {
         if (close(output_pipe1) < 0 && errno != EBADF) {
-            Logger::cerrlog(Logger::DEBUG, "Failed to close output pipe[1]: " + std::string(strerror(errno)));
+            Logger::log(Logger::DEBUG, "Failed to close output pipe[1]: " + std::string(strerror(errno)));
         }
     }
 }

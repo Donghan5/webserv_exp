@@ -235,7 +235,7 @@ Response::Response(const Response &obj) {
 Response::~Response() {
     // Make sure CGI handler is properly deleted
     if (_cgi_handler) {
-        Logger::cerrlog(Logger::DEBUG, "Response destructor: cleaning up CGI handler");
+        Logger::log(Logger::DEBUG, "Response destructor: cleaning up CGI handler");
 
         // Call closeCgi to clean up all resources
         _cgi_handler->closeCgi();
@@ -352,7 +352,7 @@ STR urlDecode(const STR& input) {
 STR Response::handleDIR(STR path) {
     DIR* dir = opendir(path.c_str());
     if (!dir) {
-		Logger::cerrlog(Logger::ERROR, "Failed to open directory: " + path + " Reason: " + strerror(errno));
+		Logger::log(Logger::ERROR, "Failed to open directory: " + path + " Reason: " + strerror(errno));
         return createErrorResponse(500, "text/plain", "Failed to read directory", NULL);
     }
 
@@ -421,31 +421,31 @@ void	Response::selectIndexIndexes(VECTOR<STR> indexes, STR &best_match, float &m
 		try
 		{
 			if (_request._accepted_types[index_mime] > match_quality) {
-				Logger::cerrlog(Logger::DEBUG, index_mime + " is better match that" + best_match + "! Quality " + Utils::floatToString(_request._accepted_types[index_mime]) + " is better than " + Utils::floatToString(match_quality));
+				Logger::log(Logger::DEBUG, index_mime + " is better match that" + best_match + "! Quality " + Utils::floatToString(_request._accepted_types[index_mime]) + " is better than " + Utils::floatToString(match_quality));
 				best_match = indexes[i];
 				match_quality = _request._accepted_types[index_mime];
 			}
 			else
-				Logger::cerrlog(Logger::DEBUG, index_mime + " is not more than " + Utils::floatToString(match_quality));
+				Logger::log(Logger::DEBUG, index_mime + " is not more than " + Utils::floatToString(match_quality));
 		}
 		catch(const std::exception& e)
 		{
-			Logger::cerrlog(Logger::ERROR, index_mime + " is not accepted: " + index_mime);
+			Logger::log(Logger::ERROR, index_mime + " is not accepted: " + index_mime);
 		}
 		try
 		{
 			if (_request._accepted_types["*/*"] > match_quality) {
-				Logger::cerrlog(Logger::DEBUG, "*/* is the better match than " + best_match
+				Logger::log(Logger::DEBUG, "*/* is the better match than " + best_match
 					+ "! Quality " + Utils::floatToString(_request._accepted_types["*/*"]) + " is better than " + Utils::floatToString(match_quality));
 				best_match = indexes[i];
 				match_quality = _request._accepted_types["*/*"];
 			}
 			else
-				Logger::cerrlog(Logger::DEBUG, "*/* is not more than " + Utils::floatToString(match_quality));
+				Logger::log(Logger::DEBUG, "*/* is not more than " + Utils::floatToString(match_quality));
 		}
 		catch(const std::exception& e)
 		{
-			Logger::cerrlog(Logger::ERROR, "*/* is not accepted: " + index_mime);
+			Logger::log(Logger::ERROR, "*/* is not accepted: " + index_mime);
 		}
 
 		i++;
@@ -473,19 +473,19 @@ STR	Response::selectIndexAll(LocationConfig* location, STR dir_path) {
 	if (best_match == "")
 		throw std::runtime_error("No index match");
 	else
-		Logger::cerrlog(Logger::DEBUG, "Response::selectIndexAll: best_match is " + best_match + ", quality: " + Utils::floatToString(match_quality));
+		Logger::log(Logger::DEBUG, "Response::selectIndexAll: best_match is " + best_match + ", quality: " + Utils::floatToString(match_quality));
 	return best_match;
 }
 
 FileType Response::checkFile(const STR& path) {
 	if (path.empty()) {
-		Logger::cerrlog(Logger::INFO, "File " + path + " not found: Empty path provided.");
+		Logger::log(Logger::INFO, "File " + path + " not found: Empty path provided.");
         return NotFound;
     }
 
     struct stat path_stat;
     if (stat(path.c_str(), &path_stat) != 0) {
-		Logger::cerrlog(Logger::INFO, "File " + path + " not found. Reason: " + strerror(errno));
+		Logger::log(Logger::INFO, "File " + path + " not found. Reason: " + strerror(errno));
         return NotFound;
     }
 
@@ -629,7 +629,7 @@ LocationConfig *Response::buildDirPath(ServerConfig *matchServer, STR &full_path
 		}
 
 		if (!matchLocation) {
-			Logger::cerrlog(Logger::DEBUG, "Regressed path " + path_to_match + " -> " + regress_path(path_to_match));
+			Logger::log(Logger::DEBUG, "Regressed path " + path_to_match + " -> " + regress_path(path_to_match));
 			path_to_match = regress_path(path_to_match);
 		}
 	}
@@ -688,22 +688,22 @@ LocationConfig *Response::buildDirPath(ServerConfig *matchServer, STR &full_path
 
 	// check which path exists - relative or absolute
 	if (checkFile(relative_path) != NotFound) {
-		Logger::cerrlog(Logger::DEBUG, "Response::buildDirPath: relative path is " + relative_path);
+		Logger::log(Logger::DEBUG, "Response::buildDirPath: relative path is " + relative_path);
 		full_path = relative_path;
 	} else if (checkFile(absolute_path) != NotFound) {
-		Logger::cerrlog(Logger::DEBUG, "Response::buildDirPath: absolute path is " + absolute_path);
+		Logger::log(Logger::DEBUG, "Response::buildDirPath: absolute path is " + absolute_path);
 		full_path = absolute_path;
 	} else if (!isDIR && checkFile(regress_path(relative_path)) != NotFound) {
-		Logger::cerrlog(Logger::DEBUG, "Response::buildDirPath: relative path is " + relative_path);
+		Logger::log(Logger::DEBUG, "Response::buildDirPath: relative path is " + relative_path);
 		full_path = relative_path;
 	} else if (!isDIR && checkFile(regress_path(absolute_path)) != NotFound) {
-		Logger::cerrlog(Logger::DEBUG, "Response::buildDirPath: absolute path is " + absolute_path);
+		Logger::log(Logger::DEBUG, "Response::buildDirPath: absolute path is " + absolute_path);
 		full_path = relative_path;
 	} else {
-		Logger::cerrlog(Logger::INFO, "Response::buildDirPath: no such file or directory \"" + full_path + "\" for " + _request._file_path + "!");
+		Logger::log(Logger::INFO, "Response::buildDirPath: no such file or directory \"" + full_path + "\" for " + _request._file_path + "!");
 	}
 
-	Logger::cerrlog(Logger::DEBUG, "Response::buildDirPath: dir path is " + full_path);
+	Logger::log(Logger::DEBUG, "Response::buildDirPath: dir path is " + full_path);
 	return matchLocation;
 }
 
@@ -716,13 +716,13 @@ int Response::buildIndexPath(LocationConfig *matchLocation, STR &best_file_path,
 	try
 	{
 		best_file_path.append(selectIndexAll(matchLocation, dir_path));
-		Logger::cerrlog(Logger::DEBUG, "Response::buildFilePath: AFT best_file_path is " + best_file_path);
+		Logger::log(Logger::DEBUG, "Response::buildFilePath: AFT best_file_path is " + best_file_path);
 	}
 	catch(const std::exception& e)
 	{
 		// return createResponse(403, "text/plain", "NO SUCH FILE FOUND (change later)", "");
 
-		Logger::cerrlog(Logger::ERROR, "Response::buildFilePath: no index file found");
+		Logger::log(Logger::ERROR, "Response::buildFilePath: no index file found");
 		return 0;
 	}
 
@@ -758,7 +758,7 @@ STR	Response::matchMethod(STR path, bool isDIR, LocationConfig *matchLocation) {
 		Logger::log(Logger::INFO, "Response::matchMethod DELETE path" + path + " isDIR " + Utils::floatToString(isDIR));
 		return (handleDELETE(path));
 	} else {
-		Logger::cerrlog(Logger::ERROR, "Response::matchMethod: UNUSUAL METHOD ERROR: " + _request._method);
+		Logger::log(Logger::ERROR, "Response::matchMethod: UNUSUAL METHOD ERROR: " + _request._method);
 		return createErrorResponse(405, "text/plain", "Method Not Allowed", matchLocation);
 	}
 }
@@ -859,7 +859,7 @@ STR Response::getResponse() {
 	_request._file_path = urlDecode(_request._file_path);
 
 	if (_request._full_request == "" || !_config) {
-		Logger::cerrlog(Logger::ERROR, "Response::getResponse error, no config or request");
+		Logger::log(Logger::ERROR, "Response::getResponse error, no config or request");
 		return "";
 	}
 
@@ -887,13 +887,13 @@ STR Response::getResponse() {
 
 	matchLocation = buildDirPath(matchServer, dir_path, isDIR);
 	// if (!matchLocation){
-	// 	Logger::cerrlog(Logger::ERROR, "Response::getResponse: no match location found for " + _request._file_path);
+	// 	Logger::log(Logger::ERROR, "Response::getResponse: no match location found for " + _request._file_path);
 	// 	return createErrorResponse(404, "text/plain", "Not Found", matchServer);
 	// }
 
 	// check body size
 	if (!checkBodySize(matchLocation)) {
-		Logger::cerrlog(Logger::ERROR, "Response::getResponse: body size is too big");
+		Logger::log(Logger::ERROR, "Response::getResponse: body size is too big");
 		return createErrorResponse(413, "text/plain", "Payload Too Large", matchServer);
 	}
 
@@ -953,7 +953,7 @@ STR Response::getResponse() {
 			}
 		}
 		catch (const std::exception& e) {
-			Logger::cerrlog(Logger::ERROR, "Response::getResponse: upload_store error: " + STR(e.what()));
+			Logger::log(Logger::ERROR, "Response::getResponse: upload_store error: " + STR(e.what()));
 		}
 		return (handlePOST(dir_path));
 	}
@@ -1010,20 +1010,20 @@ bool Response::processCgiOutput() {
         // Read available data from CGI
         STR output = _cgi_handler->readFromCgi();
         if (!output.empty()) {
-            Logger::cerrlog(Logger::DEBUG, "Read " + Utils::intToString(output.length()) +
+            Logger::log(Logger::DEBUG, "Read " + Utils::intToString(output.length()) +
                           " bytes from CGI output");
             _response_buffer += output;
         }
 
         // Check if CGI has completed
         if (_cgi_handler->checkCgiStatus()) {
-			Logger::cerrlog(Logger::INFO, "CGI process has completed");
+			Logger::log(Logger::INFO, "CGI process has completed");
 			_state = COMPLETE;
 			return true;
         }
         return false; // Still running
     } catch (const std::exception& e) {
-        Logger::cerrlog(Logger::ERROR, "Error in processCgiOutput: " + STR(e.what()));
+        Logger::log(Logger::ERROR, "Error in processCgiOutput: " + STR(e.what()));
 
 		if(_cgi_handler) _cgi_handler->closeCgi();
         _state = COMPLETE;
@@ -1040,17 +1040,17 @@ STR Response::getFinalResponse() {
 	CgiStatus cgiStatus = _cgi_handler->getCgiStatus();
 
 	if (cgiStatus == TIMEDOUT) {  // CGI process timed out
-		Logger::cerrlog(Logger::ERROR, "CGI process timed out");
+		Logger::log(Logger::ERROR, "CGI process timed out");
 		_response_buffer =  createErrorResponse(504, "text/plain", "504 Gateway Timeout", NULL);
 	}
 
 	if (cgiStatus == FINISHED_ERROR) {  // CGI finished with an error
-		Logger::cerrlog(Logger::ERROR, "CGI process finished with an error");
+		Logger::log(Logger::ERROR, "CGI process finished with an error");
 		_response_buffer = createErrorResponse(502, "text/plain", "502 Bad Gateway", NULL);
 	}
 
 	if (cgiStatus == FINISHED_OK && _response_buffer.find("\r\n\r\n") == STR::npos) {  // malformed headers response
-        Logger::cerrlog(Logger::ERROR, "CGI script produced a malformed response (no headers). Generating 502 Bad Gateway.");
+        Logger::log(Logger::ERROR, "CGI script produced a malformed response (no headers). Generating 502 Bad Gateway.");
         _response_buffer = createErrorResponse(502, "text/plain", "502 Bad Gateway", NULL);
     }
 
@@ -1166,7 +1166,7 @@ STR Response::getFinalResponse() {
 
             // Don't delete _cgi_handler here - it will be deleted in destructor
 
-            Logger::cerrlog(Logger::DEBUG, "Generated HTTP response from CGI output");
+            Logger::log(Logger::DEBUG, "Generated HTTP response from CGI output");
             return response.str();
         }
 
@@ -1184,11 +1184,11 @@ STR Response::getFinalResponse() {
 
         // Don't delete _cgi_handler here - it will be deleted in destructor
 
-        Logger::cerrlog(Logger::DEBUG, "Generated default HTTP response for CGI output");
+        Logger::log(Logger::DEBUG, "Generated default HTTP response for CGI output");
         return response.str();
     } catch (const std::exception& e) {
         // Handle any unexpected errors
-        Logger::cerrlog(Logger::ERROR, "Error in getFinalResponse: " + STR(e.what()));
+        Logger::log(Logger::ERROR, "Error in getFinalResponse: " + STR(e.what()));
 
         // Clean up
         _response_buffer.clear();

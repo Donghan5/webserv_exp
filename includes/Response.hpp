@@ -43,7 +43,6 @@ class Response {
         STR                         checkRedirect(LocationConfig *matchLocation);
         bool                        checkBodySize(LocationConfig *matchLocation);
 
-        // CGI 처리
         CgiHandler*                 _cgi_handler;
         ResponseState               _state;
         STR                         _response_buffer;
